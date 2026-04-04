@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-
+import { GA } from './analytics';
 // ── SOUND ENGINE ──────────────────────────────────────────────────────────────
 function createSoundEngine() {
   let ctx = null;
@@ -1593,12 +1593,14 @@ export default function App(){
   }
 
   function launchDaily(){
+    GA.dailyStarted(theme);
     SFX.click();
     setCards(smartOrder([...todayChallenge.cards]));
     setTheme(todayChallenge.theme);setMode("daily");resetState();setScreen("game");
   }
 
   function launchRush(cat){
+    GA.rushStarted(category.id);
     SFX.click();
     const plays=lsGet(`rush_plays_${cat}`,0);
     if(plays>=1){
@@ -1660,6 +1662,8 @@ export default function App(){
   }
 
   function finishGame(outcome,finalScore,log){
+    if (outcome === 'win') {
+  GA.dailyCompleted(finalScore, theme, yellowUsed, streak);
     setTimerActive(false);
     if(mode==="daily")markDailyPlayed(log||answerLog);
     if(mode==="rush")saveRushScore(finalScore, true);
@@ -2183,4 +2187,4 @@ export default function App(){
       </div>
     </PageWrap>
   );
-}
+}}
