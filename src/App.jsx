@@ -1662,8 +1662,6 @@ export default function App(){
   }
 
   function finishGame(outcome,finalScore,log){
-    if (outcome === 'win') {
-  GA.dailyCompleted(finalScore, theme, yellowUsed, streak);
     setTimerActive(false);
     if(mode==="daily")markDailyPlayed(log||answerLog);
     if(mode==="rush")saveRushScore(finalScore, true);
@@ -2187,4 +2185,4 @@ export default function App(){
       </div>
     </PageWrap>
   );
-}}
+}
