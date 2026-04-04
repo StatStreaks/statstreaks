@@ -1608,8 +1608,8 @@ export default function App(){
       if(!proceed)return;
     }
     const category=RUSH_CATEGORIES.find(c=>c.id===cat);
-    GA.rushStarted(category.id);
     if(!category)return;
+    GA.rushStarted(cat);
     setCards(rushShuffle([...category.cards]));
     setTheme(category.label);setMode("rush");setRushCat(cat);
     resetState();setTimerActive(true);setScreen("game");
