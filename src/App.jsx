@@ -1600,7 +1600,7 @@ export default function App(){
   }
 
   function launchRush(cat){
-    GA.rushStarted(category.id);
+    
     SFX.click();
     const plays=lsGet(`rush_plays_${cat}`,0);
     if(plays>=1){
@@ -1608,6 +1608,7 @@ export default function App(){
       if(!proceed)return;
     }
     const category=RUSH_CATEGORIES.find(c=>c.id===cat);
+    GA.rushStarted(category.id);
     if(!category)return;
     setCards(rushShuffle([...category.cards]));
     setTheme(category.label);setMode("rush");setRushCat(cat);
