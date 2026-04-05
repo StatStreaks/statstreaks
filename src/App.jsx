@@ -1513,7 +1513,109 @@ function LeaderboardScreen({onBack,rushScores,username,onSetUsername}){
 }
 
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
-export default function App(){
+// ── PASSWORD GATE ─────────────────────────────────────────────────────────────
+const PASSWORD = "bottlers";
+
+function PasswordGate({ onUnlock }) {
+  const [input, setInput] = useState("");
+  const [error, setError] = useState(false);
+  const [shake, setShake] = useState(false);
+
+  function attempt() {
+    if (input.trim().toLowerCase() === PASSWORD) {
+      lsSet("unlocked", true);
+      onUnlock();
+    } else {
+      setError(true);
+      setShake(true);
+      setInput("");
+      setTimeout(() => setShake(false), 600);
+    }
+  }
+
+  return (
+    <PageWrap>
+      <style>{`
+        @keyframes shake {
+          0%,100%{transform:translateX(0)}
+          20%{transform:translateX(-8px)}
+          40%{transform:translateX(8px)}
+          60%{transform:translateX(-6px)}
+          80%{transform:translateX(6px)}
+        }
+        .shake { animation: shake 0.5s ease; }
+      `}</style>
+      <div style={{ width:"100%", maxWidth:360, marginTop:60, textAlign:"center" }}>
+        <div style={{ marginBottom:8, fontSize:11, color:S.textDim, letterSpacing:4, fontWeight:700 }}>
+          🔒 PRIVATE BETA
+        </div>
+        <h1 style={{
+          fontSize:48, fontWeight:900, letterSpacing:2, margin:"0 0 6px",
+          background:"linear-gradient(90deg,#0d9488,#14b8a6,#5eead4)",
+          WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent"
+        }}>
+          StatStreaks
+        </h1>
+        <div style={{ color:S.textDim, fontSize:14, marginBottom:40 }}>
+          The higher or lower football game
+        </div>
+        <GlowCard style={{ padding:28 }} active>
+          <div style={{ color:S.textMid, fontSize:13, letterSpacing:2, fontWeight:700, marginBottom:20 }}>
+            ENTER PASSWORD
+          </div>
+          <input
+            value={input}
+            onChange={e => { setInput(e.target.value); setError(false); }}
+            onKeyDown={e => e.key === "Enter" && attempt()}
+            type="password"
+            placeholder="Password..."
+            autoFocus
+            className={shake ? "shake" : ""}
+            style={{
+              width:"100%", boxSizing:"border-box",
+              background:"#040f0a", border:`1px solid ${error ? "#ef4444" : "#1a4a38"}`,
+              borderRadius:10, padding:"12px 16px",
+              color: error ? "#ef4444" : S.textBright,
+              fontFamily:"'Barlow Condensed',sans-serif",
+              fontSize:18, fontWeight:700, outline:"none",
+              textAlign:"center", letterSpacing:3,
+              transition:"border-color 0.2s", marginBottom:8,
+            }}
+          />
+          <div style={{ height:18, marginBottom:14, color:"#ef4444", fontSize:12, fontWeight:700, letterSpacing:1 }}>
+            {error ? "❌ WRONG PASSWORD — TRY AGAIN" : ""}
+          </div>
+          <button
+            onClick={attempt}
+            style={{
+              width:"100%", padding:"13px 0",
+              background:"linear-gradient(135deg,#0f766e,#0d9488)",
+              border:"none", borderRadius:10,
+              color:"#fff", fontFamily:"'Barlow Condensed',sans-serif",
+              fontSize:16, fontWeight:800, letterSpacing:2,
+              cursor:"pointer",
+            }}
+          >
+            ENTER →
+          </button>
+        </GlowCard>
+        <div style={{ color:S.textDim, fontSize:11, marginTop:20, letterSpacing:1 }}>
+          Got the password from a friend? You're in the right place.
+        </div>
+      </div>
+    </PageWrap>
+  );
+}
+
+function AppWithAuth() {
+  const [unlocked, setUnlocked] = useState(() => lsGet("unlocked", false));
+  if (!unlocked) return <PasswordGate onUnlock={() => setUnlocked(true)} />;
+  return <App />;
+}
+
+export default AppWithAuth;
+
+function App(){
   const [screen,setScreen]               = useState("home");
   const [mode,setMode]                   = useState(null);
   const [rushCat,setRushCat]             = useState(null);
