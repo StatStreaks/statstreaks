@@ -1,5 +1,23 @@
 import { useState, useEffect, useRef } from "react";
-import { GA } from './analytics';
+
+// ── ANALYTICS ─────────────────────────────────────────────────────────────────
+function trackEvent(name, params = {}) {
+  if (typeof window.gtag !== 'function') return;
+  window.gtag('event', name, params);
+}
+const GA = {
+  dailyStarted: (theme) => trackEvent('daily_started', { theme }),
+  dailyCompleted: (score, theme, yellowUsed, streak) => trackEvent('daily_completed', { score, theme, yellow_card_used: yellowUsed, streak }),
+  dailyFailed: (score, theme, cause) => trackEvent('daily_failed', { score, theme, cause }),
+  yellowCardShown: (questionIndex, theme) => trackEvent('yellow_card_shown', { question_index: questionIndex, theme }),
+  yellowCardWatched: (theme) => trackEvent('yellow_card_ad_watched', { theme }),
+  yellowCardDeclined: (theme) => trackEvent('yellow_card_declined', { theme }),
+  scoreShared: (score, mode, theme) => trackEvent('score_shared', { score, mode, theme }),
+  streakMilestone: (streak) => trackEvent('streak_milestone', { streak }),
+  rushStarted: (category) => trackEvent('rush_started', { category }),
+  rushCompleted: (score, cleanScore, category) => trackEvent('rush_completed', { score, clean_score: cleanScore, category }),
+  rushAdWatched: (category) => trackEvent('rush_ad_watched', { category }),
+};
 // ── SOUND ENGINE ──────────────────────────────────────────────────────────────
 function createSoundEngine() {
   let ctx = null;
@@ -1263,89 +1281,159 @@ function buildLeaderboard(scores,username){
 }
 
 
-// ── SHARED STYLES ─────────────────────────────────────────────────────────────
+// ── DESIGN SYSTEM ─────────────────────────────────────────────────────────────
 const S = {
-  pageBg:    "radial-gradient(ellipse 120% 80% at 50% -10%, #0a2218 0%, #061410 40%, #020a08 100%)",
-  panelBg:   "linear-gradient(160deg, #0a1e16 0%, #061210 100%)",
-  borderTeal:"#1a4a38",
-  borderGold:"#8a6a20",
-  glowGold:  "0 0 20px #f59e0b30, 0 0 60px #f59e0b10",
-  textBright:"#e8f5f0",
-  textMid:   "#7ab49a",
-  textDim:   "#3a6650",
-  textGold:  "#f0b429",
-  teal:      "#0d9488",
-  tealLight: "#14b8a6",
-  gold:      "#f0b429",
+  // Backgrounds — mid-slate, not pure black
+  bg:        "#0f1923",   // deep navy-slate
+  bgCard:    "#ffffff",   // white cards
+  bgCardAlt: "#f8fafc",   // off-white for nested areas
+  bgSurface: "#1a2535",   // elevated surface
+  bgInput:   "#f1f5f9",
+
+  // Borders
+  border:    "#e2e8f0",
+  borderDark:"#2a3a50",
+
+  // Brand colours
+  green:     "#16a34a",   // football pitch green — primary
+  greenLight:"#22c55e",
+  greenBg:   "#f0fdf4",
+  greenBorder:"#bbf7d0",
+
+  amber:     "#d97706",   // caps / career gold
+  amberLight:"#f59e0b",
+  amberBg:   "#fffbeb",
+  amberBorder:"#fde68a",
+
+  blue:      "#2563eb",   // Training Pitch accent
+  blueLight: "#3b82f6",
+  blueBg:    "#eff6ff",
+  blueBorder:"#bfdbfe",
+
+  red:       "#dc2626",
+  redBg:     "#fef2f2",
+  redBorder: "#fecaca",
+
+  // Text
+  textBright:"#0f172a",   // near-black on white
+  textMid:   "#475569",
+  textDim:   "#94a3b8",
+  textOnDark:"#f1f5f9",
+  textDimDark:"#64748b",
+
+  // Legacy aliases (keep game logic working)
+  gold:      "#d97706",
+  goldDim:   "#b45309",
+  teal:      "#2563eb",
+  tealLight: "#3b82f6",
+  accent:    "#16a34a",
+  accentDim: "#15803d",
 };
 
-const TEXTURE = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E")`;
-
-function PageWrap({children, glow="teal"}) {
-  const glowCol = glow==="gold"?"#1a0e00":glow==="red"?"#1a0400":"#021a10";
+function PageWrap({children, glow="default"}) {
+  // Subtle top gradient per mode
+  const topBar = glow==="gold"  ? "linear-gradient(90deg,#be185d,#ec4899)"
+               : glow==="red"   ? "linear-gradient(90deg,#dc2626,#ef4444)"
+               : glow==="cyan"  ? "linear-gradient(90deg,#2563eb,#3b82f6)"
+               :                  "linear-gradient(90deg,#16a34a,#22c55e)";
   return (
-    <div style={{minHeight:"100vh",background:`radial-gradient(ellipse 100% 60% at 50% 0%, ${glowCol} 0%, #020a08 60%)`,fontFamily:"'Barlow Condensed',sans-serif",position:"relative",overflow:"hidden"}}>
-      <div style={{position:"fixed",inset:0,backgroundImage:TEXTURE,pointerEvents:"none",opacity:0.6}}/>
-      <div style={{position:"fixed",inset:0,backgroundImage:"linear-gradient(rgba(13,148,136,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(13,148,136,0.03) 1px,transparent 1px)",backgroundSize:"40px 40px",pointerEvents:"none"}}/>
-      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"20px 16px 32px",maxWidth:460,margin:"0 auto"}}>
+    <div style={{minHeight:"100vh",background:S.bg,fontFamily:"'Inter',sans-serif",position:"relative"}}>
+      {/* Top colour bar */}
+      <div style={{position:"fixed",top:0,left:0,right:0,height:3,background:topBar,zIndex:10}}/>
+      {/* Subtle pitch texture — faint diagonal lines */}
+      <div style={{position:"fixed",inset:0,backgroundImage:"repeating-linear-gradient(160deg,transparent,transparent 60px,rgba(255,255,255,0.018) 60px,rgba(255,255,255,0.018) 61px)",pointerEvents:"none",zIndex:0}}/>
+      <div style={{position:"relative",zIndex:1,display:"flex",flexDirection:"column",alignItems:"center",padding:"24px 16px 48px",maxWidth:460,margin:"0 auto"}}>
         {children}
       </div>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&display=swap'); @keyframes timerPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.7;transform:scale(1.05)}} @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}} @keyframes shimmer{0%,100%{opacity:0.5}50%{opacity:1}}`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Bebas+Neue&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; }
+        @keyframes timerPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.8;transform:scale(1.08)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes popIn{0%{transform:scale(0.94);opacity:0}60%{transform:scale(1.03)}100%{transform:scale(1);opacity:1}}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.55}}
+        @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+      `}</style>
     </div>
   );
 }
 
-function GlowCard({children, style={}, gold=false, active=false}) {
-  const border = gold ? S.borderGold : active ? "#1f6a54" : S.borderTeal;
-  const shadow = gold ? S.glowGold : active ? "0 0 24px #0d948455, 0 2px 8px #00000088" : "0 2px 12px #00000066";
+// White surface card — the primary container unit
+function Card({children, style={}, variant="default"}) {
+  const variants = {
+    default: { bg:"#ffffff",      border:"#e2e8f0", shadow:"0 1px 4px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)" },
+    active:  { bg:"#ffffff",      border:"#86efac", shadow:"0 0 0 2px #16a34a22, 0 4px 20px rgba(22,163,74,0.12)" },
+    gold:    { bg:"#fffbeb",      border:"#fde68a", shadow:"0 0 0 2px #d9770618, 0 4px 20px rgba(217,119,6,0.1)" },
+    green:   { bg:"#f0fdf4",      border:"#bbf7d0", shadow:"0 0 0 2px #16a34a18, 0 4px 16px rgba(22,163,74,0.1)" },
+    red:     { bg:"#fef2f2",      border:"#fecaca", shadow:"0 0 0 2px #dc262618, 0 4px 16px rgba(220,38,38,0.1)" },
+    dark:    { bg:"#1a2535",      border:"#2a3a50", shadow:"0 4px 20px rgba(0,0,0,0.3)" },
+    pitch:   { bg:"#16a34a",      border:"#15803d", shadow:"0 4px 20px rgba(22,163,74,0.4)" },
+  };
+  const v = variants[variant]||variants.default;
   return (
-    <div style={{background:S.panelBg,border:`1px solid ${border}`,borderRadius:16,boxShadow:shadow,position:"relative",overflow:"hidden",...style}}>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${gold?"#f0b42944":S.teal+"44"},transparent)`}}/>
-      <div style={{position:"absolute",bottom:0,left:"20%",right:"20%",height:1,background:`linear-gradient(90deg,transparent,${gold?"#f0b42933":"#0d948433"},transparent)`}}/>
+    <div style={{background:v.bg,border:`1px solid ${v.border}`,borderRadius:14,boxShadow:v.shadow,position:"relative",overflow:"hidden",...style}}>
       {children}
     </div>
   );
 }
+const GlowCard = ({children,style={},gold=false,active=false})=>(
+  <Card style={style} variant={gold?"gold":active?"active":"default"}>{children}</Card>
+);
 
-// Stat display panel
+// Stat display panel — white card with strong contrast
 function StatPanel({card, revealed, flashResult=null}) {
   const isCorrect=flashResult==="correct", isWrong=flashResult==="wrong", isYellow=flashResult==="yellow";
-  const border=isCorrect?"#22c55e":isWrong?"#ef4444":isYellow?"#f59e0b":revealed?"#1f6a54":"#153a28";
-  const glow=isCorrect?"0 0 20px #22c55e55":isWrong?"0 0 20px #ef444455":isYellow?"0 0 20px #f59e0b55":revealed?"0 0 16px #0d948433":"none";
+
+  let bg = "#ffffff";
+  let borderCol = "#e2e8f0";
+  let numCol = "#0f172a";
+  let shadow = "0 2px 8px rgba(0,0,0,0.08)";
+  let topAccent = "#e2e8f0";
+
+  if(revealed && !flashResult) { borderCol="#93c5fd"; topAccent="#3b82f6"; numCol="#1d4ed8"; shadow="0 0 0 2px #3b82f618, 0 4px 16px rgba(59,130,246,0.15)"; }
+  if(isCorrect) { bg="#f0fdf4"; borderCol="#86efac"; topAccent="#16a34a"; numCol="#15803d"; shadow="0 0 0 2px #16a34a22, 0 6px 24px rgba(22,163,74,0.25)"; }
+  if(isWrong)   { bg="#fef2f2"; borderCol="#fca5a5"; topAccent="#dc2626"; numCol="#dc2626"; shadow="0 0 0 2px #dc262622, 0 6px 24px rgba(220,38,38,0.25)"; }
+  if(isYellow)  { bg="#fffbeb"; borderCol="#fde68a"; topAccent="#d97706"; numCol="#b45309"; shadow="0 0 0 2px #d9770622, 0 6px 24px rgba(217,119,6,0.25)"; }
+
   return (
-    <div style={{width:155,minHeight:210,background:revealed?"linear-gradient(180deg,#0d2a1e,#071810)":"linear-gradient(180deg,#081a12,#040e09)",border:`1.5px solid ${border}`,borderRadius:16,boxShadow:`${glow}, 0 4px 16px #00000066`,display:"flex",flexDirection:"column",alignItems:"center",padding:"14px 10px 12px",position:"relative",overflow:"hidden",transition:"border-color 0.3s,box-shadow 0.3s"}}>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,#ffffff14,transparent)"}}/>
-      <div style={{position:"absolute",inset:0,backgroundImage:TEXTURE,opacity:0.4,pointerEvents:"none"}}/>
-      <div style={{fontSize:13,fontWeight:800,color:S.textBright,letterSpacing:0.3,lineHeight:1.2,textAlign:"center",width:"100%",marginBottom:3,position:"relative"}}>{card.player}</div>
+    <div style={{width:155,minHeight:200,background:bg,border:`1.5px solid ${borderCol}`,borderRadius:14,boxShadow:shadow,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 0 14px",position:"relative",overflow:"hidden",transition:"border-color 0.25s,box-shadow 0.25s,background 0.25s"}}>
+      {/* Top colour accent bar */}
+      <div style={{width:"100%",height:4,background:topAccent,transition:"background 0.25s",marginBottom:14,flexShrink:0}}/>
+      {/* Player name */}
+      <div style={{fontSize:13,fontWeight:800,color:"#0f172a",letterSpacing:0.3,lineHeight:1.2,textAlign:"center",width:"100%",padding:"0 10px",marginBottom:2,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase"}}>{card.player}</div>
       {card.club
-        ? <div style={{fontSize:8,color:S.textDim,letterSpacing:1,textTransform:"uppercase",marginBottom:8,textAlign:"center",position:"relative"}}>{card.club}{card.season?` · ${card.season}`:""}</div>
+        ? <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,textAlign:"center",fontWeight:700,padding:"0 8px"}}>{card.club}{card.season?` · ${card.season}`:""}</div>
         : <div style={{marginBottom:10}}/>}
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%",position:"relative"}}>
+      {/* Stat number */}
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%",padding:"0 10px"}}>
         {revealed
-          ? <div style={{fontSize:52,fontWeight:900,color:S.tealLight,lineHeight:1,textShadow:`0 0 20px ${S.teal}88`}}>{card.stat}</div>
-          : <div style={{fontSize:38,fontWeight:900,color:"#1a4030",lineHeight:1,letterSpacing:6}}>???</div>}
+          ? <div style={{fontSize:56,fontWeight:900,color:numCol,lineHeight:1,fontFamily:"'Oswald',sans-serif",transition:"color 0.25s"}}>{card.stat}</div>
+          : <div style={{fontSize:28,fontWeight:700,color:"#cbd5e1",lineHeight:1,letterSpacing:6,fontFamily:"'Oswald',sans-serif"}}>???</div>}
       </div>
-      <div style={{width:"75%",height:1,background:`linear-gradient(90deg,transparent,${revealed?"#1f6a54":"#0d2a1e"},transparent)`,margin:"8px 0"}}/>
-      <div style={{fontSize:9,fontWeight:700,color:revealed?S.textMid:"#1a4030",letterSpacing:2,textTransform:"uppercase",textAlign:"center",position:"relative",transition:"color 0.3s"}}>
+      {/* Divider */}
+      <div style={{width:"50%",height:1,background:"#e2e8f0",margin:"10px 0",transition:"background 0.25s"}}/>
+      {/* Stat type */}
+      <div style={{fontSize:9,fontWeight:700,color:"#64748b",letterSpacing:2,textTransform:"uppercase",textAlign:"center"}}>
         {STAT_ICONS[card.statType]||"📊"} {card.statType}
       </div>
     </div>
   );
 }
 
-// 10 progress dots — daily only
+// Progress dots — daily only
 function ProgressDots({current, result, yellowCardIdx}) {
   return (
-    <div style={{display:"flex",gap:5,alignItems:"center",justifyContent:"center",marginBottom:12}}>
+    <div style={{display:"flex",gap:5,alignItems:"center",justifyContent:"center",marginBottom:14}}>
       {Array.from({length:10}).map((_,i)=>{
-        let bg="#0d1f18",border="1.5px solid #1a3a28",cnt=i+1,col="#2a5040",fs=9;
-        if(i<current)                       {bg="#166534";border="1.5px solid #22c55e";cnt="✓";col="#22c55e";fs=11;}
-        if(i===yellowCardIdx&&i<current)    {bg="#854d0e";border="1.5px solid #f59e0b";cnt="🟨";col="#f59e0b";fs=11;}
-        if(i===current&&result===null)      {bg="#0d3a28";border="1.5px solid #0d9488";col="#14b8a6";}
-        if(i===current&&result==="correct") {bg="#166534";border="1.5px solid #22c55e";cnt="✓";col="#22c55e";fs=11;}
-        if(i===current&&result==="wrong")   {bg="#7f1d1d";border="1.5px solid #ef4444";cnt="✗";col="#ef4444";fs=11;}
-        if(i===current&&result==="yellow")  {bg="#854d0e";border="1.5px solid #f59e0b";cnt="🟨";col="#f59e0b";fs=11;}
-        return <div key={i} style={{width:23,height:23,borderRadius:"50%",background:bg,border,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,transition:"all 0.25s"}}>{cnt}</div>;
+        let bg="#e2e8f0", borderC="#cbd5e1", cnt=i+1, col="#94a3b8", fs=9;
+        if(i<current)                       {bg="#dcfce7";borderC="#86efac";cnt="✓";col="#16a34a";fs=10;}
+        if(i===yellowCardIdx&&i<current)    {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=10;}
+        if(i===current&&result===null)      {bg="#dbeafe";borderC="#93c5fd";col="#2563eb";}
+        if(i===current&&result==="correct") {bg="#dcfce7";borderC="#86efac";cnt="✓";col="#16a34a";fs=10;}
+        if(i===current&&result==="wrong")   {bg="#fee2e2";borderC="#fca5a5";cnt="✗";col="#dc2626";fs=10;}
+        if(i===current&&result==="yellow")  {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=10;}
+        return <div key={i} style={{width:26,height:26,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,transition:"all 0.2s",fontFamily:"'Barlow Condensed',sans-serif"}}>{cnt}</div>;
       })}
     </div>
   );
@@ -1356,11 +1444,11 @@ function DailyResultDots({resultData}) {
     <div style={{display:"flex",gap:5,alignItems:"center",justifyContent:"center",flexWrap:"wrap"}}>
       {Array.from({length:10}).map((_,i)=>{
         const r=resultData[i]||null;
-        let bg="#0d1f18",border="1.5px solid #1a3a28",cnt=i+1,col="#2a5040",fs=8;
-        if(r==="correct"){bg="#166534";border="1.5px solid #22c55e";cnt="✓";col="#22c55e";fs=11;}
-        if(r==="yellow") {bg="#854d0e";border="1.5px solid #f59e0b";cnt="🟨";col="#f59e0b";fs=11;}
-        if(r==="wrong")  {bg="#7f1d1d";border="1.5px solid #ef4444";cnt="✗";col="#ef4444";fs=11;}
-        return <div key={i} style={{width:22,height:22,borderRadius:"50%",background:bg,border,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800}}>{cnt}</div>;
+        let bg="#e2e8f0", borderC="#cbd5e1", cnt=i+1, col="#94a3b8", fs=9;
+        if(r==="correct"){bg="#dcfce7";borderC="#86efac";cnt="✓";col="#16a34a";fs=10;}
+        if(r==="yellow") {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=10;}
+        if(r==="wrong")  {bg="#fee2e2";borderC="#fca5a5";cnt="🟥";col="#dc2626";fs=10;}
+        return <div key={i} style={{width:26,height:26,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>{cnt}</div>;
       })}
     </div>
   );
@@ -1373,23 +1461,24 @@ function YellowCardOverlay({onWatchAd,onDecline}) {
   function startAd(){setWatching(true);setCd(5);ref.current=setInterval(()=>setCd(c=>{if(c<=1){clearInterval(ref.current);onWatchAd();return 0;}return c-1;}),1000);}
   useEffect(()=>()=>clearInterval(ref.current),[]);
   return(
-    <div style={{position:"fixed",inset:0,background:"#000000dd",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px"}}>
-      <div style={{background:"linear-gradient(160deg,#1a1400,#0a0c00)",border:"2px solid #f59e0b",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 0 40px #f59e0b33"}}>
-        <div style={{fontSize:52,marginBottom:8}}>🟨</div>
-        <div style={{color:S.gold,fontWeight:900,fontSize:26,letterSpacing:2,marginBottom:6}}>YELLOW CARD!</div>
-        <div style={{color:"#94a3b8",fontSize:14,marginBottom:22,lineHeight:1.6}}>Wrong answer — watch a short ad to continue.<br/><span style={{color:"#ef4444",fontWeight:700}}>Get another wrong = 🟥 Red Card.</span></div>
+    <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px",backdropFilter:"blur(6px)"}}>
+      <div style={{background:"#ffffff",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
+        {/* Yellow card graphic */}
+        <div style={{width:52,height:68,background:"linear-gradient(160deg,#fbbf24,#d97706)",borderRadius:8,margin:"0 auto 16px",boxShadow:"0 4px 20px rgba(219,39,119,0.5)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{width:38,height:50,background:"linear-gradient(160deg,#fde68a,#fbbf24)",borderRadius:5}}/>
+        </div>
+        <div style={{color:"#92400e",fontWeight:900,fontSize:22,letterSpacing:1,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase"}}>Yellow Card</div>
+        <div style={{color:"#64748b",fontSize:13,marginBottom:20,lineHeight:1.6}}>Wrong answer — watch a short ad to stay on the pitch.<br/><span style={{color:"#dc2626",fontWeight:700,fontSize:12}}>Another wrong = 🟥 Red Card</span></div>
         {watching?(
-          <div>
-            <div style={{background:"#0a0800",border:"1px solid #f59e0b44",borderRadius:12,padding:"16px",marginBottom:14}}>
-              <div style={{color:"#475569",fontSize:10,letterSpacing:2,marginBottom:6}}>AD PLAYING</div>
-              <div style={{color:S.gold,fontWeight:900,fontSize:40}}>{cd}s</div>
-            </div>
-            <div style={{color:"#3a5040",fontSize:12}}>Resuming your streak...</div>
+          <div style={{background:"#f8fafc",borderRadius:12,padding:"20px",border:"1px solid #e2e8f0"}}>
+            <div style={{color:"#94a3b8",fontSize:9,letterSpacing:3,marginBottom:8,fontWeight:700}}>AD PLAYING</div>
+            <div style={{color:"#d97706",fontWeight:900,fontSize:52,fontFamily:"'Oswald',sans-serif",lineHeight:1}}>{cd}</div>
+            <div style={{color:"#94a3b8",fontSize:11,marginTop:6}}>Resuming your match...</div>
           </div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <button onClick={startAd} style={{padding:"15px",background:"linear-gradient(135deg,#b45309,#d97706)",border:"1px solid #f59e0b66",borderRadius:12,color:"#fff",fontSize:16,fontWeight:900,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:"0 4px 20px #f59e0b33"}}>📺 WATCH AD &amp; CONTINUE</button>
-            <button onClick={onDecline} style={{padding:"12px",background:"transparent",border:"1px solid #2a1a00",borderRadius:10,color:"#64748b",fontSize:13,fontWeight:600,letterSpacing:1,textTransform:"uppercase",cursor:"pointer"}}>🟥 Decline — end streak</button>
+            <button onClick={startAd} style={{padding:"14px",background:"#16a34a",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4)"}}>📺 Watch Ad &amp; Continue</button>
+            <button onClick={onDecline} style={{padding:"11px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,color:"#94a3b8",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif"}}>🟥 End Match</button>
           </div>
         )}
       </div>
@@ -1418,38 +1507,45 @@ function getScoreMessage(score) {
   return msgs[idx];
 }
 
-// ── RUSH PAGE ─────────────────────────────────────────────────────────────────
+// ── TRAINING PITCH PAGE ───────────────────────────────────────────────────────
 function RushPage({onBack, onPlay, onLeaderboard}) {
   return (
     <PageWrap glow="gold">
       <div style={{width:"100%"}}>
-        <div style={{textAlign:"center",marginBottom:16}}>
-          <h1 style={{fontSize:40,fontWeight:900,letterSpacing:1,margin:"0 0 2px",background:"linear-gradient(90deg,#0d9488,#14b8a6,#5eead4)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>StatStreaks</h1>
-          <div style={{color:S.gold,fontWeight:800,fontSize:16,letterSpacing:2}}>⚡ RUSH STREAK ⚡⚡</div>
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+          <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,flexShrink:0}}>← Back</button>
+          <div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
+            <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Training Pitch</div>
+          </div>
         </div>
 
-        <div style={{display:"flex",alignItems:"center",marginBottom:12}}>
-          <button onClick={onBack} style={{background:"linear-gradient(135deg,#0a1e16,#061410)",border:"1px solid #1a4a38",borderRadius:10,color:S.textMid,fontSize:12,cursor:"pointer",letterSpacing:1,padding:"8px 14px",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600}}>← HOME</button>
+        {/* Mode explainer — magenta gradient */}
+        <div style={{background:"linear-gradient(135deg,#be185d,#db2777)",borderRadius:14,padding:"16px",marginBottom:16,boxShadow:"0 4px 20px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
+          <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>How it works</div>
+          <div style={{color:"#ffffff",fontWeight:800,fontSize:15,marginBottom:4,fontFamily:"'Inter',sans-serif"}}>30 seconds — go for perfect ⚡</div>
+          <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Score as many as you can. Zero mistakes = <strong style={{color:"#fde047"}}>2× score</strong>. Pick a category below.</div>
         </div>
 
-        <GlowCard gold style={{padding:"12px 16px",marginBottom:14,textAlign:"center"}}>
-          <div style={{color:S.gold,fontSize:14,fontWeight:700}}>⚡ 30 seconds — score as many as you can</div>
-          <div style={{color:S.textDim,fontSize:11,marginTop:2}}>Pick a category below to start</div>
-        </GlowCard>
-
+        {/* Category grid */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           {RUSH_CATEGORIES.map(cat=>{
             const catBest=lsGet(`rush_best_${cat.id}`,0);
             return(
-              <button key={cat.id} onClick={()=>onPlay(cat.id)} style={{padding:"14px 10px",background:`linear-gradient(135deg,${cat.color}18,${cat.color}08)`,border:`1px solid ${cat.color}55`,borderRadius:14,color:S.textBright,fontFamily:"'Barlow Condensed',sans-serif",fontSize:12,fontWeight:800,cursor:"pointer",textAlign:"center",transition:"transform 0.1s,box-shadow 0.1s",display:"flex",flexDirection:"column",alignItems:"center",gap:5,position:"relative",overflow:"hidden"}}
-                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 6px 20px ${cat.color}33`;}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}>
-                <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${cat.color}44,transparent)`}}/>
-                <span style={{fontSize:20}}>{cat.icon}</span>
-                <span style={{lineHeight:1.2,fontSize:11,textAlign:"center"}}>{cat.label}</span>
-                <div style={{fontSize:10,borderTop:`1px solid ${cat.color}22`,paddingTop:5,marginTop:2,width:"100%",textAlign:"center"}}>
-                  <span style={{color:catBest>0?cat.color:S.textDim}}>{catBest>0?`Best: ${catBest}`:"No score yet"}</span>
-                  <span style={{color:S.textDim,marginLeft:6}}>Avg: <span style={{color:S.textMid,fontWeight:700}}>{cat.globalAvg}</span></span>
+              <button key={cat.id} onClick={()=>onPlay(cat.id)} style={{padding:"0",background:"#ffffff",border:"1px solid #e2e8f0",borderRadius:14,cursor:"pointer",textAlign:"left",transition:"transform 0.1s,box-shadow 0.1s",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.08)"}}
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,0.15)`;}}
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,0.08)";}}>
+                <div style={{height:4,background:cat.color,width:"100%"}}/>
+                <div style={{padding:"12px 12px 10px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                    <span style={{fontSize:18}}>{cat.icon}</span>
+                    <span style={{fontSize:12,fontWeight:800,color:"#0f172a",fontFamily:"'Inter',sans-serif"}}>{cat.label}</span>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span style={{fontSize:10,color:catBest>0?cat.color:"#94a3b8",fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{catBest>0?`Best: ${catBest}`:"No score yet"}</span>
+                    <span style={{fontSize:9,color:"#94a3b8",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>avg {cat.globalAvg}</span>
+                  </div>
                 </div>
               </button>
             );
@@ -1471,42 +1567,59 @@ function LeaderboardScreen({onBack,rushScores,username,onSetUsername}){
   return(
     <PageWrap>
       <div style={{width:"100%"}}>
-        <div style={{textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:11,color:S.textDim,letterSpacing:4,fontWeight:700,marginBottom:4}}>🏆 LEADERBOARD</div>
-          <h1 style={{fontSize:40,fontWeight:900,letterSpacing:1,margin:0,background:"linear-gradient(90deg,#0d9488,#14b8a6,#5eead4)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>StatStreaks</h1>
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+          <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",flexShrink:0}}>← Back</button>
+          <div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:700,textTransform:"uppercase"}}>Training Pitch</div>
+            <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Oswald',sans-serif",lineHeight:1}}>Leaderboard</div>
+          </div>
         </div>
-        <button onClick={onBack} style={{background:"linear-gradient(135deg,#0a1e16,#061410)",border:"1px solid #1a4a38",borderRadius:10,color:S.textMid,fontSize:12,cursor:"pointer",letterSpacing:1,padding:"8px 14px",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600,marginBottom:16}}>← BACK</button>
-        <GlowCard style={{padding:"12px 16px",marginBottom:12}}>
-          <div style={{color:S.textDim,fontSize:9,letterSpacing:2,marginBottom:6,fontWeight:700}}>YOUR NAME ON THE BOARD</div>
+
+        {/* Name card */}
+        <div style={{background:"#ffffff",borderRadius:14,padding:"14px 16px",marginBottom:10,boxShadow:"0 4px 16px rgba(0,0,0,0.15)"}}>
+          <div style={{color:"#94a3b8",fontSize:9,letterSpacing:2,marginBottom:8,fontWeight:700,textTransform:"uppercase"}}>Your Name</div>
           {editing?(
             <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>e.key==="Enter"&&save()} maxLength={20} placeholder="Enter your name..." autoFocus style={{flex:1,background:"#040f0a",border:"1px solid #1a4a38",borderRadius:8,padding:"9px 12px",color:S.textBright,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,outline:"none"}}/>
-              <button onClick={save} style={{padding:"9px 16px",background:`linear-gradient(135deg,#0f766e,#0d9488)`,border:"none",borderRadius:8,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:800,letterSpacing:1,cursor:"pointer"}}>SAVE</button>
+              <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>e.key==="Enter"&&save()} maxLength={20} placeholder="Enter your name..." autoFocus
+                style={{flex:1,background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 12px",color:"#0f172a",fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,outline:"none"}}/>
+              <button onClick={save} style={{padding:"9px 16px",background:"#16a34a",border:"none",borderRadius:8,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:800,letterSpacing:1,cursor:"pointer"}}>SAVE</button>
             </div>
           ):(
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{color:username?S.gold:S.textDim,fontWeight:900,fontSize:18,letterSpacing:1}}>{username||"— tap to set —"}</div>
-              <button onClick={()=>{setDraft(username||"");setEditing(true);}} style={{padding:"6px 12px",background:"#040f0a",border:"1px solid #1a4a38",borderRadius:7,color:S.textMid,fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:700,letterSpacing:1,cursor:"pointer"}}>{username?"EDIT":"SET"}</button>
+              <div style={{color:username?"#0f172a":"#94a3b8",fontWeight:900,fontSize:18}}>{username||"— tap to set —"}</div>
+              <button onClick={()=>{setDraft(username||"");setEditing(true);}} style={{padding:"6px 12px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:7,color:"#475569",fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:700,letterSpacing:1,cursor:"pointer"}}>{username?"EDIT":"SET"}</button>
             </div>
           )}
-        </GlowCard>
-        {youEntry&&<GlowCard gold style={{padding:"12px 18px",marginBottom:12}}><div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}><div><div style={{color:S.gold,fontSize:9,letterSpacing:2,fontWeight:700,marginBottom:2}}>YOUR BEST RANK</div><div style={{color:"#fff",fontWeight:900,fontSize:28}}>#{youEntry.rank}</div></div><div style={{textAlign:"right"}}><div style={{color:S.textDim,fontSize:9,letterSpacing:2,marginBottom:2}}>BEST SCORE</div><div style={{color:S.gold,fontWeight:900,fontSize:28}}>{best}</div></div></div></GlowCard>}
-        <GlowCard style={{overflow:"hidden"}}>
-          <div style={{display:"flex",alignItems:"center",padding:"8px 16px",borderBottom:"1px solid #0d2a1e",background:"#040f0a"}}>
-            <div style={{width:34,color:S.textDim,fontSize:9,letterSpacing:1,fontWeight:700}}>#</div>
-            <div style={{flex:1,color:S.textDim,fontSize:9,letterSpacing:1,fontWeight:700}}>PLAYER</div>
-            <div style={{width:55,textAlign:"right",color:S.textDim,fontSize:9,letterSpacing:1,fontWeight:700}}>SCORE</div>
+        </div>
+
+        {youEntry&&(
+          <div style={{background:"linear-gradient(135deg,#fffbeb,#fef3c7)",border:"1px solid #fde68a",borderRadius:14,padding:"12px 16px",marginBottom:10,boxShadow:"0 4px 16px rgba(217,119,6,0.15)"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+              <div><div style={{color:"#92400e",fontSize:9,letterSpacing:2,fontWeight:700,marginBottom:2,textTransform:"uppercase"}}>Your Rank</div><div style={{color:"#d97706",fontWeight:900,fontSize:32,fontFamily:"'Oswald',sans-serif",lineHeight:1}}>#{youEntry.rank}</div></div>
+              <div style={{textAlign:"right"}}><div style={{color:"#92400e",fontSize:9,letterSpacing:2,marginBottom:2,fontWeight:700,textTransform:"uppercase"}}>Best Score</div><div style={{color:"#d97706",fontWeight:900,fontSize:32,fontFamily:"'Oswald',sans-serif",lineHeight:1}}>{best}</div></div>
+            </div>
+          </div>
+        )}
+
+        <div style={{background:"#ffffff",borderRadius:14,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.1)"}}>
+          <div style={{display:"flex",alignItems:"center",padding:"10px 16px",borderBottom:"1px solid #f1f5f9",background:"#f8fafc"}}>
+            <div style={{width:34,color:"#94a3b8",fontSize:9,letterSpacing:1,fontWeight:700,textTransform:"uppercase"}}>#</div>
+            <div style={{flex:1,color:"#94a3b8",fontSize:9,letterSpacing:1,fontWeight:700,textTransform:"uppercase"}}>Player</div>
+            <div style={{width:55,textAlign:"right",color:"#94a3b8",fontSize:9,letterSpacing:1,fontWeight:700,textTransform:"uppercase"}}>Score</div>
           </div>
           {board.map((e,i)=>{
             const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
-            return(<div key={i} style={{display:"flex",alignItems:"center",padding:"10px 16px",borderBottom:i<board.length-1?"1px solid #0d1f18":"none",background:e.isYou?"linear-gradient(90deg,#0d2018,#081410)":"transparent"}}>
-              <div style={{width:34,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:medal?16:12,color:i===0?S.gold:i===1?"#94a3b8":i===2?"#b45309":S.textDim}}>{medal||e.rank}</div>
-              <div style={{flex:1}}><div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:e.isYou?800:500,fontSize:14,color:e.isYou?S.tealLight:"#64748b"}}>{e.name}{e.isYou&&<span style={{fontSize:9,color:S.teal,marginLeft:6,background:"#031a12",padding:"2px 6px",borderRadius:4}}>YOU</span>}</div><div style={{fontSize:9,color:S.textDim}}>{e.isYou?"Your best":"Global Player"}</div></div>
-              <div style={{width:55,textAlign:"right",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:900,fontSize:20,color:e.isYou?S.tealLight:i<3?S.textBright:S.textDim}}>{e.score}</div>
+            return(<div key={i} style={{display:"flex",alignItems:"center",padding:"11px 16px",borderBottom:i<board.length-1?"1px solid #f1f5f9":"none",background:e.isYou?"#f0fdf4":"#ffffff"}}>
+              <div style={{width:34,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:medal?15:12,color:i===0?"#d97706":i===1?"#64748b":i===2?"#b45309":"#cbd5e1"}}>{medal||e.rank}</div>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:e.isYou?800:600,fontSize:14,color:e.isYou?"#16a34a":"#334155"}}>{e.name}{e.isYou&&<span style={{fontSize:9,color:"#16a34a",marginLeft:6,background:"#dcfce7",padding:"2px 6px",borderRadius:4,fontWeight:800}}>YOU</span>}</div>
+              </div>
+              <div style={{width:55,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:20,color:e.isYou?"#16a34a":i<3?"#0f172a":"#94a3b8"}}>{e.score}</div>
             </div>);
           })}
-        </GlowCard>
-        <div style={{textAlign:"center",marginTop:12,color:S.textDim,fontSize:10,letterSpacing:1}}>Global scores are simulated for this demo</div>
+        </div>
+        <div style={{textAlign:"center",marginTop:12,color:"rgba(255,255,255,0.3)",fontSize:10,letterSpacing:1}}>Global scores are simulated for this demo</div>
       </div>
     </PageWrap>
   );
@@ -1647,6 +1760,7 @@ function App(){
   const [frozenTimeLeft,setFrozenTimeLeft] = useState(0); // time saved when run fails
   const [frozenCards,setFrozenCards]     = useState([]);  // card state saved for continue
   const [frozenIdx,setFrozenIdx]         = useState(0);
+  const [countdown,setCountdown]         = useState(null); // 3,2,1 pre-game countdown
   const timeoutRef = useRef();
 
   function setUsername(n){lsSet("username",n);setUsernameState(n);}
@@ -1699,22 +1813,25 @@ function App(){
     SFX.click();
     setCards(smartOrder([...todayChallenge.cards]));
     setTheme(todayChallenge.theme);setMode("daily");resetState();setScreen("game");
+    // 3-2-1 countdown
+    setCountdown(3);
+    setTimeout(()=>setCountdown(2),1000);
+    setTimeout(()=>setCountdown(1),2000);
+    setTimeout(()=>setCountdown(null),3000);
   }
 
   function launchRush(cat){
-    
     SFX.click();
-    const plays=lsGet(`rush_plays_${cat}`,0);
-    if(plays>=1){
-      const proceed=window.confirm("📺 Short ad required to play again.\n\nTap OK to watch (simulated) and start your run.");
-      if(!proceed)return;
-    }
     const category=RUSH_CATEGORIES.find(c=>c.id===cat);
     if(!category)return;
     GA.rushStarted(cat);
     setCards(rushShuffle([...category.cards]));
     setTheme(category.label);setMode("rush");setRushCat(cat);
     resetState();setTimerActive(true);setScreen("game");
+    setCountdown(3);
+    setTimeout(()=>setCountdown(2),1000);
+    setTimeout(()=>setCountdown(1),2000);
+    setTimeout(()=>setCountdown(null),3000);
   }
 
   function endRushRun(reason){
@@ -1856,37 +1973,37 @@ function App(){
     useEffect(()=>()=>clearInterval(ref.current),[]);
 
     return(
-      <div style={{position:"fixed",inset:0,background:"#000000ee",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px"}}>
-        <div style={{background:"linear-gradient(160deg,#0d2018,#040f0a)",border:"2px solid #1a4a38",borderRadius:20,padding:"24px 20px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 0 40px #0d948433"}}>
+      <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px",backdropFilter:"blur(6px)"}}>
+        <div style={{background:"#ffffff",borderRadius:20,padding:"24px 20px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
           {watching?(
             <div>
-              <div style={{color:S.textDim,fontSize:10,letterSpacing:2,marginBottom:8}}>AD PLAYING</div>
-              <div style={{color:S.gold,fontWeight:900,fontSize:48,marginBottom:6}}>{cd}s</div>
-              <div style={{color:S.textMid,fontSize:12}}>{watching==="continue"?"Resuming your run...":"Starting fresh run..."}</div>
+              <div style={{color:"#94a3b8",fontSize:9,letterSpacing:3,marginBottom:8,fontWeight:700,textTransform:"uppercase"}}>Ad Playing</div>
+              <div style={{color:"#d97706",fontWeight:900,fontSize:52,fontFamily:"'Oswald',sans-serif",lineHeight:1}}>{cd}</div>
+              <div style={{color:"#94a3b8",fontSize:11,marginTop:8}}>{watching==="continue"?"Back on the training pitch...":"Setting up again..."}</div>
             </div>
           ):(
             <>
               <div style={{marginBottom:16}}>
-                {isOnFire&&<div style={{fontSize:22,marginBottom:4}}>🔥</div>}
-                <div style={{color:S.textBright,fontWeight:900,fontSize:26,marginBottom:10}}>
-                  {isOnFire?"You're on fire!":"Run ended"}
-                </div>
-                <div style={{background:"#040f0a",border:"1px solid #1a4a38",borderRadius:10,padding:"10px 14px",marginBottom:2}}>
-                  <div style={{color:S.textMid,fontSize:13,marginBottom:4}}>Score: <span style={{color:S.tealLight,fontWeight:900,fontSize:22}}>{score}</span></div>
-                  {pct&&<div style={{color:S.gold,fontWeight:700,fontSize:12,marginBottom:2}}>🏆 Top {pct}% today</div>}
-                  {next&&<div style={{color:S.textMid,fontSize:11}}>+{next.need} more to reach <span style={{color:S.gold,fontWeight:700}}>{next.label}</span></div>}
-                  {continueCount>0&&<div style={{color:S.textDim,fontSize:10,marginTop:6,borderTop:"1px solid #1a3a28",paddingTop:6}}>Clean streak: <span style={{color:S.tealLight}}>{cleanScore}</span> · Top score uses clean streak</div>}
+                <div style={{width:48,height:48,background:"#fee2e2",borderRadius:12,margin:"0 auto 12px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>😤</div>
+                <div style={{color:"#0f172a",fontWeight:900,fontSize:20,marginBottom:4,fontFamily:"'Oswald',sans-serif"}}>Lost Possession</div>
+                <div style={{color:"#64748b",fontSize:12,marginBottom:14}}>Watch an ad to recover and keep training</div>
+                <div style={{background:"#f8fafc",border:"1px solid #f1f5f9",borderRadius:10,padding:"12px 14px"}}>
+                  <div style={{color:"#94a3b8",fontSize:9,letterSpacing:2,marginBottom:6,fontWeight:700,textTransform:"uppercase"}}>Training Score</div>
+                  <div style={{color:"#0f172a",fontWeight:900,fontSize:32,fontFamily:"'Oswald',sans-serif",lineHeight:1,marginBottom:6}}>{score}</div>
+                  {pct&&<div style={{color:"#d97706",fontWeight:700,fontSize:12,marginBottom:2}}>🏆 Top {pct}% today</div>}
+                  {next&&<div style={{color:"#64748b",fontSize:11}}>+{next.need} to reach <strong style={{color:"#d97706"}}>{next.label}</strong></div>}
+                  {continueCount>0&&<div style={{color:"#94a3b8",fontSize:10,marginTop:8,borderTop:"1px solid #f1f5f9",paddingTop:8}}>Perfect score: <strong style={{color:"#16a34a"}}>{cleanScore}</strong> · no mistakes</div>}
                 </div>
               </div>
               {canContinue&&(
-                <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#0f766e,#0d9488)",border:"1px solid #14b8a666",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 20px #0d948433"}}>
-                  ▶ Continue your run &nbsp;<span style={{fontSize:11,opacity:0.8}}>({frozenTimeLeft}s left)</span>
+                <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"#16a34a",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.4)"}}>
+                  ▶ Recover — keep training <span style={{fontSize:11,opacity:0.8}}>({frozenTimeLeft}s)</span>
                 </button>
               )}
-              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#1a0e00,#0a0800)",border:"1px solid #f59e0b66",borderRadius:12,color:S.gold,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>
-                ▶ Play again
+              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"12px",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,color:"#92400e",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>
+                ▶ Train again
               </button>
-              <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid #1a3a28",borderRadius:10,color:S.textDim,fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+              <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,color:"#94a3b8",fontFamily:"'Barlow Condensed',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                 See result
               </button>
             </>
@@ -1895,75 +2012,87 @@ function App(){
       </div>
     );
   };
+  // ── SHARED: player caps lookup for subtext (used on home + result) ─────────
+  const CAPS_PLAYERS = [
+    {caps:1,name:"Steve Morrow",country:"N. Ireland"},{caps:2,name:"Robbie Savage",country:"Wales"},
+    {caps:3,name:"Roque Santa Cruz",country:"Paraguay"},{caps:4,name:"Celestine Babayaro",country:"Nigeria"},
+    {caps:5,name:"Cyrille Regis",country:"England"},{caps:6,name:"Kevin Hector",country:"England"},
+    {caps:7,name:"Tommy Taylor",country:"England"},{caps:8,name:"Darius Vassell",country:"England"},
+    {caps:9,name:"Paul Dickov",country:"Scotland"},{caps:10,name:"Robbie Brady",country:"Ireland"},
+    {caps:11,name:"Joe Royle",country:"England"},{caps:12,name:"Alan Ball Jr",country:"England"},
+    {caps:13,name:"Tony Cascarino",country:"Ireland"},{caps:14,name:"Luther Blissett",country:"England"},
+    {caps:15,name:"Steve Finnan",country:"Ireland"},{caps:16,name:"Pat Bonner",country:"Ireland"},
+    {caps:17,name:"Les Ferdinand",country:"England"},{caps:18,name:"Mark Lawrenson",country:"Ireland"},
+    {caps:19,name:"Tommy Lawton",country:"England"},{caps:20,name:"Peter Barnes",country:"England"},
+    {caps:21,name:"Ledley King",country:"England"},{caps:22,name:"Viv Anderson",country:"England"},
+    {caps:23,name:"Ian Wright",country:"England"},{caps:24,name:"Niall Quinn",country:"Ireland"},
+    {caps:25,name:"Ugo Ehiogu",country:"England"},{caps:26,name:"Robbie Fowler",country:"England"},
+    {caps:27,name:"Trevor Brooking",country:"England"},{caps:28,name:"Adam Johnson",country:"England"},
+    {caps:29,name:"David Rocastle",country:"England"},{caps:30,name:"Darren Anderton",country:"England"},
+    {caps:31,name:"Damien Duff",country:"Ireland"},{caps:32,name:"Kieron Dyer",country:"England"},
+    {caps:33,name:"Harry Redknapp",country:"England"},{caps:34,name:"David Platt",country:"England"},
+    {caps:35,name:"Jack Charlton",country:"England"},{caps:36,name:"Tom Finney",country:"England"},
+    {caps:37,name:"Steve McManaman",country:"England"},{caps:38,name:"Kevin Kilbane",country:"Ireland"},
+    {caps:39,name:"Ashley Young",country:"England"},{caps:40,name:"Tony Adams",country:"England"},
+    {caps:41,name:"Paul Robinson",country:"England"},{caps:42,name:"Trevor Francis",country:"England"},
+    {caps:43,name:"Chris Woods",country:"England"},{caps:44,name:"Martin Keown",country:"England"},
+    {caps:45,name:"George Cohen",country:"England"},{caps:46,name:"Mick Channon",country:"England"},
+    {caps:47,name:"Theo Walcott",country:"England"},{caps:48,name:"Denis Irwin",country:"Ireland"},
+    {caps:49,name:"Geoff Hurst",country:"England"},{caps:50,name:"Phil Neal",country:"England"},
+    {caps:51,name:"Teddy Sheringham",country:"England"},{caps:52,name:"Glen Hoddle",country:"England"},
+    {caps:53,name:"David James",country:"England"},{caps:54,name:"Glen Johnson",country:"England"},
+    {caps:55,name:"Edgar Davids",country:"Netherlands"},{caps:56,name:"Joe Cole",country:"England"},
+    {caps:57,name:"Gareth Southgate",country:"England"},{caps:58,name:"Emile Heskey",country:"England"},
+    {caps:59,name:"Des Walker",country:"England"},{caps:60,name:"Marcus Rashford",country:"England"},
+    {caps:61,name:"Ray Clemence",country:"England"},{caps:62,name:"Emlyn Hughes",country:"England"},
+    {caps:63,name:"Alan Shearer",country:"England"},{caps:64,name:"Bryan Robson",country:"England"},
+    {caps:65,name:"Dave Watson",country:"England"},{caps:66,name:"Tony Adams",country:"England"},
+    {caps:67,name:"Martin Peters",country:"England"},{caps:68,name:"Kevin Keegan",country:"England"},
+    {caps:69,name:"Harry Kane",country:"England"},{caps:70,name:"Ray Wilkins",country:"England"},
+    {caps:71,name:"Jimmy Greaves",country:"England"},{caps:72,name:"Alan Ball",country:"England"},
+    {caps:73,name:"Gordon Banks",country:"England"},{caps:74,name:"Stuart Pearce",country:"England"},
+    {caps:75,name:"Joe Hart",country:"England"},{caps:76,name:"Tom Finney",country:"England"},
+    {caps:77,name:"Terry Butcher",country:"England"},{caps:78,name:"Stuart Pearce",country:"England"},
+    {caps:79,name:"John Barnes",country:"England"},{caps:80,name:"Gary Lineker",country:"England"},
+    {caps:81,name:"Jordan Henderson",country:"England"},{caps:82,name:"Raheem Sterling",country:"England"},
+    {caps:83,name:"Rio Ferdinand",country:"England"},{caps:84,name:"Ray Wilkins",country:"England"},
+    {caps:85,name:"Gary Neville",country:"England"},{caps:86,name:"Michael Owen",country:"England"},
+    {caps:87,name:"Bryan Robson",country:"England"},{caps:88,name:"Phil Thompson",country:"England"},
+    {caps:89,name:"Bobby Charlton",country:"England"},{caps:90,name:"Sol Campbell",country:"England"},
+    {caps:91,name:"Wayne Rooney",country:"England"},{caps:92,name:"Steven Gerrard",country:"England"},
+    {caps:93,name:"Rio Ferdinand",country:"England"},{caps:94,name:"Harry Kane",country:"England"},
+    {caps:95,name:"Bobby Moore",country:"England"},{caps:96,name:"Peter Shilton",country:"England"},
+    {caps:97,name:"Frank Lampard",country:"England"},{caps:98,name:"Ashley Cole",country:"England"},
+  ];
+  function getStreakPlayer(days){
+    const cap=Math.min(days,98);
+    let best=CAPS_PLAYERS[0];
+    for(const p of CAPS_PLAYERS){if(Math.abs(p.caps-cap)<=Math.abs(best.caps-cap))best=p;}
+    return best;
+  }
+  function getStreakSubtext(){
+    if(streak===0) return "Play today's match to get on the board 🏴󠁧󠁢󠁥󠁮󠁧󠁿";
+    const p=getStreakPlayer(streak);
+    const closeness=Math.abs(p.caps-streak);
+    if(streak===p.caps) return `You're a prime ${p.name} — ${p.caps} caps for ${p.country}. Come back tomorrow to keep going 🔥`;
+    if(closeness<=2) return `Almost ${p.name} levels (${p.caps} caps for ${p.country}). One more day to match a legend 🔥`;
+    return `${streak} caps in. ${p.name} had ${p.caps} caps for ${p.country} — you're in that territory. Keep going 🔥`;
+  }
+
+  // Career status — shared between home + result screens
+  function getCareerStatus(caps){
+    if(caps===0) return {label:"Uncapped",        icon:"👤",col:"#94a3b8",glow:"#94a3b8",next:1,  nextLabel:"Squad Player"};
+    if(caps<5)   return {label:"Squad Player",    icon:"🔵",col:"#60a5fa",glow:"#3b82f6",next:5,  nextLabel:"Fringe International"};
+    if(caps<15)  return {label:"Fringe International",icon:"🟢",col:"#34d399",glow:"#10b981",next:15, nextLabel:"Impact Sub"};
+    if(caps<30)  return {label:"Impact Sub",      icon:"🟣",col:"#a78bfa",glow:"#8b5cf6",next:30, nextLabel:"Regular Starter"};
+    if(caps<50)  return {label:"Regular Starter", icon:"🩵",col:"#38bdf8",glow:"#0ea5e9",next:50, nextLabel:"Starting XI"};
+    if(caps<75)  return {label:"Starting XI ⭐",  icon:"⭐",col:"#fbbf24",glow:"#f59e0b",next:75, nextLabel:"International Legend"};
+    if(caps<100) return {label:"International Legend",icon:"🔥",col:"#fb923c",glow:"#f97316",next:100,nextLabel:"All-Time Great"};
+    if(caps<150) return {label:"All-Time Great",  icon:"👑",col:"#e879f9",glow:"#d946ef",next:150,nextLabel:"Hall of Fame"};
+    return        {label:"Hall of Fame",           icon:"🏆",col:"#fde047",glow:"#facc15",next:null,nextLabel:null};
+  }
+
   if(screen==="home") {
-    // Player caps lookup for streak subtext — find closest match
-    const CAPS_PLAYERS = [
-      {caps:1,name:"Steve Morrow",country:"N. Ireland"},{caps:2,name:"Robbie Savage",country:"Wales"},
-      {caps:3,name:"Roque Santa Cruz",country:"Paraguay"},{caps:4,name:"Celestine Babayaro",country:"Nigeria"},
-      {caps:5,name:"Cyrille Regis",country:"England"},{caps:6,name:"Kevin Hector",country:"England"},
-      {caps:7,name:"Tommy Taylor",country:"England"},{caps:8,name:"Darius Vassell",country:"England"},
-      {caps:9,name:"Paul Dickov",country:"Scotland"},{caps:10,name:"Robbie Brady",country:"Ireland"},
-      {caps:11,name:"Joe Royle",country:"England"},{caps:12,name:"Alan Ball Jr",country:"England"},
-      {caps:13,name:"Tony Cascarino",country:"Ireland"},{caps:14,name:"Luther Blissett",country:"England"},
-      {caps:15,name:"Steve Finnan",country:"Ireland"},{caps:16,name:"Pat Bonner",country:"Ireland"},
-      {caps:17,name:"Les Ferdinand",country:"England"},{caps:18,name:"Mark Lawrenson",country:"Ireland"},
-      {caps:19,name:"Tommy Lawton",country:"England"},{caps:20,name:"Peter Barnes",country:"England"},
-      {caps:21,name:"Ledley King",country:"England"},{caps:22,name:"Viv Anderson",country:"England"},
-      {caps:23,name:"Ian Wright",country:"England"},{caps:24,name:"Niall Quinn",country:"Ireland"},
-      {caps:25,name:"Ugo Ehiogu",country:"England"},{caps:26,name:"Robbie Fowler",country:"England"},
-      {caps:27,name:"Trevor Brooking",country:"England"},{caps:28,name:"Adam Johnson",country:"England"},
-      {caps:29,name:"David Rocastle",country:"England"},{caps:30,name:"Darren Anderton",country:"England"},
-      {caps:31,name:"Damien Duff",country:"Ireland"},{caps:32,name:"Kieron Dyer",country:"England"},
-      {caps:33,name:"Harry Redknapp",country:"England"},{caps:34,name:"David Platt",country:"England"},
-      {caps:35,name:"Jack Charlton",country:"England"},{caps:36,name:"Tom Finney",country:"England"},
-      {caps:37,name:"Steve McManaman",country:"England"},{caps:38,name:"Kevin Kilbane",country:"Ireland"},
-      {caps:39,name:"Ashley Young",country:"England"},{caps:40,name:"Tony Adams",country:"England"},
-      {caps:41,name:"Paul Robinson",country:"England"},{caps:42,name:"Trevor Francis",country:"England"},
-      {caps:43,name:"Chris Woods",country:"England"},{caps:44,name:"Martin Keown",country:"England"},
-      {caps:45,name:"George Cohen",country:"England"},{caps:46,name:"Mick Channon",country:"England"},
-      {caps:47,name:"Theo Walcott",country:"England"},{caps:48,name:"Denis Irwin",country:"Ireland"},
-      {caps:49,name:"Geoff Hurst",country:"England"},{caps:50,name:"Phil Neal",country:"England"},
-      {caps:51,name:"Teddy Sheringham",country:"England"},{caps:52,name:"Glen Hoddle",country:"England"},
-      {caps:53,name:"David James",country:"England"},{caps:54,name:"Glen Johnson",country:"England"},
-      {caps:55,name:"Edgar Davids",country:"Netherlands"},{caps:56,name:"Joe Cole",country:"England"},
-      {caps:57,name:"Gareth Southgate",country:"England"},{caps:58,name:"Emile Heskey",country:"England"},
-      {caps:59,name:"Des Walker",country:"England"},{caps:60,name:"Marcus Rashford",country:"England"},
-      {caps:61,name:"Ray Clemence",country:"England"},{caps:62,name:"Emlyn Hughes",country:"England"},
-      {caps:63,name:"Alan Shearer",country:"England"},{caps:64,name:"Bryan Robson",country:"England"},
-      {caps:65,name:"Dave Watson",country:"England"},{caps:66,name:"Tony Adams",country:"England"},
-      {caps:67,name:"Martin Peters",country:"England"},{caps:68,name:"Kevin Keegan",country:"England"},
-      {caps:69,name:"Harry Kane",country:"England"},{caps:70,name:"Ray Wilkins",country:"England"},
-      {caps:71,name:"Jimmy Greaves",country:"England"},{caps:72,name:"Alan Ball",country:"England"},
-      {caps:73,name:"Gordon Banks",country:"England"},{caps:74,name:"Stuart Pearce",country:"England"},
-      {caps:75,name:"Joe Hart",country:"England"},{caps:76,name:"Tom Finney",country:"England"},
-      {caps:77,name:"Terry Butcher",country:"England"},{caps:78,name:"Stuart Pearce",country:"England"},
-      {caps:79,name:"John Barnes",country:"England"},{caps:80,name:"Gary Lineker",country:"England"},
-      {caps:81,name:"Jordan Henderson",country:"England"},{caps:82,name:"Raheem Sterling",country:"England"},
-      {caps:83,name:"Rio Ferdinand",country:"England"},{caps:84,name:"Ray Wilkins",country:"England"},
-      {caps:85,name:"Gary Neville",country:"England"},{caps:86,name:"Michael Owen",country:"England"},
-      {caps:87,name:"Bryan Robson",country:"England"},{caps:88,name:"Phil Thompson",country:"England"},
-      {caps:89,name:"Bobby Charlton",country:"England"},{caps:90,name:"Sol Campbell",country:"England"},
-      {caps:91,name:"Wayne Rooney",country:"England"},{caps:92,name:"Steven Gerrard",country:"England"},
-      {caps:93,name:"Rio Ferdinand",country:"England"},{caps:94,name:"Harry Kane",country:"England"},
-      {caps:95,name:"Bobby Moore",country:"England"},{caps:96,name:"Peter Shilton",country:"England"},
-      {caps:97,name:"Frank Lampard",country:"England"},{caps:98,name:"Ashley Cole",country:"England"},
-    ];
-    function getStreakPlayer(days){
-      const cap=Math.min(days,98);
-      // Find closest match
-      let best=CAPS_PLAYERS[0];
-      for(const p of CAPS_PLAYERS){if(Math.abs(p.caps-cap)<=Math.abs(best.caps-cap))best=p;}
-      return best;
-    }
-    const streakPlayer = streak>0 ? getStreakPlayer(streak) : null;
-    function getStreakSubtext(){
-      if(streak===0) return "Play today's streak to get on the board 🏴󠁧󠁢󠁥󠁮󠁧󠁿";
-      const p=streakPlayer;
-      const closeness=Math.abs(p.caps-streak);
-      if(streak===p.caps) return `You're a prime ${p.name} — ${p.caps} caps for ${p.country}. Come back tomorrow to keep your streak alive 🔥`;
-      if(closeness<=2) return `Almost ${p.name} levels (${p.caps} caps for ${p.country}). One more day to match a legend 🔥`;
-      return `${streak} days deep. ${p.name} had ${p.caps} caps for ${p.country} — you're in that territory. Keep going 🔥`;
-    }
 
     function resetDemo(){
       lsSet("daily_done","");setDailyDone("");
@@ -1974,108 +2103,211 @@ function App(){
       setTestDayOffset(0);
     }
 
+    const status = getCareerStatus(streak);
+    const prevMilestone = streak===0?0:status.next===1?0:[0,1,5,15,30,50,75,100,150].reverse().find(m=>m<=streak)||0;
+    const milestoneRange = status.next ? status.next - prevMilestone : 100;
+    const milestoneProgress = status.next ? Math.min(streak - prevMilestone, milestoneRange) : milestoneRange;
+    const progressPct = status.next ? Math.round((milestoneProgress / milestoneRange) * 100) : 100;
+
     return(
     <PageWrap>
       <div style={{width:"100%"}}>
 
-        {/* Header */}
-        <div style={{textAlign:"center",marginBottom:6}}>
-          <h1 style={{fontSize:46,fontWeight:900,letterSpacing:1,margin:0,background:"linear-gradient(90deg,#0d9488,#14b8a6,#5eead4)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>StatStreaks</h1>
-          <div style={{fontSize:13,color:S.textMid,marginTop:4,fontWeight:500}}>The higher or lower football game</div>
+        {/* ── HEADER — centred ── */}
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>Higher · Lower · Football</div>
+          <h1 style={{fontSize:32,fontWeight:900,letterSpacing:2,margin:0,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>StatStreaks</h1>
         </div>
 
-        {/* Streak counter */}
-        <div style={{textAlign:"center",marginBottom:14,marginTop:12}}>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:6}}>
-            <span style={{fontSize:32,fontWeight:900,color:S.gold}}>{streak}</span>
-            <span style={{fontSize:16,color:S.textMid,fontWeight:600,textTransform:"uppercase",letterSpacing:2}}>Day Streak</span>
-            <span style={{fontSize:28}}>🔥</span>
+        {/* ══ CAREER CAPS HERO ══ */}
+        <div style={{
+          background:"linear-gradient(145deg,#1a2535 0%,#0f1923 60%,#1a1f10 100%)",
+          border:`1px solid ${status.col}30`,
+          borderRadius:20,
+          padding:"22px 20px 18px",
+          marginBottom:16,
+          position:"relative",
+          overflow:"hidden",
+          boxShadow:`0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 60px ${status.glow}18`,
+        }}>
+          {/* Radial glow behind number */}
+          <div style={{position:"absolute",top:"-20%",left:"0%",width:"60%",height:"160%",background:`radial-gradient(ellipse at 30% 50%, ${status.col}18 0%, transparent 70%)`,pointerEvents:"none"}}/>
+          {/* Top shimmer line */}
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${status.col}50,transparent)`}}/>
+
+          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",position:"relative"}}>
+            {/* Left: mega number + avatar */}
+            <div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.55)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:6,fontFamily:"'Inter',sans-serif"}}>Career Caps</div>
+              <div style={{display:"flex",alignItems:"flex-end",gap:10,lineHeight:1}}>
+                {/* Footballer avatar */}
+                <div style={{
+                  width:52,height:52,
+                  background:`${status.col}22`,
+                  border:`1px solid ${status.col}44`,
+                  borderRadius:14,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  flexShrink:0,
+                  marginBottom:4,
+                }}>
+                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    {/* Head */}
+                    <circle cx="14" cy="7" r="4.5" fill={status.col} opacity="0.9"/>
+                    {/* Body */}
+                    <path d="M8 13.5C8 11.5 10.5 10.5 14 10.5C17.5 10.5 20 11.5 20 13.5L19 20H9L8 13.5Z" fill={status.col} opacity="0.85"/>
+                    {/* Left leg */}
+                    <path d="M9.5 20L8 27H11L12.5 20" fill={status.col} opacity="0.75"/>
+                    {/* Right leg - kicking */}
+                    <path d="M18.5 20L17 25H20L21.5 20" fill={status.col} opacity="0.75"/>
+                    {/* Arm left */}
+                    <path d="M9 14L5.5 17.5" stroke={status.col} strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+                    {/* Arm right - raised */}
+                    <path d="M19 14L22.5 11" stroke={status.col} strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+                  </svg>
+                </div>
+                <div>
+                  <span style={{
+                    fontSize:80,fontWeight:900,color:status.col,lineHeight:0.9,
+                    fontFamily:"'Bebas Neue',sans-serif",
+                    textShadow:`0 0 40px ${status.col}55, 0 2px 0 rgba(0,0,0,0.3)`,
+                    letterSpacing:1,display:"block",
+                  }}>{streak}</span>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:3,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>CAPS</span>
+                </div>
+              </div>
+            </div>
+            {/* Right: status badge */}
+            <div style={{textAlign:"right",paddingTop:4}}>
+              <div style={{fontSize:22,marginBottom:6}}>{status.icon}</div>
+              <div style={{
+                background:`${status.col}20`,
+                border:`1px solid ${status.col}40`,
+                borderRadius:20,padding:"5px 12px",
+                display:"inline-block",
+              }}>
+                <span style={{fontSize:10,color:status.col,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",whiteSpace:"nowrap",fontFamily:"'Inter',sans-serif"}}>{status.label}</span>
+              </div>
+            </div>
           </div>
-          <div style={{color:S.textDim,fontSize:12,lineHeight:1.5,maxWidth:320,margin:"0 auto",fontStyle:"italic"}}>
+
+          {/* Progress bar to next milestone */}
+          {status.next&&(
+            <div style={{marginTop:16}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                <span style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:1,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{streak} / {status.next} caps</span>
+                <span style={{fontSize:9,color:status.col,fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Next: {status.nextLabel}</span>
+              </div>
+              <div style={{height:5,background:"rgba(255,255,255,0.08)",borderRadius:99,overflow:"hidden"}}>
+                <div style={{height:"100%",width:`${progressPct}%`,background:`linear-gradient(90deg,${status.col}99,${status.col})`,borderRadius:99,transition:"width 0.6s ease",boxShadow:`0 0 8px ${status.col}66`}}/>
+              </div>
+            </div>
+          )}
+
+          {/* Subtext */}
+          <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.08)",fontSize:11,color:"rgba(255,255,255,0.65)",lineHeight:1.5,fontStyle:"italic",fontFamily:"'Inter',sans-serif",textAlign:"center"}}>
             {getStreakSubtext()}
           </div>
         </div>
 
-        {/* Daily challenge panel */}
-        <GlowCard active style={{padding:"16px 18px",marginBottom:10}}>
-          <div style={{fontSize:9,color:S.textDim,letterSpacing:3,fontWeight:700,marginBottom:10,textAlign:"center"}}>TODAY'S DAILY STREAK</div>
-
-          {/* Theme with trophy at both ends */}
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:10}}>
-            <span style={{fontSize:22}}>🏆</span>
-            <div style={{color:S.textBright,fontWeight:800,fontSize:16,lineHeight:1.2,textAlign:"center"}}>{todayChallenge.theme}</div>
-            <span style={{fontSize:22}}>🏆</span>
+        {/* ══ TODAY'S MATCH ══ */}
+        <div style={{
+          background:"#ffffff",
+          borderRadius:18,
+          overflow:"hidden",
+          marginBottom:12,
+          boxShadow:"0 6px 28px rgba(0,0,0,0.25)",
+        }}>
+          {/* Matchday header — no reward pill */}
+          <div style={{
+            background:"linear-gradient(135deg,#15803d 0%,#16a34a 60%,#22c55e 100%)",
+            padding:"12px 18px",
+          }}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Today's Match</div>
+            <div style={{fontSize:15,color:"#ffffff",fontWeight:800,fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>{todayChallenge.theme}</div>
           </div>
 
-          {/* If not played: CTA button only */}
-          {!todayPlayed&&(
-            <button onClick={launchDaily} style={{width:"100%",padding:"15px",background:"linear-gradient(135deg,#0f766e,#0d9488)",border:"1px solid #14b8a688",borderRadius:12,color:"#fff",fontSize:17,fontWeight:900,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",boxShadow:"0 4px 20px #0d948444",transition:"transform 0.12s"}}
-              onMouseOver={e=>e.currentTarget.style.transform="translateY(-2px)"}
-              onMouseOut={e=>e.currentTarget.style.transform=""}>
-              START TODAY'S STREAK →
-            </button>
-          )}
-
-          {/* If played: show result dots + stats, no play again */}
-          {todayPlayed&&todayResult&&(
-            <>
-              <div style={{textAlign:"center",marginBottom:10}}>
-                <DailyResultDots resultData={todayResult}/>
+          <div style={{padding:"16px 18px"}}>
+            {!todayPlayed&&(
+              <div>
+                <button onClick={launchDaily}
+                  style={{
+                    width:"100%",
+                    padding:"16px",
+                    background:"linear-gradient(135deg,#15803d 0%,#16a34a 50%,#22c55e 100%)",
+                    border:"none",borderRadius:12,
+                    color:"#ffffff",
+                    fontSize:17,fontWeight:800,letterSpacing:0.5,
+                    cursor:"pointer",
+                    fontFamily:"'Inter',sans-serif",
+                    boxShadow:"0 6px 20px rgba(22,163,74,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
+                    transition:"transform 0.12s,box-shadow 0.12s",
+                    display:"block",
+                  }}
+                  onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(22,163,74,0.55), inset 0 1px 0 rgba(255,255,255,0.2)";}}
+                  onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 6px 20px rgba(22,163,74,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+                  Kick Off ⚽
+                </button>
+                <div style={{textAlign:"center",marginTop:7,fontSize:11,color:"#94a3b8",fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Complete today's match to earn +1 Cap</div>
               </div>
-              <div style={{display:"flex",gap:0,justifyContent:"center",alignItems:"center",padding:"8px 0",borderTop:"1px solid #1a3a28",borderBottom:"1px solid #1a3a28",marginBottom:10}}>
-                <div style={{textAlign:"center",flex:1}}>
-                  <div style={{color:S.textDim,fontSize:9,letterSpacing:2,marginBottom:2}}>YOUR SCORE</div>
-                  <div style={{color:S.tealLight,fontWeight:900,fontSize:22}}>{todayResult.filter(r=>r==="correct").length}/10</div>
-                </div>
-                <div style={{width:1,background:"#1a3a28",alignSelf:"stretch"}}/>
-                <div style={{textAlign:"center",flex:1}}>
-                  <div style={{color:S.textDim,fontSize:9,letterSpacing:2,marginBottom:2}}>GLOBAL AVG</div>
-                  <div style={{color:S.textMid,fontWeight:900,fontSize:22}}>4.2</div>
-                </div>
-                <div style={{width:1,background:"#1a3a28",alignSelf:"stretch"}}/>
-                <div style={{textAlign:"center",flex:1}}>
-                  <div style={{color:S.textDim,fontSize:9,letterSpacing:2,marginBottom:2}}>TOP 10%</div>
-                  <div style={{color:S.gold,fontWeight:900,fontSize:22}}>8+</div>
-                </div>
-              </div>
-              <div style={{textAlign:"center",color:S.textDim,fontSize:11}}>Come back tomorrow for the next streak 🔥</div>
-            </>
-          )}
-        </GlowCard>
+            )}
 
-        {/* Tomorrow teaser — centred, icon at both ends */}
-        <div style={{background:"transparent",border:"1px dashed #1a3a28",borderRadius:10,padding:"10px 16px",marginBottom:10,textAlign:"center"}}>
-          <div style={{color:S.textDim,fontSize:9,letterSpacing:2,fontWeight:700,marginBottom:3}}>TOMORROW'S STREAK</div>
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-            <span style={{fontSize:16}}>🔭</span>
-            <div style={{color:S.textMid,fontWeight:700,fontSize:13}}>{tomorrowChallenge.theme}</div>
-            <span style={{fontSize:16}}>🔭</span>
+            {todayPlayed&&todayResult&&(
+              <>
+                <div style={{textAlign:"center",marginBottom:12}}>
+                  <DailyResultDots resultData={todayResult}/>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",borderRadius:10,overflow:"hidden",border:"1px solid #f1f5f9",marginBottom:12}}>
+                  {[
+                    {label:"Your Score",val:`${todayResult.filter(r=>r==="correct").length}/10`,col:"#16a34a"},
+                    {label:"Global Avg",val:"4.2",col:"#64748b"},
+                    {label:"Top 10%",val:"8+",col:"#d97706"},
+                  ].map((item,i)=>(
+                    <div key={i} style={{textAlign:"center",padding:"12px 6px",borderLeft:i>0?"1px solid #f1f5f9":"none"}}>
+                      <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.5,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{item.label}</div>
+                      <div style={{fontSize:20,fontWeight:800,color:item.col,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{item.val}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Tomorrow's fixture — only shown after playing */}
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#f8fafc",borderRadius:10,border:"1px solid #f1f5f9"}}>
+                  <span style={{fontSize:14}}>🔭</span>
+                  <div>
+                    <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,fontWeight:600,marginBottom:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Tomorrow's Fixture</div>
+                    <div style={{fontSize:12,color:"#475569",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{tomorrowChallenge.theme}</div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Rush button — enticing copy */}
-        <button onClick={()=>{SFX.click();setScreen("rush");}} style={{width:"100%",padding:"16px 18px",background:"linear-gradient(135deg,#1a0e00,#0a0800)",border:"1px solid #f59e0b88",borderRadius:12,color:S.gold,fontFamily:"'Barlow Condensed',sans-serif",fontSize:16,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,boxShadow:"0 0 20px #f59e0b22",transition:"transform 0.12s,box-shadow 0.12s",marginBottom:12}}
-          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 24px #f59e0b44";}}
-          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";}}>
-          <span style={{fontSize:18}}>⚡</span>
-          <div style={{textAlign:"center"}}>
-            <div style={{fontSize:16,letterSpacing:2}}>RUSH STREAK — BEAT THE CLOCK</div>
-            <div style={{fontSize:10,color:"#b45309",fontWeight:600,letterSpacing:1,marginTop:1}}>30 seconds · how many can you get?</div>
+        {/* ══ TRAINING PITCH ══ */}
+        <button onClick={()=>{SFX.click();setScreen("rush");}}
+          style={{
+            width:"100%",
+            background:"linear-gradient(135deg,#be185d 0%,#db2777 50%,#ec4899 100%)",
+            border:"none",borderRadius:18,cursor:"pointer",overflow:"hidden",marginBottom:16,
+            boxShadow:"0 6px 24px rgba(219,39,119,0.55), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25)",
+            transition:"transform 0.12s,box-shadow 0.12s",display:"block",textAlign:"left",padding:"0",
+          }}
+          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 32px rgba(219,39,119,0.7), inset 0 1px 0 rgba(255,255,255,0.25)";}}
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 6px 24px rgba(219,39,119,0.55), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25)";}}>
+          <div style={{padding:"12px 18px"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Training Pitch</div>
+            <div style={{fontSize:15,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>30s High Score Mode ⚡</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontFamily:"'Inter',sans-serif",marginTop:2}}>Go for a perfect run · 2× multiplier</div>
           </div>
-          <span style={{fontSize:18}}>⚡</span>
         </button>
 
-        {/* Demo controls */}
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          <button onClick={()=>{SFX.click();setTestDayOffset(o=>(o+1)%DAILY_CHALLENGES.length);}} style={{flex:1,padding:"7px",background:"transparent",border:"1px dashed #1a3028",borderRadius:8,color:S.textDim,fontSize:9,letterSpacing:1,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",minWidth:80}}>
-            🔄 Day {effectiveDayIdx+1}/{DAILY_CHALLENGES.length}
-          </button>
-          <button onClick={()=>{const ns=streak+1;lsSet("streak",ns);setStreak(ns);}} style={{flex:1,padding:"7px",background:"transparent",border:"1px dashed #1a3028",borderRadius:8,color:S.textDim,fontSize:9,letterSpacing:1,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",minWidth:80}}>
-            🔥 +1 Streak
-          </button>
-          <button onClick={resetDemo} style={{flex:1,padding:"7px",background:"transparent",border:"1px dashed #3a1818",borderRadius:8,color:"#5a3030",fontSize:9,letterSpacing:1,cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",textTransform:"uppercase",minWidth:80}}>
-            🗑 Reset
-          </button>
+        {/* ── DEMO CONTROLS ── */}
+        <div style={{display:"flex",gap:6}}>
+          {[
+            {label:`🔄 Day ${effectiveDayIdx+1}/${DAILY_CHALLENGES.length}`,fn:()=>{SFX.click();setTestDayOffset(o=>(o+1)%DAILY_CHALLENGES.length);}},
+            {label:"🧢 +1 Cap",fn:()=>{const ns=streak+1;lsSet("streak",ns);setStreak(ns);}},
+            {label:"🗑 Reset",fn:resetDemo,danger:true},
+          ].map((b,i)=>(
+            <button key={i} onClick={b.fn} style={{flex:1,padding:"6px",background:"transparent",border:`1px dashed ${b.danger?"rgba(220,38,38,0.25)":"rgba(255,255,255,0.08)"}`,borderRadius:7,color:b.danger?"rgba(220,38,38,0.4)":"rgba(255,255,255,0.2)",fontSize:9,letterSpacing:1,cursor:"pointer",fontFamily:"'Inter',sans-serif",textTransform:"uppercase"}}>{b.label}</button>
+          ))}
         </div>
 
       </div>
@@ -2085,106 +2317,173 @@ function App(){
   // ── RESULT ────────────────────────────────────────────────────────────────
   if(screen==="result"){
     const win=gameOutcome==="win",timeout=gameOutcome==="timeout";
-    const accent=win?"#22c55e":timeout?"#f59e0b":"#ef4444";
     const isDaily=mode==="daily";
     const activeCatData=!isDaily?RUSH_CATEGORIES.find(c=>c.id===rushCat):null;
-    return(
-    <PageWrap glow={win?"teal":timeout?"gold":"red"}>
-      <div style={{width:"100%",textAlign:"center"}}>
-        <div style={{fontSize:11,color:isDaily?S.teal:S.gold,letterSpacing:3,fontWeight:700,marginBottom:6}}>{isDaily?"DAILY STREAK":"RUSH STREAK"} · {theme}</div>
+    const accentCol=win?"#16a34a":timeout?"#d97706":"#dc2626";
+    const accentBg=win?"#f0fdf4":timeout?"#fffbeb":"#fef2f2";
+    const accentBorder=win?"#86efac":timeout?"#fde68a":"#fecaca";
 
-        {/* Streak counter on result */}
+    // Tomorrow's fixture for daily result CTA
+    const tomorrowTheme = isDaily ? DAILY_CHALLENGES[(effectiveDayIdx+1)%DAILY_CHALLENGES.length].theme : null;
+
+    return(
+    <PageWrap glow={win?"default":timeout?"gold":"red"}>
+      <div style={{width:"100%"}}>
+
+        {/* Back nav */}
+        <button onClick={()=>{SFX.click();setScreen(isDaily?"home":"rush");}}
+          style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:11,cursor:"pointer",padding:"7px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,letterSpacing:0.5,marginBottom:16}}>
+          ← {isDaily?"Home":"Training Pitch"}
+        </button>
+
+        {/* ── DAILY RESULT ── */}
         {isDaily&&(
-          <div style={{marginBottom:14}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:2}}>
-              <span style={{fontSize:28}}>🔥</span>
-              <span style={{fontSize:30,fontWeight:900,color:S.gold}}>{streak} day streak</span>
+          <>
+            {/* 1. SCORE CARD — top priority */}
+            <div style={{background:"#ffffff",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.25)"}}>
+              <div style={{height:4,background:accentCol}}/>
+              <div style={{padding:"18px 18px 16px"}}>
+
+                {/* Score message */}
+                {latestScore>0&&(()=>{
+                  const msg=getScoreMessage(latestScore);
+                  return msg?<div style={{background:accentBg,border:`1px solid ${accentBorder}`,borderRadius:10,padding:"10px 14px",marginBottom:14,textAlign:"center"}}>
+                    <div style={{color:accentCol,fontWeight:800,fontSize:15,lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>{msg}</div>
+                  </div>:null;
+                })()}
+
+                {/* Big score */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                  <div>
+                    <div style={{fontSize:9,color:"#94a3b8",letterSpacing:2,fontWeight:600,marginBottom:3,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Match Score</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:4}}>
+                      <span style={{fontSize:56,fontWeight:900,color:accentCol,lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{latestScore}</span>
+                      <span style={{fontSize:20,color:"#94a3b8",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>/10</span>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:12,color:(latestScore||0)>4.2?"#16a34a":"#dc2626",fontWeight:700,marginBottom:2,fontFamily:"'Inter',sans-serif"}}>{(latestScore||0)>4.2?"↑ Above avg":"↓ Below avg"}</div>
+                    <div style={{fontSize:10,color:"#94a3b8",fontFamily:"'Inter',sans-serif"}}>Global avg: 4.2</div>
+                  </div>
+                </div>
+
+                {/* Answer dots */}
+                {answerLog.length>0&&(
+                  <div style={{marginBottom:14}}>
+                    <DailyResultDots resultData={answerLog}/>
+                  </div>
+                )}
+
+                {/* Share button */}
+                <button onClick={()=>{
+                  const s=latestScore||0;
+                  const emojiGrid=answerLog.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
+                  const t=`StatStreaks #${effectiveDayIdx+1} ⚽\n${emojiGrid}\n${s}/10 🧢 ${streak}`;
+                  try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
+                }} style={{width:"100%",padding:"12px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,color:"#475569",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10}}>
+                  ↗ Share your score
+                </button>
+
+                {/* Training Pitch CTA with tomorrow's fixture — dynamic */}
+                <button onClick={()=>{SFX.click();setScreen("rush");}} style={{
+                  width:"100%",padding:"14px 16px",
+                  background:"linear-gradient(135deg,#be185d,#db2777,#ec4899)",
+                  border:"none",borderRadius:12,cursor:"pointer",
+                  fontFamily:"'Inter',sans-serif",
+                  boxShadow:"0 4px 16px rgba(219,39,119,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
+                  textAlign:"left",
+                  transition:"transform 0.15s, box-shadow 0.15s",
+                  display:"block",
+                }}
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(219,39,119,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(219,39,119,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+                  <div style={{fontSize:15,fontWeight:800,color:"#ffffff",marginBottom:3}}>Get some training in ⚡</div>
+                  <div style={{fontSize:10,color:"rgba(255,255,255,0.7)",fontWeight:500}}>Tomorrow's fixture: {tomorrowTheme}</div>
+                </button>
+              </div>
             </div>
-            <div style={{color:S.textMid,fontSize:13}}>{win?"Come back tomorrow to keep it alive":yellowUsed?"Streak survived — don't slip again!":"Keep trying!"}</div>
-          </div>
+
+            {/* 2. CAPS CARD — matches home screen style */}
+            {(()=>{
+              const rStatus = getCareerStatus(streak);
+              return(
+              <div style={{
+                background:"linear-gradient(145deg,#1a2535 0%,#0f1923 60%,#1a1f10 100%)",
+                border:`1px solid ${rStatus.col}30`,
+                borderRadius:16,padding:"16px 18px",marginBottom:12,
+                position:"relative",overflow:"hidden",
+                boxShadow:`0 4px 20px rgba(0,0,0,0.3), 0 0 40px ${rStatus.glow}12`,
+              }}>
+                <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${rStatus.col}50,transparent)`}}/>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:10}}>
+                  <div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:2,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Career Caps</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:6}}>
+                      <span style={{fontSize:64,fontWeight:900,color:rStatus.col,lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1,textShadow:`0 0 30px ${rStatus.col}55`}}>{streak}</span>
+                      <span style={{fontSize:14,color:"rgba(255,255,255,0.5)",fontWeight:600,letterSpacing:2,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>CAPS</span>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",paddingTop:2}}>
+                    <div style={{fontSize:20,marginBottom:6}}>{rStatus.icon}</div>
+                    <div style={{background:`${rStatus.col}20`,border:`1px solid ${rStatus.col}40`,borderRadius:20,padding:"4px 10px",display:"inline-block"}}>
+                      <span style={{fontSize:9,color:rStatus.col,fontWeight:700,fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>Cap Earned ✓</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Centralised player comparison */}
+                <div style={{paddingTop:10,borderTop:"1px solid rgba(255,255,255,0.06)",fontSize:11,color:"rgba(255,255,255,0.6)",lineHeight:1.5,fontStyle:"italic",fontFamily:"'Inter',sans-serif",textAlign:"center"}}>
+                  {getStreakSubtext()}
+                </div>
+              </div>
+              );
+            })()}
+
+            {/* Home button only — daily is one attempt per day */}
+            <button onClick={()=>{SFX.click();setScreen("home");}} style={{width:"100%",padding:"12px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,cursor:"pointer",marginTop:4}}>← Home</button>
+          </>
         )}
 
-        <GlowCard gold={win} style={{padding:"18px 18px",marginBottom:14,textAlign:"left"}}>
-          {isDaily&&<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-            <div style={{color:S.textDim,fontSize:9,letterSpacing:2}}>TODAY'S STREAK RESULT</div>
-            {win&&<div style={{background:"#0f766e",borderRadius:6,padding:"3px 10px",fontSize:10,fontWeight:800,color:"#fff",letterSpacing:1}}>COMPLETED</div>}
-          </div>}
-
-          {/* Score message for daily */}
-          {isDaily&&latestScore>0&&(()=>{
-            const msg=getScoreMessage(latestScore);
-            return msg?(
-              <div style={{background:"#040f0a",border:"1px solid #1a3a28",borderRadius:10,padding:"12px 14px",marginBottom:12,textAlign:"center"}}>
-                <div style={{color:S.textBright,fontWeight:800,fontSize:16,lineHeight:1.4}}>{msg}</div>
-              </div>
-            ):null;
-          })()}
-
-          {/* Score display */}
-          <div style={{background:"#040f0a",border:"1px solid #1a3a28",borderRadius:12,padding:"14px 16px",marginBottom:12}}>
-            {isDaily&&<div style={{color:S.textBright,fontWeight:800,fontSize:17,marginBottom:10}}>Your Score Today: {latestScore}/10</div>}
-            {!isDaily&&(
-              <div>
-                <div style={{display:"flex",gap:16,marginBottom:10}}>
+        {/* ── TRAINING PITCH RESULT ── */}
+        {!isDaily&&(
+          <>
+            <div style={{background:"#ffffff",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.25)"}}>
+              <div style={{height:4,background:"#d97706"}}/>
+              <div style={{padding:"18px"}}>
+                <div style={{display:"flex",gap:12,marginBottom:10}}>
                   <div style={{flex:1,textAlign:"center"}}>
-                    <div style={{color:S.textDim,fontSize:9,letterSpacing:2,marginBottom:3}}>TOTAL SCORE</div>
-                    <div style={{color:S.tealLight,fontWeight:900,fontSize:28}}>{latestScore||score}</div>
+                    <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,marginBottom:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Score</div>
+                    <div style={{fontSize:52,fontWeight:900,color:"#0f172a",lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{latestScore||score}</div>
                   </div>
                   {continueCount>0&&(
-                    <div style={{flex:1,textAlign:"center",borderLeft:"1px solid #1a3a28",paddingLeft:16}}>
-                      <div style={{color:S.textDim,fontSize:9,letterSpacing:2,marginBottom:3}}>CLEAN STREAK</div>
-                      <div style={{color:S.gold,fontWeight:900,fontSize:28}}>{cleanScore}</div>
-                      <div style={{color:S.textDim,fontSize:9,marginTop:2}}>leaderboard score</div>
+                    <div style={{flex:1,textAlign:"center",borderLeft:"1px solid #f1f5f9",paddingLeft:12}}>
+                      <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,marginBottom:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Perfect Run</div>
+                      <div style={{fontSize:52,fontWeight:900,color:"#d97706",lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{cleanScore}</div>
+                      <div style={{fontSize:9,color:"#94a3b8",marginTop:2,fontFamily:"'Inter',sans-serif"}}>leaderboard</div>
                     </div>
                   )}
                 </div>
-                {/* Percentile hook */}
                 {(()=>{
-                  const displayScore=continueCount>0?cleanScore:(latestScore||score);
-                  const pct=getPercentile(displayScore);
-                  const next=getNextTarget(displayScore);
-                  return(
-                    <div style={{borderTop:"1px solid #1a3a28",paddingTop:8}}>
-                      {pct&&<div style={{color:S.gold,fontWeight:800,fontSize:13,marginBottom:3}}>🏆 Top {pct}% globally</div>}
-                      {!pct&&<div style={{color:S.textDim,fontSize:12,marginBottom:3}}>Score more to enter the rankings</div>}
-                      {next&&<div style={{color:S.textMid,fontSize:12}}>+{next.need} more to reach <span style={{color:S.gold,fontWeight:700}}>{next.label}</span></div>}
-                    </div>
-                  );
+                  const ds=continueCount>0?cleanScore:(latestScore||score);
+                  const pct=getPercentile(ds);const next=getNextTarget(ds);
+                  return(<div style={{borderTop:"1px solid #f1f5f9",paddingTop:10,marginBottom:12}}>
+                    {pct?<div style={{color:"#d97706",fontWeight:700,fontSize:12,marginBottom:2,fontFamily:"'Inter',sans-serif"}}>🏆 Top {pct}% globally</div>:<div style={{color:"#94a3b8",fontSize:11,marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Score more to enter rankings</div>}
+                    {next&&<div style={{color:"#64748b",fontSize:11,fontFamily:"'Inter',sans-serif"}}>+{next.need} to reach <strong style={{color:"#d97706"}}>{next.label}</strong></div>}
+                    {activeCatData&&<div style={{color:"#94a3b8",fontSize:10,marginTop:4,fontFamily:"'Inter',sans-serif"}}>Category avg: {activeCatData.globalAvg}</div>}
+                  </div>);
                 })()}
+                <button onClick={()=>{
+                  const s=continueCount>0?cleanScore:(latestScore||score);
+                  const t=`StatStreaks Training Pitch\n${theme}\nScore: ${s} — can you beat me?`;
+                  try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
+                }} style={{width:"100%",padding:"10px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:9,color:"#475569",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10}}>
+                  ↗ Share score
+                </button>
+                <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 12px rgba(219,39,119,0.4)"}}>Train Again ⚡</button>
               </div>
-            )}
-
-            {/* Daily dots */}
-            {isDaily&&answerLog.length>0&&<div style={{marginBottom:10}}><DailyResultDots resultData={answerLog}/></div>}
-
-            {/* Comparison — global avg */}
-            <div style={{display:"flex",gap:16,fontSize:12,color:S.textMid,flexWrap:"wrap",marginTop:isDaily?0:8}}>
-              {isDaily&&<span>Global avg: <span style={{color:(latestScore||0)>4.2?S.tealLight:"#f87171",fontWeight:700}}>4.2</span>{(latestScore||0)>4.2?" ↑ above avg":" ↓ below avg"}</span>}
-              {!isDaily&&activeCatData&&(()=>{
-                const ds=continueCount>0?cleanScore:(latestScore||score);
-                return <span>Category avg: <span style={{color:ds>activeCatData.globalAvg?S.tealLight:"#f87171",fontWeight:700}}>{activeCatData.globalAvg}</span>{ds>activeCatData.globalAvg?" ↑ above avg":" ↓ below avg"}</span>;
-              })()}
             </div>
-          </div>
+          </>
+        )}
 
-          {/* Rush CTA from daily result */}
-          {isDaily&&(
-            <button onClick={()=>{SFX.click();setScreen("rush");}} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#1a0e00,#0a0800)",border:"1px solid #f59e0b66",borderRadius:12,color:S.gold,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:900,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",marginBottom:10}}>
-              ⚡ PLAY RUSH STREAK ⚡
-            </button>
-          )}
-
-          <button onClick={()=>{const s=continueCount>0?cleanScore:(latestScore||score);const t=`🔥 StatStreaks\n${isDaily?"Daily Streak":"Rush Streak"}: ${theme}\nScore: ${s}${isDaily?"/10":""}${yellowUsed?" (yellow card used)":""} — can you beat me?`;try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");}} style={{width:"100%",padding:"10px",background:"transparent",border:"1px solid #1a3a28",borderRadius:10,color:S.textMid,fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            ↗ Share your score
-          </button>
-          {isDaily&&<div style={{textAlign:"center",marginTop:12,color:S.textDim,fontSize:11}}>Only one attempt per day &nbsp;|&nbsp; Don't miss tomorrow</div>}
-        </GlowCard>
-
-        <div style={{display:"flex",gap:8}}>
-          {!isDaily&&<button onClick={()=>{SFX.click();setScreen("rush");}} style={{flex:1,padding:"13px",background:"linear-gradient(135deg,#b45309,#d97706)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:900,letterSpacing:2,textTransform:"uppercase",cursor:"pointer"}}>PLAY AGAIN ⚡</button>}
-          {isDaily&&<button onClick={launchDaily} style={{flex:1,padding:"13px",background:"linear-gradient(135deg,#0f766e,#0d9488)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:900,letterSpacing:2,textTransform:"uppercase",cursor:"pointer"}}>RETRY 🔥</button>}
-          <button onClick={()=>{SFX.click();setScreen(isDaily?"home":"rush");}} style={{flex:1,padding:"13px",background:"#040f0a",border:"1px solid #1a3a28",borderRadius:12,color:S.textMid,fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:900,letterSpacing:2,textTransform:"uppercase",cursor:"pointer"}}>{isDaily?"HOME":"BACK"}</button>
-        </div>
       </div>
     </PageWrap>
   );}
@@ -2194,95 +2493,109 @@ function App(){
   const activeCat=isRush?RUSH_CATEGORIES.find(c=>c.id===rushCat):null;
 
   return(
-    <PageWrap glow={isRush?"gold":"teal"}>
+    <PageWrap glow={isRush?"gold":"default"}>
       {showYellow&&<YellowCardOverlay onWatchAd={onWatchAd} onDecline={onDeclineAd}/>}
       {showRushModal&&<RushModal/>}
+      {/* 3-2-1 countdown overlay */}
+      {countdown!==null&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,backdropFilter:"blur(4px)"}}>
+          <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:4,fontWeight:600,textTransform:"uppercase",marginBottom:16,fontFamily:"'Inter',sans-serif"}}>{isRush?"Training Pitch":"International Match"}</div>
+          <div style={{
+            fontSize:120,fontWeight:900,color:countdown===3?"#60a5fa":countdown===2?"#fbbf24":"#4ade80",
+            fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,
+            textShadow:`0 0 60px ${countdown===3?"#60a5fa":countdown===2?"#fbbf24":"#4ade80"}88`,
+            animation:"popIn 0.3s ease",
+          }}>{countdown}</div>
+          <div style={{fontSize:14,color:"rgba(255,255,255,0.4)",marginTop:16,fontFamily:"'Inter',sans-serif",fontWeight:500}}>
+            {countdown===3?"Get ready…":countdown===2?"Higher or lower…":"Go!"}
+          </div>
+        </div>
+      )}
       <div style={{width:"100%"}}>
 
-        {/* Header with StatStreaks brand */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-          <button onClick={()=>{SFX.click();setTimerActive(false);setScreen(isRush?"rush":"home");}} style={{background:"linear-gradient(135deg,#0a1e16,#061410)",border:"1px solid #1a4a38",borderRadius:10,color:S.textMid,fontSize:11,cursor:"pointer",letterSpacing:1,padding:"7px 12px",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:600}}>← {isRush?"RUSH":"HOME"}</button>
+        {/* ── GAME HEADER ── */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+          <button onClick={()=>{SFX.click();setTimerActive(false);setCountdown(null);setScreen(isRush?"rush":"home");}}
+            style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:11,cursor:"pointer",padding:"7px 11px",fontFamily:"'Inter',sans-serif",fontWeight:600}}>
+            ← {isRush?"Pitch":"Home"}
+          </button>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:18,fontWeight:900,letterSpacing:1,background:"linear-gradient(90deg,#0d9488,#14b8a6)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>StatStreaks</div>
-            <div style={{color:isRush?S.gold:S.teal,fontSize:9,letterSpacing:2,fontWeight:700}}>{activeCat?`${activeCat.icon} ${activeCat.label}`:"🔥 DAILY STREAK"}</div>
+            <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Training Pitch"):theme}</div>
+            <div style={{fontSize:9,color:isRush?"#fbbf24":"#4ade80",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isRush?"Training Pitch":"International Match"}</div>
           </div>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
-            <div style={{background:"#040f0a",border:"1px solid #1a3a28",borderRadius:8,padding:"4px 10px",color:"#22c55e",fontWeight:800,fontSize:13,letterSpacing:1}}>{score} ✓</div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
+            <div style={{background:"#ffffff",borderRadius:7,padding:"4px 10px",color:"#16a34a",fontWeight:900,fontSize:13,fontFamily:"'Oswald',sans-serif",letterSpacing:1,boxShadow:"0 2px 6px rgba(0,0,0,0.15)"}}>{score} ✓</div>
             {isRush
-              ? <div style={{color:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":S.textMid,fontWeight:900,fontSize:20,animation:timeLeft<=8?"timerPulse 0.6s infinite":"none"}}>{timeLeft}s</div>
-              : <div style={{fontSize:11,color:S.textDim}}>{yellowUsed?"🟥 used — 1 save left":"🟨 yellow card save ready"}</div>
+              ? <div style={{color:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"rgba(255,255,255,0.7)",fontWeight:900,fontSize:20,fontFamily:"'Oswald',sans-serif",animation:timeLeft<=8?"timerPulse 0.6s infinite":"none"}}>{timeLeft}s</div>
+              : <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",letterSpacing:0.5}}>{yellowUsed?"🟥 last save gone":"🟨 save ready"}</div>
             }
           </div>
         </div>
 
-        {/* Timer bar (rush) / Progress dots (daily) */}
+        {/* ── TIMER BAR (rush) / PROGRESS DOTS (daily) ── */}
         {isRush
-          ? <div style={{width:"100%",height:6,background:"#040f0a",borderRadius:99,overflow:"hidden",border:"1px solid #1a3a28",marginBottom:12,boxShadow:timeLeft<=8?"0 0 12px #ef444455":"none"}}>
-              <div style={{height:"100%",width:`${(timeLeft/TOTAL_TIME)*100}%`,background:timeLeft<=8?"linear-gradient(90deg,#7f1d1d,#ef4444)":timeLeft<=15?"linear-gradient(90deg,#92400e,#f59e0b)":`linear-gradient(90deg,#0f766e,${S.tealLight})`,borderRadius:99,transition:"width 0.9s linear,background 0.5s"}}/>
+          ? <div style={{width:"100%",height:5,background:"rgba(255,255,255,0.1)",borderRadius:99,overflow:"hidden",marginBottom:14}}>
+              <div style={{height:"100%",width:`${(timeLeft/TOTAL_TIME)*100}%`,background:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"#16a34a",borderRadius:99,transition:"width 0.9s linear,background 0.5s"}}/>
             </div>
           : <ProgressDots current={currentIdx} result={result} yellowCardIdx={yellowCardIdx}/>
         }
 
-        {/* Question — HIGHER / LOWER language */}
+        {/* ── QUESTION CARD ── */}
         {currentCard&&nextCard&&(
-          <GlowCard style={{padding:"10px 16px",marginBottom:12,textAlign:"center"}}>
-            <div style={{color:S.textDim,fontSize:9,letterSpacing:3,fontWeight:700,marginBottom:4}}>COMPARE THE {nextCard.statType.toUpperCase()}</div>
-            <div style={{fontSize:15,lineHeight:1.6}}>
-              <span style={{color:S.textMid}}>Will </span>
-              <span style={{color:S.textBright,fontWeight:800}}>{nextCard.player}</span>
-              <span style={{color:S.textMid}}> be </span>
-              <span style={{color:"#4ade80",fontWeight:900}}>HIGHER</span>
-              <span style={{color:S.textMid}}> or </span>
-              <span style={{color:"#f87171",fontWeight:900}}>LOWER</span>
-              <span style={{color:S.textMid}}> than </span>
-              <span style={{color:S.gold,fontWeight:900,fontSize:20}}>{currentCard.stat}</span>
-              <span style={{color:S.textDim,fontSize:11}}> {currentCard.statType}?</span>
+          <div style={{background:"#ffffff",borderRadius:14,padding:"12px 16px",marginBottom:14,textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
+            <div style={{fontSize:8,color:"#94a3b8",letterSpacing:3,fontWeight:700,marginBottom:6,textTransform:"uppercase"}}>Compare the {nextCard.statType}</div>
+            <div style={{fontSize:14,lineHeight:1.8,color:"#475569"}}>
+              Will <strong style={{color:"#0f172a",fontFamily:"'Oswald',sans-serif",fontSize:16,fontWeight:700}}>{nextCard.player}</strong> be <strong style={{color:"#16a34a"}}>HIGHER</strong> or <strong style={{color:"#dc2626"}}>LOWER</strong> than <strong style={{color:"#d97706",fontFamily:"'Oswald',sans-serif",fontSize:18}}>{currentCard.stat}</strong>?
             </div>
-          </GlowCard>
+          </div>
         )}
 
-        {/* Stat panels */}
+        {/* ── STAT PANELS ── */}
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,justifyContent:"center"}}>
           {currentCard&&<StatPanel card={currentCard} revealed={true} flashResult={null}/>}
-          <div style={{width:30,height:30,borderRadius:"50%",background:"#040f0a",border:"1px solid #1a3a28",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:S.textDim,fontWeight:800,flexShrink:0}}>VS</div>
+          <div style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"rgba(255,255,255,0.5)",fontWeight:800,flexShrink:0,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1}}>VS</div>
           {nextCard&&<StatPanel card={nextCard} revealed={revealedNext} flashResult={revealedNext?flashResult:null}/>}
         </div>
 
-        {/* HIGHER / LOWER buttons or feedback */}
+        {/* ── BUTTONS / FEEDBACK ── */}
         {result===null||result==="yellow"?(
           result==="yellow"?(
-            <GlowCard style={{padding:"14px",textAlign:"center"}}>
-              <div style={{fontSize:24,fontWeight:900,color:S.gold,letterSpacing:2}}>🟨 YELLOW CARD!</div>
-              <div style={{color:S.textDim,fontSize:12,marginTop:4}}>Ad offer incoming...</div>
-            </GlowCard>
+            <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.1)"}}>
+              <div style={{fontSize:20,fontWeight:900,color:"#92400e",fontFamily:"'Oswald',sans-serif",letterSpacing:1}}>🟨 Yellow Card</div>
+              <div style={{color:"#92400e",fontSize:12,marginTop:4,opacity:0.7}}>Incoming...</div>
+            </div>
           ):(
-            <div style={{display:"flex",gap:12,width:"100%"}}>
-              <button onClick={()=>handleGuess("higher")} style={{flex:1,padding:"16px",background:"linear-gradient(160deg,#14532d,#166534)",border:"1px solid #22c55e55",borderRadius:14,color:"#4ade80",fontSize:20,fontWeight:900,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s",boxShadow:"0 4px 16px #22c55e22"}}
-                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px #22c55e44";}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px #22c55e22";}}>⬆ HIGHER</button>
-              <button onClick={()=>handleGuess("lower")} style={{flex:1,padding:"16px",background:"linear-gradient(160deg,#7f1d1d,#991b1b)",border:"1px solid #ef444455",borderRadius:14,color:"#fca5a5",fontSize:20,fontWeight:900,letterSpacing:2,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s",boxShadow:"0 4px 16px #ef444422"}}
-                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px #ef444444";}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px #ef444422";}}>⬇ LOWER</button>
+            <div style={{display:"flex",gap:10,width:"100%"}}>
+              <button onClick={()=>handleGuess("higher")}
+                style={{flex:1,padding:"16px 8px",background:"#16a34a",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4)"}}
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(22,163,74,0.55)";}}
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(22,163,74,0.4)";}}>⬆ Higher</button>
+              <button onClick={()=>handleGuess("lower")}
+                style={{flex:1,padding:"16px 8px",background:"#dc2626",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(220,38,38,0.4)"}}
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(220,38,38,0.55)";}}
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(220,38,38,0.4)";}}>⬇ Lower</button>
             </div>
           )
         ):(
           result==="correct"?(
-            <GlowCard style={{padding:"14px",textAlign:"center"}}>
-              <div style={{fontSize:24,fontWeight:900,letterSpacing:2,color:"#22c55e"}}>✓ CORRECT!</div>
-              <div style={{color:S.textDim,fontSize:12,marginTop:4}}>Nice one — keep the streak going!</div>
-            </GlowCard>
+            <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 2px 12px rgba(22,163,74,0.15)"}}>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:22,fontWeight:700,color:"#16a34a",letterSpacing:1}}>✓ Correct!</div>
+              <div style={{color:"#64748b",fontSize:12,marginTop:3}}>Keep going!</div>
+            </div>
           ):(
-            /* Red card overlay — same style as yellow card */
-            <div style={{position:"fixed",inset:0,background:"#000000dd",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50,padding:"0 20px"}}>
-              <div style={{background:"linear-gradient(160deg,#1a0000,#0a0400)",border:"2px solid #ef4444",borderRadius:20,padding:"28px 24px",maxWidth:300,width:"100%",textAlign:"center",boxShadow:"0 0 40px #ef444433"}}>
-                <div style={{fontSize:52,marginBottom:8}}>🟥</div>
-                <div style={{color:"#ef4444",fontWeight:900,fontSize:26,letterSpacing:2,marginBottom:6}}>RED CARD!</div>
-                <div style={{color:"#94a3b8",fontSize:14,marginBottom:6,lineHeight:1.5}}>
-                  {yellowUsed?"Two wrong answers — streak over.":"Wrong answer — game over."}
+            !isRush?(
+            <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50,padding:"0 20px",backdropFilter:"blur(6px)"}}>
+              <div style={{background:"#ffffff",borderRadius:20,padding:"28px 24px",maxWidth:300,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
+                {/* Red card graphic */}
+                <div style={{width:52,height:68,background:"linear-gradient(160deg,#ef4444,#dc2626)",borderRadius:8,margin:"0 auto 16px",boxShadow:"0 4px 20px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  <div style={{width:38,height:50,background:"linear-gradient(160deg,#fca5a5,#ef4444)",borderRadius:5}}/>
                 </div>
-                <div style={{color:"#64748b",fontSize:12}}>Taking you to results...</div>
+                <div style={{color:"#7f1d1d",fontWeight:900,fontSize:22,letterSpacing:1,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase"}}>Red Card</div>
+                <div style={{color:"#64748b",fontSize:13,marginBottom:6,lineHeight:1.5}}>{yellowUsed?"Two wrong answers — match over.":"Wrong answer — match over."}</div>
+                <div style={{color:"#94a3b8",fontSize:11}}>Taking you to results...</div>
               </div>
             </div>
+            ):null
           )
         )}
       </div>
