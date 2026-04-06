@@ -1452,7 +1452,7 @@ function StatPanel({card, revealed, flashResult=null}) {
 }
 
 // Progress dots — daily only
-function ProgressDots({current, result, yellowCardIdx}) {
+function ProgressDots({current, result, yellowCardIdx, declinedYellow}) {
   return (
     <div style={{display:"flex",gap:5,alignItems:"center",justifyContent:"center",marginBottom:14}}>
       {Array.from({length:10}).map((_,i)=>{
@@ -1461,8 +1461,10 @@ function ProgressDots({current, result, yellowCardIdx}) {
         if(i===yellowCardIdx&&i<current)    {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=10;}
         if(i===current&&result===null)      {bg="#dbeafe";borderC="#93c5fd";col="#2563eb";}
         if(i===current&&result==="correct") {bg="#dcfce7";borderC="#86efac";cnt="✓";col="#16a34a";fs=10;}
-        if(i===current&&result==="wrong")   {bg="#fee2e2";borderC="#fca5a5";cnt="✗";col="#dc2626";fs=10;}
+        if(i===current&&result==="wrong")   {bg="#fee2e2";borderC="#fca5a5";cnt="🟥";col="#dc2626";fs=10;}
         if(i===current&&result==="yellow")  {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=10;}
+        // Straight red: declined yellow on this dot — override yellow
+        if(i===current&&declinedYellow)     {bg="#fee2e2";borderC="#dc2626";cnt="🟥";col="#dc2626";fs=10;}
         return <div key={i} style={{width:26,height:26,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,transition:"all 0.2s",fontFamily:"'Barlow Condensed',sans-serif"}}>{cnt}</div>;
       })}
     </div>
@@ -1478,6 +1480,7 @@ function DailyResultDots({resultData}) {
         if(r==="correct"){bg="#dcfce7";borderC="#86efac";cnt="✓";col="#16a34a";fs=9;}
         if(r==="yellow") {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=9;}
         if(r==="wrong")  {bg="#fee2e2";borderC="#fca5a5";cnt="🟥";col="#dc2626";fs=9;}
+        if(r==="red")    {bg="#fee2e2";borderC="#dc2626";cnt="🟥";col="#dc2626";fs=9;}
         return <div key={i} style={{width:24,height:24,flexShrink:0,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>{cnt}</div>;
       })}
     </div>
@@ -1613,16 +1616,38 @@ function getRushMessage(score, catBest) {
 }
 
 // ── TRAINING PITCH PAGE ───────────────────────────────────────────────────────
-function RushPage({onBack, onPlay, onLeaderboard}) {
+// ── CAREER STATUS ─────────────────────────────────────────────────────────────
+function getCareerStatus(caps){
+  if(caps===0)    return {label:"Uncapped",             icon:"👤",col:"#94a3b8",glow:"#94a3b8",next:1,   nextLabel:"Academy Prospect"};
+  if(caps<4)      return {label:"Academy Prospect",     icon:"🟡",col:"#fde68a",glow:"#f59e0b",next:4,   nextLabel:"Youth Team"};
+  if(caps<8)      return {label:"Youth Team",           icon:"🟢",col:"#4ade80",glow:"#22c55e",next:8,   nextLabel:"Squad Player"};
+  if(caps<15)     return {label:"Squad Player",         icon:"🔵",col:"#60a5fa",glow:"#3b82f6",next:15,  nextLabel:"Rotation Option"};
+  if(caps<25)     return {label:"Rotation Option",      icon:"🟣",col:"#c084fc",glow:"#a855f7",next:25,  nextLabel:"First Team Regular"};
+  if(caps<40)     return {label:"First Team Regular",   icon:"🩵",col:"#38bdf8",glow:"#0ea5e9",next:40,  nextLabel:"Key Player"};
+  if(caps<60)     return {label:"Key Player",           icon:"⭐",col:"#fbbf24",glow:"#f59e0b",next:60,  nextLabel:"Star Player"};
+  if(caps<85)     return {label:"Star Player",          icon:"⭐⭐",col:"#fb923c",glow:"#f97316",next:85, nextLabel:"International"};
+  if(caps<115)    return {label:"International",        icon:"⭐⭐⭐",col:"#f87171",glow:"#ef4444",next:115,nextLabel:"World Class"};
+  if(caps<150)    return {label:"World Class",          icon:"🔥",col:"#e879f9",glow:"#d946ef",next:150, nextLabel:"All-Time Great"};
+  if(caps<200)    return {label:"All-Time Great",       icon:"👑",col:"#fde047",glow:"#facc15",next:200, nextLabel:"Hall of Fame"};
+  return           {label:"Hall of Fame",               icon:"🏆",col:"#ffffff",glow:"#ffffff",next:null, nextLabel:null};
+}
+
+function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
+  const status = getCareerStatus(streak||0);
   return (
     <PageWrap glow="gold">
       <div style={{width:"100%"}}>
         {/* Header */}
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
           <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,flexShrink:0}}>← Back</button>
-          <div>
+          <div style={{flex:1}}>
             <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
             <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Training Pitch</div>
+          </div>
+          {/* Player name + status — top right */}
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{fontSize:12,fontWeight:800,color:status.col,fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>{username||"—"}</div>
+            <div style={{fontSize:9,color:status.col,opacity:0.75,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginTop:2}}>{status.icon} {status.label}</div>
           </div>
         </div>
 
@@ -1855,11 +1880,20 @@ function App(){
   const [yellowUsed,setYellowUsed]       = useState(false);
   const [showYellow,setShowYellow]       = useState(false);
   const [yellowCardIdx,setYellowCardIdx] = useState(null);
+  const [declinedYellow,setDeclinedYellow] = useState(false);
   const [rushScores,setRushScores]       = useState(()=>lsGet("rush_scores",[]));
   const [dailyDone,setDailyDone]         = useState(()=>lsGet("daily_done",""));
   const [dailyResult,setDailyResult]     = useState(()=>lsGet("daily_result",null));
   const [streak,setStreak]               = useState(()=>lsGet("streak",0));
   const [username,setUsernameState]      = useState(()=>lsGet("username",""));
+  const [userId]                         = useState(()=>{
+    const existing=lsGet("user_id","");
+    if(existing) return existing;
+    const id="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&0x3|0x8)).toString(16);});
+    lsSet("user_id",id); return id;
+  });
+  const [nameEditing,setNameEditing]     = useState(false);
+  const [nameDraft,setNameDraft]         = useState("");
   const [testDayOffset,setTestDayOffset] = useState(0);
   const [latestScore,setLatestScore]     = useState(null);
   const [rawCorrect,setRawCorrect]       = useState(0);  // pre-multiplier correct count for display
@@ -1924,7 +1958,7 @@ function App(){
   function resetState(){
     setCurrentIdx(0);setRevealedNext(false);setResult(null);setFlashResult(null);
     setGameOutcome(null);setScore(0);setTimeLeft(TOTAL_TIME);setTimerActive(false);
-    setYellowUsed(false);setShowYellow(false);setYellowCardIdx(null);setAnswerLog([]);
+    setYellowUsed(false);setShowYellow(false);setYellowCardIdx(null);setDeclinedYellow(false);setAnswerLog([]);
     setCleanScore(0);setContinueCount(0);setShowRushModal(false);setFrozenTimeLeft(0);
   }
 
@@ -2060,7 +2094,7 @@ function App(){
   }
 
   function onWatchAd(){setYellowUsed(true);setShowYellow(false);setCurrentIdx(i=>i+1);setRevealedNext(false);setResult(null);setFlashResult(null);}
-  function onDeclineAd(){setShowYellow(false);setResult("wrong");setFlashResult("wrong");const nl=[...answerLog,"wrong"];setAnswerLog(nl);finishGame("lose",score,nl);}
+  function onDeclineAd(){setShowYellow(false);setDeclinedYellow(true);setResult("wrong");setFlashResult("wrong");const nl=[...answerLog];if(nl[nl.length-1]==="yellow")nl[nl.length-1]="red";else nl.push("red");setAnswerLog(nl);finishGame("lose",score,nl);}
   function markDailyPlayed(log){
     lsSet("daily_done",todayKey);setDailyDone(todayKey);
     const ns=streak+1;lsSet("streak",ns);setStreak(ns);
@@ -2088,7 +2122,7 @@ function App(){
   const nextCard=cards[currentIdx+1];
 
   if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen("rush")} rushScores={rushScores} username={username} onSetUsername={setUsername}/>;
-  if(screen==="rush")return <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>setScreen("leaderboard")}/>;
+  if(screen==="rush")return <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>setScreen("leaderboard")} username={username} streak={streak}/>;
 
   // ── RUSH CONTINUE MODAL (inline component) ────────────────────────────────
   const RushModal = ()=>{
@@ -2226,18 +2260,6 @@ function App(){
   }
 
   // Career status — shared between home + result screens
-  function getCareerStatus(caps){
-    if(caps===0) return {label:"Uncapped",        icon:"👤",col:"#94a3b8",glow:"#94a3b8",next:1,  nextLabel:"Squad Player"};
-    if(caps<5)   return {label:"Squad Player",    icon:"🔵",col:"#60a5fa",glow:"#3b82f6",next:5,  nextLabel:"Fringe International"};
-    if(caps<15)  return {label:"Fringe International",icon:"🟢",col:"#34d399",glow:"#10b981",next:15, nextLabel:"Impact Sub"};
-    if(caps<30)  return {label:"Impact Sub",      icon:"🟣",col:"#a78bfa",glow:"#8b5cf6",next:30, nextLabel:"Regular Starter"};
-    if(caps<50)  return {label:"Regular Starter", icon:"🩵",col:"#38bdf8",glow:"#0ea5e9",next:50, nextLabel:"Starting XI"};
-    if(caps<75)  return {label:"Starting XI ⭐",  icon:"⭐",col:"#fbbf24",glow:"#f59e0b",next:75, nextLabel:"International Legend"};
-    if(caps<100) return {label:"International Legend",icon:"🔥",col:"#fb923c",glow:"#f97316",next:100,nextLabel:"All-Time Great"};
-    if(caps<150) return {label:"All-Time Great",  icon:"👑",col:"#e879f9",glow:"#d946ef",next:150,nextLabel:"Hall of Fame"};
-    return        {label:"Hall of Fame",           icon:"🏆",col:"#fde047",glow:"#facc15",next:null,nextLabel:null};
-  }
-
   if(screen==="home") {
 
     function resetDemo(){
@@ -2250,7 +2272,7 @@ function App(){
     }
 
     const status = getCareerStatus(streak);
-    const prevMilestone = streak===0?0:status.next===1?0:[0,1,5,15,30,50,75,100,150].reverse().find(m=>m<=streak)||0;
+    const prevMilestone = streak===0?0:status.next===1?0:[0,1,4,8,15,25,40,60,85,115,150,200].reverse().find(m=>m<=streak)||0;
     const milestoneRange = status.next ? status.next - prevMilestone : 100;
     const milestoneProgress = status.next ? Math.min(streak - prevMilestone, milestoneRange) : milestoneRange;
     const progressPct = status.next ? Math.round((milestoneProgress / milestoneRange) * 100) : 100;
@@ -2281,64 +2303,61 @@ function App(){
           {/* Top shimmer line */}
           <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${status.col}50,transparent)`}}/>
 
-          <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",position:"relative"}}>
-            {/* Left: mega number + avatar */}
-            <div>
-              <div style={{fontSize:9,color:"rgba(255,255,255,0.55)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:6,fontFamily:"'Inter',sans-serif"}}>Career Caps</div>
-              <div style={{display:"flex",alignItems:"flex-end",gap:10,lineHeight:1}}>
-                {/* Footballer avatar */}
-                <div style={{
-                  width:52,height:52,
-                  background:`${status.col}22`,
-                  border:`1px solid ${status.col}44`,
-                  borderRadius:14,
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  flexShrink:0,
-                  marginBottom:4,
-                }}>
-                  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                    {/* Head */}
-                    <circle cx="14" cy="7" r="4.5" fill={status.col} opacity="0.9"/>
-                    {/* Body */}
-                    <path d="M8 13.5C8 11.5 10.5 10.5 14 10.5C17.5 10.5 20 11.5 20 13.5L19 20H9L8 13.5Z" fill={status.col} opacity="0.85"/>
-                    {/* Left leg */}
-                    <path d="M9.5 20L8 27H11L12.5 20" fill={status.col} opacity="0.75"/>
-                    {/* Right leg - kicking */}
-                    <path d="M18.5 20L17 25H20L21.5 20" fill={status.col} opacity="0.75"/>
-                    {/* Arm left */}
-                    <path d="M9 14L5.5 17.5" stroke={status.col} strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
-                    {/* Arm right - raised */}
-                    <path d="M19 14L22.5 11" stroke={status.col} strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
-                  </svg>
+          <div style={{position:"relative"}}>
+            {/* Top row: Career Caps label left, name right — same line */}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.55)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Career Caps</div>
+              {nameEditing?(
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <input
+                    value={nameDraft}
+                    onChange={e=>setNameDraft(e.target.value.slice(0,20))}
+                    onKeyDown={e=>{
+                      if(e.key==="Enter"){const t=nameDraft.trim();if(t)setUsername(t);setNameEditing(false);}
+                      if(e.key==="Escape"){setNameEditing(false);}
+                    }}
+                    maxLength={20} placeholder="Your player name…" autoFocus
+                    style={{width:130,background:"rgba(255,255,255,0.1)",border:`1px solid ${status.col}60`,borderRadius:7,padding:"4px 8px",color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,outline:"none",caretColor:status.col}}
+                  />
+                  <button onClick={()=>{const t=nameDraft.trim();if(t)setUsername(t);setNameEditing(false);}}
+                    style={{padding:"4px 9px",background:status.col,border:"none",borderRadius:7,color:"#000",fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:800,letterSpacing:1,cursor:"pointer",textTransform:"uppercase",flexShrink:0}}>Save</button>
+                  <button onClick={()=>setNameEditing(false)}
+                    style={{padding:"4px 7px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:7,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",fontSize:10,cursor:"pointer",flexShrink:0}}>✕</button>
                 </div>
-                <div>
-                  <span style={{
-                    fontSize:80,fontWeight:900,color:status.col,lineHeight:0.9,
-                    fontFamily:"'Bebas Neue',sans-serif",
-                    textShadow:`0 0 40px ${status.col}55, 0 2px 0 rgba(0,0,0,0.3)`,
-                    letterSpacing:1,display:"block",
-                  }}>{streak}</span>
-                  <span style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:3,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>CAPS</span>
-                </div>
-              </div>
+              ):(
+                <button onClick={()=>{setNameDraft(username||"");setNameEditing(true);SFX.click();}}
+                  style={{display:"flex",alignItems:"center",gap:5,background:"transparent",border:"none",cursor:"pointer",padding:0}}>
+                  <span style={{fontSize:12,fontWeight:700,color:status.col,fontFamily:"'Inter',sans-serif",letterSpacing:0.3}}>
+                    {username||"Add name…"}
+                  </span>
+                  <span style={{fontSize:9,color:status.col,opacity:0.7}}>✏️</span>
+                </button>
+              )}
             </div>
-            {/* Right: status badge */}
-            <div style={{textAlign:"right",paddingTop:4}}>
-              <div style={{fontSize:22,marginBottom:6}}>{status.icon}</div>
-              <div style={{
-                background:`${status.col}20`,
-                border:`1px solid ${status.col}40`,
-                borderRadius:20,padding:"5px 12px",
-                display:"inline-block",
-              }}>
-                <span style={{fontSize:10,color:status.col,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",whiteSpace:"nowrap",fontFamily:"'Inter',sans-serif"}}>{status.label}</span>
+
+            {/* Big number row — badge inline on the right */}
+            <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between"}}>
+              <div style={{lineHeight:1}}>
+                <span style={{fontSize:80,fontWeight:900,color:status.col,lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",textShadow:`0 0 40px ${status.col}55, 0 2px 0 rgba(0,0,0,0.3)`,letterSpacing:1,display:"block"}}>{streak}</span>
+                <span style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:3,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>CAPS</span>
+              </div>
+              <div style={{textAlign:"right",paddingBottom:6,flexShrink:0,paddingLeft:12}}>
+                <div style={{fontSize:22,marginBottom:6}}>{status.icon}</div>
+                <div style={{background:`${status.col}20`,border:`1px solid ${status.col}40`,borderRadius:20,padding:"5px 12px",display:"inline-block"}}>
+                  <span style={{fontSize:10,color:status.col,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",whiteSpace:"nowrap",fontFamily:"'Inter',sans-serif"}}>{status.label}</span>
+                </div>
               </div>
             </div>
           </div>
 
+          {/* Subtext — above progress bar */}
+          <div style={{marginTop:12,fontSize:11,color:"rgba(255,255,255,0.65)",lineHeight:1.5,fontStyle:"italic",fontFamily:"'Inter',sans-serif",textAlign:"center"}}>
+            {getStreakSubtext()}
+          </div>
+
           {/* Progress bar to next milestone */}
           {status.next&&(
-            <div style={{marginTop:16}}>
+            <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
                 <span style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:1,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{streak} / {status.next} caps</span>
                 <span style={{fontSize:9,color:status.col,fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Next: {status.nextLabel}</span>
@@ -2348,11 +2367,6 @@ function App(){
               </div>
             </div>
           )}
-
-          {/* Subtext */}
-          <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.08)",fontSize:11,color:"rgba(255,255,255,0.65)",lineHeight:1.5,fontStyle:"italic",fontFamily:"'Inter',sans-serif",textAlign:"center"}}>
-            {getStreakSubtext()}
-          </div>
         </div>
 
         {/* ══ TODAY'S MATCH ══ */}
@@ -2678,7 +2692,7 @@ function App(){
       {/* 3-2-1 countdown overlay */}
       {countdown!==null&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,backdropFilter:"blur(4px)"}}>
-          <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:4,fontWeight:600,textTransform:"uppercase",marginBottom:16,fontFamily:"'Inter',sans-serif"}}>{isRush?"Training Pitch":"International Match"}</div>
+          {isRush&&<div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:4,fontWeight:600,textTransform:"uppercase",marginBottom:16,fontFamily:"'Inter',sans-serif"}}>Training Pitch</div>}
           <div style={{
             fontSize:120,fontWeight:900,color:countdown===3?"#60a5fa":countdown===2?"#fbbf24":"#4ade80",
             fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,
@@ -2700,7 +2714,7 @@ function App(){
           </button>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Training Pitch"):theme}</div>
-            <div style={{fontSize:9,color:isRush?"#fbbf24":"#4ade80",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isRush?"Training Pitch":"International Match"}</div>
+            <div style={{fontSize:9,color:isRush?"#fbbf24":"rgba(255,255,255,0)",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isRush?"Training Pitch":""}</div>
           </div>
           <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
             <div style={{background:"#ffffff",borderRadius:7,padding:"4px 10px",color:"#16a34a",fontWeight:900,fontSize:13,fontFamily:"'Oswald',sans-serif",letterSpacing:1,boxShadow:"0 2px 6px rgba(0,0,0,0.15)"}}>{score} ✓</div>
@@ -2721,7 +2735,7 @@ function App(){
           ? <div style={{width:"100%",height:5,background:"rgba(255,255,255,0.1)",borderRadius:99,overflow:"hidden",marginBottom:14}}>
               <div style={{height:"100%",width:`${(timeLeft/TOTAL_TIME)*100}%`,background:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"#16a34a",borderRadius:99,transition:"width 0.9s linear,background 0.5s"}}/>
             </div>
-          : <ProgressDots current={currentIdx} result={result} yellowCardIdx={yellowCardIdx}/>
+          : <ProgressDots current={currentIdx} result={result} yellowCardIdx={yellowCardIdx} declinedYellow={declinedYellow}/>
         }
 
         {/* ── QUESTION CARD ── */}
