@@ -1302,12 +1302,204 @@ function rushShuffle(cards){
 
 // ── LEADERBOARD ───────────────────────────────────────────────────────────────
 const SIM_NAMES=["FootballFanatic88","GoalMachine","ThreeLions","TikiTaka","AnfieldRoad","BernabéuDreams","CampNouKing","OldTraffordOG","WembleyWizard","ChampionsLeagueChris","WorldCupWatcher","PremierLeaguePro","SetPieceSam","OffsideTrap","PenaltySpotPete","FreeKickFred","HeaderKing","GoldenGloveGary","TopBinTerry","HatTrickHero"];
-function buildLeaderboard(scores,username){
-  const name=username||"You";
-  const sim=SIM_NAMES.map(n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))&0xffff;return{name:n,score:2+(h%12),isYou:false};});
-  const best=scores.length?Math.max(...scores):null;
-  const loc=best!==null?[{name,score:best,isYou:true}]:[];
-  return[...sim,...loc].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+
+// Seeded pseudo-random from a string — gives stable but varied numbers
+function seededVal(name, salt, min, max) {
+  let h=salt;for(const c of name)h=(h*31+c.charCodeAt(0))&0xffff;
+  return min+Math.floor((h%(max-min+1)));
+}
+
+function buildCapsBoard(streak, username) {
+  const name = username||"You";
+  const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,7,1,180), isYou:false}));
+  const you = streak>0?[{name,score:streak,isYou:true}]:[];
+  return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+}
+
+function buildRushAllTimeBoard(rushScores, username) {
+  const name = username||"You";
+  const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,13,4,28), isYou:false}));
+  const best = rushScores.length?Math.max(...rushScores):null;
+  const you = best!==null?[{name,score:best,isYou:true}]:[];
+  return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+}
+
+function buildRushWeeklyBoard(rushScores, username) {
+  const name = username||"You";
+  // Weekly sim scores are lower — fresh slate each Monday
+  const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,97,1,16), isYou:false}));
+  const best = rushScores.length?Math.max(...rushScores):null;
+  const you = best!==null?[{name,score:best,isYou:true}]:[];
+  return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+}
+
+// Keep old function so nothing else breaks
+function buildLeaderboard(scores,username){return buildRushAllTimeBoard(scores,username);}
+
+function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="weekly"}){
+  const [tab, setTab] = useState(defaultTab);
+
+  const capsBoard    = buildCapsBoard(streak, username);
+  const allTimeBoard = buildRushAllTimeBoard(rushScores, username);
+  const weeklyBoard  = buildRushWeeklyBoard(rushScores, username);
+
+  const board = tab==="caps" ? capsBoard : tab==="alltime" ? allTimeBoard : weeklyBoard;
+  const youEntry = board.find(e=>e.isYou);
+
+  const TABS = [
+    {id:"weekly",  label:"Top Scorer",        icon:"⚽", accent:"#60a5fa", desc:"Best Training Pitch score · this week"},
+    {id:"alltime", label:"Golden Boot",       icon:"🥾", accent:"#ec4899", desc:"Best single Training Pitch score · all-time"},
+    {id:"caps",    label:"Caps",              icon:"🧢", accent:"#fbbf24", desc:"Longest active streak · all-time"},
+  ];
+  const activeTab = TABS.find(t=>t.id===tab);
+
+  // Your stat for the active tab
+  const yourStat = tab==="caps" ? (streak||0) :
+                   tab==="alltime" ? (rushScores.length?Math.max(...rushScores):null) :
+                   (rushScores.length?Math.max(...rushScores):null);
+
+  const yourStatus = getCareerStatus(streak||0);
+
+  // Football pyramid position message based on rank out of board size
+  function getPyramidMessage(rank, total) {
+    const pct = rank / total;
+    if(rank === 1)   return {msg:"Top of the league. No one touches you.",  badge:"🏆 Champions"};
+    if(rank <= 3)    return {msg:"Title challenger. Trophy's in sight.",      badge:"🥇 Title Race"};
+    if(pct <= 0.15)  return {msg:"European places — you're in the hunt.",    badge:"🔵 Top 4 Push"};
+    if(pct <= 0.30)  return {msg:"Solid mid-table. Respectable showing.",    badge:"🟢 Mid Table"};
+    if(pct <= 0.50)  return {msg:"Bottom half. Plenty of room to climb.",    badge:"🟡 Lower Half"};
+    if(pct <= 0.65)  return {msg:"Championship push. You can go up.",        badge:"🟠 Championship"};
+    if(pct <= 0.80)  return {msg:"League One territory. Need a reaction.",   badge:"🔴 League One"};
+    if(pct <= 0.90)  return {msg:"League Two. Relegation is getting close.", badge:"⚠️ League Two"};
+    return             {msg:"Non-league. Time to get serious.",              badge:"💀 Non League"};
+  }
+
+  return(
+    <PageWrap>
+      <div style={{width:"100%"}}>
+
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+          <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,flexShrink:0}}>← Back</button>
+          <div style={{flex:1}}>
+            <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
+            <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Leaderboards</div>
+          </div>
+          {/* Your identity */}
+          <div style={{textAlign:"right",flexShrink:0}}>
+            <div style={{fontSize:12,fontWeight:800,color:yourStatus.col,fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>{username||"—"}</div>
+            <div style={{fontSize:9,color:yourStatus.col,opacity:0.75,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginTop:2}}>{yourStatus.icon} {yourStatus.label}</div>
+          </div>
+        </div>
+
+        {/* Tab bar */}
+        <div style={{display:"flex",gap:6,marginBottom:14}}>
+          {TABS.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{
+              flex:1,padding:"9px 4px",borderRadius:10,border:"none",cursor:"pointer",
+              fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700,letterSpacing:0.5,
+              textTransform:"uppercase",transition:"all 0.15s",
+              background: tab===t.id ? "linear-gradient(135deg,#ffffff,#f1f5f9)" : "rgba(255,255,255,0.07)",
+              color: tab===t.id ? t.accent : "rgba(255,255,255,0.4)",
+              boxShadow: tab===t.id ? `0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.8)` : "none",
+              borderBottom: tab===t.id ? `2px solid ${t.accent}` : "2px solid transparent",
+            }}>{t.icon} {t.label}</button>
+          ))}
+        </div>
+
+        {/* Your stat card */}
+        {yourStat!==null&&(
+          <div style={{
+            background:`linear-gradient(135deg,${activeTab.accent}22,${activeTab.accent}08)`,
+            border:`1px solid ${activeTab.accent}40`,
+            borderRadius:14,padding:"14px 16px",marginBottom:12,
+            boxShadow:`0 4px 20px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.05)`,
+            position:"relative",overflow:"hidden",
+          }}>
+            <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(135deg,transparent,transparent 14px,${activeTab.accent}08 14px,${activeTab.accent}08 15px)`,pointerEvents:"none"}}/>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${activeTab.accent}60,transparent)`}}/>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative"}}>
+              <div>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:2,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Your {tab==="caps"?"Caps":"Score"}</div>
+                <div style={{fontSize:44,fontWeight:900,color:activeTab.accent,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:`0 0 20px ${activeTab.accent}55`}}>{yourStat}</div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",marginTop:2}}>{activeTab.desc}</div>
+              </div>
+              {youEntry&&(()=>{
+                const pyramid = getPyramidMessage(youEntry.rank, board.length);
+                return(
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:2,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Your Rank</div>
+                    <div style={{fontSize:44,fontWeight:900,color:activeTab.accent,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>#{youEntry.rank}</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:2}}>of {board.length} players</div>
+                  </div>
+                );
+              })()}
+            </div>
+            {youEntry&&tab!=="caps"&&(()=>{
+              const pyramid = getPyramidMessage(youEntry.rank, board.length);
+              return(
+                <div style={{marginTop:10,paddingTop:10,borderTop:`1px solid ${activeTab.accent}25`,display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative"}}>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{pyramid.msg}</div>
+                  <div style={{fontSize:9,fontWeight:700,color:activeTab.accent,fontFamily:"'Inter',sans-serif",background:`${activeTab.accent}18`,padding:"3px 8px",borderRadius:6,flexShrink:0,marginLeft:10}}>{pyramid.badge}</div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Board table */}
+        <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:14,overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",border:`1px solid ${activeTab.accent}18`,position:"relative"}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.01) 16px,rgba(0,0,0,0.01) 17px)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:"30%",background:`radial-gradient(ellipse at 50% 0%, ${activeTab.accent}08 0%, transparent 80%)`,pointerEvents:"none"}}/>
+          {/* Column headers */}
+          <div style={{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:"1px solid #f1f5f9",background:"linear-gradient(135deg,#f8fafc,#f1f5f9)"}}>
+            <div style={{width:34,color:"#94a3b8",fontSize:8,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>#</div>
+            <div style={{flex:1,color:"#94a3b8",fontSize:8,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Player</div>
+            <div style={{width:50,textAlign:"right",color:"#94a3b8",fontSize:8,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{tab==="caps"?"Caps":"Score"}</div>
+          </div>
+
+          {board.map((e,i)=>{
+            const medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
+            const entryStatus = getCareerStatus(tab==="caps"?e.score:0);
+            return(
+              <div key={i} style={{
+                display:"flex",alignItems:"center",padding:"10px 16px",
+                borderBottom:i<board.length-1?"1px solid #f8fafc":"none",
+                background:e.isYou?`${activeTab.accent}10`:"transparent",
+                position:"relative",
+              }}>
+                {e.isYou&&<div style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:activeTab.accent,borderRadius:"0 2px 2px 0"}}/>}
+                <div style={{width:34,fontFamily:"'Bebas Neue',sans-serif",fontWeight:700,fontSize:medal?16:13,
+                  color:i===0?"#d97706":i===1?"#64748b":i===2?"#b45309":"#cbd5e1"}}>
+                  {medal||e.rank}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontFamily:"'Inter',sans-serif",fontWeight:e.isYou?800:600,fontSize:13,
+                      color:e.isYou?activeTab.accent:"#334155",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                      {e.name}
+                    </span>
+                    {e.isYou&&<span style={{fontSize:8,color:activeTab.accent,background:`${activeTab.accent}18`,padding:"2px 5px",borderRadius:4,fontWeight:800,fontFamily:"'Inter',sans-serif",flexShrink:0}}>YOU</span>}
+                  </div>
+                  {tab==="caps"&&(
+                    <div style={{fontSize:9,color:entryStatus.col,fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1}}>
+                      {entryStatus.icon} {entryStatus.label}
+                    </div>
+                  )}
+                </div>
+                <div style={{width:50,textAlign:"right",fontFamily:"'Bebas Neue',sans-serif",fontWeight:700,fontSize:20,
+                  color:e.isYou?activeTab.accent:i<3?"#0f172a":"#94a3b8"}}>
+                  {e.score}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{textAlign:"center",marginTop:12,color:"rgba(255,255,255,0.25)",fontSize:9,letterSpacing:1,fontFamily:"'Inter',sans-serif"}}>Global scores are simulated · live data comes with Supabase</div>
+      </div>
+    </PageWrap>
+  );
 }
 
 
@@ -1428,23 +1620,27 @@ function StatPanel({card, revealed, flashResult=null}) {
 
   return (
     <div style={{width:155,minHeight:200,background:bg,border:`1.5px solid ${borderCol}`,borderRadius:14,boxShadow:shadow,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 0 14px",position:"relative",overflow:"hidden",transition:"border-color 0.25s,box-shadow 0.25s,background 0.25s"}}>
+      {/* diagonal stripe texture */}
+      <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(0,0,0,0.015) 12px,rgba(0,0,0,0.015) 13px)",pointerEvents:"none"}}/>
+      {/* radial bloom from top */}
+      <div style={{position:"absolute",top:0,left:0,right:0,height:"55%",background:`radial-gradient(ellipse at 50% 0%, ${topAccent}18 0%, transparent 80%)`,pointerEvents:"none",transition:"background 0.25s"}}/>
       {/* Top colour accent bar */}
-      <div style={{width:"100%",height:4,background:topAccent,transition:"background 0.25s",marginBottom:14,flexShrink:0}}/>
+      <div style={{width:"100%",height:4,background:`linear-gradient(90deg,${topAccent},${topAccent}66)`,transition:"background 0.25s",marginBottom:14,flexShrink:0,position:"relative"}}/>
       {/* Player name */}
-      <div style={{fontSize:13,fontWeight:800,color:"#0f172a",letterSpacing:0.3,lineHeight:1.2,textAlign:"center",width:"100%",padding:"0 10px",marginBottom:2,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase"}}>{card.player}</div>
+      <div style={{fontSize:13,fontWeight:800,color:"#0f172a",letterSpacing:0.3,lineHeight:1.2,textAlign:"center",width:"100%",padding:"0 10px",marginBottom:2,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",position:"relative"}}>{card.player}</div>
       {card.club
-        ? <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,textAlign:"center",fontWeight:700,padding:"0 8px"}}>{card.club}{card.season?` · ${card.season}`:""}</div>
+        ? <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,textAlign:"center",fontWeight:700,padding:"0 8px",position:"relative"}}>{card.club}{card.season?` · ${card.season}`:""}</div>
         : <div style={{marginBottom:10}}/>}
       {/* Stat number */}
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%",padding:"0 10px"}}>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%",padding:"0 10px",position:"relative"}}>
         {revealed
           ? <div style={{fontSize:56,fontWeight:900,color:numCol,lineHeight:1,fontFamily:"'Oswald',sans-serif",transition:"color 0.25s"}}>{card.stat}</div>
           : <div style={{fontSize:28,fontWeight:700,color:"#cbd5e1",lineHeight:1,letterSpacing:6,fontFamily:"'Oswald',sans-serif"}}>???</div>}
       </div>
       {/* Divider */}
-      <div style={{width:"50%",height:1,background:"#e2e8f0",margin:"10px 0",transition:"background 0.25s"}}/>
+      <div style={{width:"50%",height:1,background:"#e2e8f0",margin:"10px 0",transition:"background 0.25s",position:"relative"}}/>
       {/* Stat type */}
-      <div style={{fontSize:9,fontWeight:700,color:"#64748b",letterSpacing:2,textTransform:"uppercase",textAlign:"center"}}>
+      <div style={{fontSize:9,fontWeight:700,color:"#64748b",letterSpacing:2,textTransform:"uppercase",textAlign:"center",position:"relative"}}>
         {STAT_ICONS[card.statType]||"📊"} {card.statType}
       </div>
     </div>
@@ -1651,11 +1847,41 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
           </div>
         </div>
 
+        {/* Leaderboard link */}
+        <button onClick={onLeaderboard} style={{
+          width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+          background:"linear-gradient(135deg,#0e7490 0%,#0891b2 50%,#06b6d4 100%)",
+          border:"1px solid rgba(6,182,212,0.4)",
+          borderRadius:10,padding:"10px 14px",cursor:"pointer",marginBottom:14,
+          fontFamily:"'Inter',sans-serif",textAlign:"left",
+          boxShadow:"0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+          position:"relative",overflow:"hidden",
+          transition:"transform 0.12s,box-shadow 0.12s",
+        }}
+        onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(6,182,212,0.5)";}}
+        onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:8,position:"relative"}}>
+            <span style={{fontSize:16}}>🏆</span>
+            <div>
+              <div style={{fontSize:12,fontWeight:700,color:"#ffffff",lineHeight:1.2}}>Leaderboards</div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",marginTop:2}}>Caps · Golden Boot · Top Scorer</div>
+            </div>
+          </div>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",position:"relative",flexShrink:0}}>→</span>
+        </button>
+
         {/* Mode explainer — magenta gradient */}
-        <div style={{background:"linear-gradient(135deg,#be185d,#db2777)",borderRadius:14,padding:"16px",marginBottom:16,boxShadow:"0 4px 20px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
-          <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>How it works</div>
-          <div style={{color:"#ffffff",fontWeight:800,fontSize:15,marginBottom:4,fontFamily:"'Inter',sans-serif"}}>30 seconds — go for perfect ⚡</div>
-          <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Score as many as you can. Zero mistakes = <strong style={{color:"#fde047"}}>2× score</strong>. Pick a category below.</div>
+        <div style={{background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 50%,#db2777 100%)",borderRadius:14,padding:"16px",marginBottom:16,boxShadow:"0 4px 20px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(255,255,255,0.025) 20px,rgba(255,255,255,0.025) 21px)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:"-50%",right:"-10%",width:"50%",height:"200%",background:"radial-gradient(ellipse at 80% 30%, rgba(255,255,255,0.1) 0%, transparent 65%)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
+          <div style={{position:"relative"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>How it works</div>
+            <div style={{color:"#ffffff",fontWeight:800,fontSize:15,marginBottom:4,fontFamily:"'Inter',sans-serif"}}>30 seconds — go for perfect ⚡</div>
+            <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Score as many as you can. Zero mistakes = <strong style={{color:"#fde047"}}>2× score</strong>. Pick a category below.</div>
+          </div>
         </div>
 
         {/* Category grid — sorted by personal best descending, unplayed categories last */}
@@ -1668,16 +1894,29 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
           }).map(cat=>{
             const catBest=lsGet(`rush_best_${cat.id}`,0);
             return(
-              <button key={cat.id} onClick={()=>onPlay(cat.id)} style={{padding:"0",background:"#ffffff",border:"1px solid #e2e8f0",borderRadius:14,cursor:"pointer",textAlign:"left",transition:"transform 0.1s,box-shadow 0.1s",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.08)"}}
-                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,0.15)`;}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,0.08)";}}>
-                <div style={{height:4,background:cat.color,width:"100%"}}/>
-                <div style={{padding:"12px 12px 10px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+              <button key={cat.id} onClick={()=>onPlay(cat.id)} style={{
+                  padding:"0",
+                  background:"linear-gradient(160deg,#ffffff 0%,#f8fafc 100%)",
+                  border:`1px solid ${cat.color}25`,
+                  borderRadius:14,cursor:"pointer",textAlign:"left",
+                  transition:"transform 0.1s,box-shadow 0.1s",overflow:"hidden",
+                  boxShadow:`0 4px 14px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)`,
+                  position:"relative",
+                }}
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px ${cat.color}40`;}}
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)`;}}>
+                {/* colour accent bar — gradient fade */}
+                <div style={{height:4,background:`linear-gradient(90deg,${cat.color},${cat.color}33)`,width:"100%"}}/>
+                <div style={{padding:"12px 12px 10px",position:"relative"}}>
+                  {/* faint diagonal stripe in category colour */}
+                  <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(135deg,transparent,transparent 12px,${cat.color}08 12px,${cat.color}08 13px)`,pointerEvents:"none"}}/>
+                  {/* soft radial bloom from top */}
+                  <div style={{position:"absolute",top:0,left:0,right:0,height:"60%",background:`radial-gradient(ellipse at 50% 0%, ${cat.color}14 0%, transparent 80%)`,pointerEvents:"none"}}/>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,position:"relative"}}>
                     <span style={{fontSize:18}}>{cat.icon}</span>
                     <span style={{fontSize:12,fontWeight:800,color:"#0f172a",fontFamily:"'Inter',sans-serif"}}>{cat.label}</span>
                   </div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative"}}>
                     <span style={{fontSize:10,color:catBest>0?cat.color:"#94a3b8",fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{catBest>0?`Best: ${catBest}`:"No score yet"}</span>
                     <span style={{fontSize:9,color:"#94a3b8",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>avg {cat.globalAvg}</span>
                   </div>
@@ -1692,74 +1931,6 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
 }
 
 // ── LEADERBOARD PAGE ──────────────────────────────────────────────────────────
-function LeaderboardScreen({onBack,rushScores,username,onSetUsername}){
-  const [editing,setEditing]=useState(false);
-  const [draft,setDraft]=useState(username||"");
-  const board=buildLeaderboard(rushScores,username);
-  const best=rushScores.length?Math.max(...rushScores):0;
-  const youEntry=board.find(e=>e.isYou);
-  function save(){const t=draft.trim().slice(0,20);if(t){onSetUsername(t);setEditing(false);}}
-  return(
-    <PageWrap>
-      <div style={{width:"100%"}}>
-        {/* Header */}
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-          <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",flexShrink:0}}>← Back</button>
-          <div>
-            <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:700,textTransform:"uppercase"}}>Training Pitch</div>
-            <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Oswald',sans-serif",lineHeight:1}}>Leaderboard</div>
-          </div>
-        </div>
-
-        {/* Name card */}
-        <div style={{background:"#ffffff",borderRadius:14,padding:"14px 16px",marginBottom:10,boxShadow:"0 4px 16px rgba(0,0,0,0.15)"}}>
-          <div style={{color:"#94a3b8",fontSize:9,letterSpacing:2,marginBottom:8,fontWeight:700,textTransform:"uppercase"}}>Your Name</div>
-          {editing?(
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>e.key==="Enter"&&save()} maxLength={20} placeholder="Enter your name..." autoFocus
-                style={{flex:1,background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,padding:"9px 12px",color:"#0f172a",fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,outline:"none"}}/>
-              <button onClick={save} style={{padding:"9px 16px",background:"#16a34a",border:"none",borderRadius:8,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:800,letterSpacing:1,cursor:"pointer"}}>SAVE</button>
-            </div>
-          ):(
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div style={{color:username?"#0f172a":"#94a3b8",fontWeight:900,fontSize:18}}>{username||"— tap to set —"}</div>
-              <button onClick={()=>{setDraft(username||"");setEditing(true);}} style={{padding:"6px 12px",background:"#f1f5f9",border:"1px solid #e2e8f0",borderRadius:7,color:"#475569",fontFamily:"'Barlow Condensed',sans-serif",fontSize:11,fontWeight:700,letterSpacing:1,cursor:"pointer"}}>{username?"EDIT":"SET"}</button>
-            </div>
-          )}
-        </div>
-
-        {youEntry&&(
-          <div style={{background:"linear-gradient(135deg,#fffbeb,#fef3c7)",border:"1px solid #fde68a",borderRadius:14,padding:"12px 16px",marginBottom:10,boxShadow:"0 4px 16px rgba(217,119,6,0.15)"}}>
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-              <div><div style={{color:"#92400e",fontSize:9,letterSpacing:2,fontWeight:700,marginBottom:2,textTransform:"uppercase"}}>Your Rank</div><div style={{color:"#d97706",fontWeight:900,fontSize:32,fontFamily:"'Oswald',sans-serif",lineHeight:1}}>#{youEntry.rank}</div></div>
-              <div style={{textAlign:"right"}}><div style={{color:"#92400e",fontSize:9,letterSpacing:2,marginBottom:2,fontWeight:700,textTransform:"uppercase"}}>Best Score</div><div style={{color:"#d97706",fontWeight:900,fontSize:32,fontFamily:"'Oswald',sans-serif",lineHeight:1}}>{best}</div></div>
-            </div>
-          </div>
-        )}
-
-        <div style={{background:"#ffffff",borderRadius:14,overflow:"hidden",boxShadow:"0 4px 16px rgba(0,0,0,0.1)"}}>
-          <div style={{display:"flex",alignItems:"center",padding:"10px 16px",borderBottom:"1px solid #f1f5f9",background:"#f8fafc"}}>
-            <div style={{width:34,color:"#94a3b8",fontSize:9,letterSpacing:1,fontWeight:700,textTransform:"uppercase"}}>#</div>
-            <div style={{flex:1,color:"#94a3b8",fontSize:9,letterSpacing:1,fontWeight:700,textTransform:"uppercase"}}>Player</div>
-            <div style={{width:55,textAlign:"right",color:"#94a3b8",fontSize:9,letterSpacing:1,fontWeight:700,textTransform:"uppercase"}}>Score</div>
-          </div>
-          {board.map((e,i)=>{
-            const medal=i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
-            return(<div key={i} style={{display:"flex",alignItems:"center",padding:"11px 16px",borderBottom:i<board.length-1?"1px solid #f1f5f9":"none",background:e.isYou?"#f0fdf4":"#ffffff"}}>
-              <div style={{width:34,fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:medal?15:12,color:i===0?"#d97706":i===1?"#64748b":i===2?"#b45309":"#cbd5e1"}}>{medal||e.rank}</div>
-              <div style={{flex:1}}>
-                <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:e.isYou?800:600,fontSize:14,color:e.isYou?"#16a34a":"#334155"}}>{e.name}{e.isYou&&<span style={{fontSize:9,color:"#16a34a",marginLeft:6,background:"#dcfce7",padding:"2px 6px",borderRadius:4,fontWeight:800}}>YOU</span>}</div>
-              </div>
-              <div style={{width:55,textAlign:"right",fontFamily:"'Oswald',sans-serif",fontWeight:700,fontSize:20,color:e.isYou?"#16a34a":i<3?"#0f172a":"#94a3b8"}}>{e.score}</div>
-            </div>);
-          })}
-        </div>
-        <div style={{textAlign:"center",marginTop:12,color:"rgba(255,255,255,0.3)",fontSize:10,letterSpacing:1}}>Global scores are simulated for this demo</div>
-      </div>
-    </PageWrap>
-  );
-}
-
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 // ── PASSWORD GATE ─────────────────────────────────────────────────────────────
 const PASSWORD = "bottlers";
@@ -1865,6 +2036,7 @@ export default AppWithAuth;
 
 function App(){
   const [screen,setScreen]               = useState("home");
+  const [prevScreen,setPrevScreen]       = useState("home");
   const [mode,setMode]                   = useState(null);
   const [rushCat,setRushCat]             = useState(null);
   const [cards,setCards]                 = useState([]);
@@ -2121,8 +2293,8 @@ function App(){
   const currentCard=cards[currentIdx];
   const nextCard=cards[currentIdx+1];
 
-  if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen("rush")} rushScores={rushScores} username={username} onSetUsername={setUsername}/>;
-  if(screen==="rush")return <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>setScreen("leaderboard")} username={username} streak={streak}/>;
+  if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"}/>;
+  if(screen==="rush")return <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} username={username} streak={streak}/>;
 
   // ── RUSH CONTINUE MODAL (inline component) ────────────────────────────────
   const RushModal = ()=>{
@@ -2145,48 +2317,51 @@ function App(){
 
     return(
       <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px",backdropFilter:"blur(6px)"}}>
-        <div style={{background:"#ffffff",borderRadius:20,padding:"24px 20px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
+        <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:20,padding:"24px 20px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.9)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(0,0,0,0.012) 14px,rgba(0,0,0,0.012) 15px)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#be185d,#ec4899,#06b6d4)",pointerEvents:"none"}}/>
           {watching?(
-            <div>
+            <div style={{position:"relative"}}>
               <div style={{color:"#94a3b8",fontSize:9,letterSpacing:3,marginBottom:8,fontWeight:700,textTransform:"uppercase"}}>Ad Playing</div>
               <div style={{color:"#d97706",fontWeight:900,fontSize:52,fontFamily:"'Oswald',sans-serif",lineHeight:1}}>{cd}</div>
               <div style={{color:"#94a3b8",fontSize:11,marginTop:8}}>{watching==="continue"?"Back on the training pitch...":"Setting up again..."}</div>
             </div>
           ):(
-            <>
+            <div style={{position:"relative"}}>
               <div style={{marginBottom:16}}>
-                <div style={{width:48,height:48,background:"#fee2e2",borderRadius:12,margin:"0 auto 12px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>😤</div>
+                <div style={{width:48,height:48,background:"linear-gradient(135deg,#fee2e2,#fecaca)",borderRadius:12,margin:"0 auto 12px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,boxShadow:"0 4px 12px rgba(220,38,38,0.15)"}}>😤</div>
                 <div style={{color:"#0f172a",fontWeight:900,fontSize:20,marginBottom:4,fontFamily:"'Oswald',sans-serif"}}>Lost Possession</div>
                 <div style={{color:"#64748b",fontSize:12,marginBottom:14}}>Watch an ad to recover and keep training</div>
-                <div style={{background:"#f8fafc",border:"1px solid #f1f5f9",borderRadius:10,padding:"12px 14px"}}>
-                  <div style={{color:"#94a3b8",fontSize:9,letterSpacing:2,marginBottom:6,fontWeight:700,textTransform:"uppercase"}}>Training Score</div>
-                  <div style={{color:"#0f172a",fontWeight:900,fontSize:32,fontFamily:"'Oswald',sans-serif",lineHeight:1,marginBottom:6}}>{score}</div>
+                <div style={{background:"linear-gradient(135deg,#f8fafc,#f1f5f9)",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 10px,rgba(0,0,0,0.01) 10px,rgba(0,0,0,0.01) 11px)",pointerEvents:"none"}}/>
+                  <div style={{color:"#94a3b8",fontSize:9,letterSpacing:2,marginBottom:6,fontWeight:700,textTransform:"uppercase",position:"relative"}}>Training Score</div>
+                  <div style={{color:"#0f172a",fontWeight:900,fontSize:32,fontFamily:"'Oswald',sans-serif",lineHeight:1,marginBottom:6,position:"relative"}}>{score}</div>
                   {(()=>{
                     const catBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`,0);
                     const toHigh = catBest>0 ? catBest-score : null;
                     if(catBest>0 && score>=catBest){
-                      return <div style={{color:"#16a34a",fontWeight:700,fontSize:12,marginBottom:2}}>🏆 New personal best!</div>;
+                      return <div style={{color:"#16a34a",fontWeight:700,fontSize:12,marginBottom:2,position:"relative"}}>🏆 New personal best!</div>;
                     } else if(toHigh!==null && toHigh>0){
-                      return <div style={{color:"#d97706",fontWeight:700,fontSize:12,marginBottom:2}}>+{toHigh} to beat your best ({catBest})</div>;
+                      return <div style={{color:"#d97706",fontWeight:700,fontSize:12,marginBottom:2,position:"relative"}}>+{toHigh} to beat your best ({catBest})</div>;
                     } else {
-                      return <div style={{color:"#94a3b8",fontSize:11,marginBottom:2}}>No best yet — keep going!</div>;
+                      return <div style={{color:"#94a3b8",fontSize:11,marginBottom:2,position:"relative"}}>No best yet — keep going!</div>;
                     }
                   })()}
-                  {continueCount>0&&<div style={{color:"#94a3b8",fontSize:10,marginTop:8,borderTop:"1px solid #f1f5f9",paddingTop:8}}>Clean run: <strong style={{color:"#16a34a"}}>{cleanScore}</strong> · no mistakes</div>}
+                  {continueCount>0&&<div style={{color:"#94a3b8",fontSize:10,marginTop:8,borderTop:"1px solid #e2e8f0",paddingTop:8,position:"relative"}}>Clean run: <strong style={{color:"#16a34a"}}>{cleanScore}</strong> · no mistakes</div>}
                 </div>
               </div>
               {canContinue&&(
-                <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"#16a34a",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.4)"}}>
+                <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)"}}>
                   ▶ Recover Possession <span style={{fontSize:11,opacity:0.8}}>({frozenTimeLeft}s left)</span>
                 </button>
               )}
-              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#be185d,#db2777)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 12px rgba(219,39,119,0.4)"}}>
+              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#7c0d3e,#be185d,#db2777)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 12px rgba(219,39,119,0.4), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
                 ▶ Train Again ⚡
               </button>
-              <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,color:"#94a3b8",fontFamily:"'Barlow Condensed',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+              <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#f8fafc,#f1f5f9)",border:"1px solid #e2e8f0",borderRadius:10,color:"#64748b",fontFamily:"'Barlow Condensed',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                 See result
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -2371,22 +2546,28 @@ function App(){
 
         {/* ══ TODAY'S MATCH ══ */}
         <div style={{
-          background:"#ffffff",
+          background:"linear-gradient(160deg,#ffffff 0%,#f0fdf4 100%)",
           borderRadius:18,
           overflow:"hidden",
           marginBottom:12,
-          boxShadow:"0 6px 28px rgba(0,0,0,0.25)",
+          boxShadow:"0 6px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",
+          border:"1px solid rgba(22,163,74,0.12)",
+          position:"relative",
         }}>
-          {/* Matchday header — no reward pill */}
+          {/* subtle diagonal stripe */}
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(22,163,74,0.02) 20px,rgba(22,163,74,0.02) 21px)",pointerEvents:"none"}}/>
+          {/* Matchday header */}
           <div style={{
             background:"linear-gradient(135deg,#15803d 0%,#16a34a 60%,#22c55e 100%)",
             padding:"12px 18px",
+            position:"relative",
           }}>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Today's Match</div>
-            <div style={{fontSize:15,color:"#ffffff",fontWeight:800,fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>{todayChallenge.theme}</div>
+            <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(255,255,255,0.05) 14px,rgba(255,255,255,0.05) 15px)",pointerEvents:"none"}}/>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif",position:"relative"}}>Today's Match</div>
+            <div style={{fontSize:15,color:"#ffffff",fontWeight:800,fontFamily:"'Inter',sans-serif",lineHeight:1.2,position:"relative"}}>{todayChallenge.theme}</div>
           </div>
 
-          <div style={{padding:"16px 18px"}}>
+          <div style={{padding:"16px 18px",position:"relative"}}>
             {!todayPlayed&&(
               <div>
                 <button onClick={launchDaily}
@@ -2417,12 +2598,12 @@ function App(){
                   <DailyResultDots resultData={todayResult}/>
                 </div>
                 {/* 2-col: score + global avg */}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderRadius:10,overflow:"hidden",border:"1px solid #f1f5f9",marginBottom:10}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderRadius:10,overflow:"hidden",border:"1px solid #e2e8f0",marginBottom:10,background:"linear-gradient(135deg,#f8fafc,#f0fdf4)"}}>
                   {[
                     {label:"Your Score",val:`${todayResult.filter(r=>r==="correct").length}/10`,col:"#16a34a"},
                     {label:"Global Avg",val:"4.2",col:"#64748b"},
                   ].map((item,i)=>(
-                    <div key={i} style={{textAlign:"center",padding:"12px 6px",borderLeft:i>0?"1px solid #f1f5f9":"none"}}>
+                    <div key={i} style={{textAlign:"center",padding:"12px 6px",borderLeft:i>0?"1px solid #e2e8f0":"none"}}>
                       <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.5,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{item.label}</div>
                       <div style={{fontSize:20,fontWeight:800,color:item.col,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{item.val}</div>
                     </div>
@@ -2438,7 +2619,7 @@ function App(){
                   ↗ Share your score
                 </button>
                 {/* Tomorrow's fixture */}
-                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#f8fafc",borderRadius:10,border:"1px solid #f1f5f9"}}>
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"linear-gradient(135deg,#f8fafc,#f0fdf4)",borderRadius:10,border:"1px solid #e2e8f0"}}>
                   <span style={{fontSize:14}}>🔭</span>
                   <div>
                     <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,fontWeight:600,marginBottom:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Tomorrow's Fixture</div>
@@ -2454,18 +2635,53 @@ function App(){
         <button onClick={()=>{SFX.click();setScreen("rush");}}
           style={{
             width:"100%",
-            background:"linear-gradient(135deg,#be185d 0%,#db2777 50%,#ec4899 100%)",
-            border:"none",borderRadius:18,cursor:"pointer",overflow:"hidden",marginBottom:16,
-            boxShadow:"0 6px 24px rgba(219,39,119,0.55), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25)",
+            background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 40%,#db2777 70%,#ec4899 100%)",
+            border:"1px solid rgba(236,72,153,0.3)",
+            borderRadius:18,cursor:"pointer",overflow:"hidden",marginBottom:16,
+            boxShadow:"0 6px 24px rgba(219,39,119,0.55), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2), 0 0 60px rgba(219,39,119,0.12)",
             transition:"transform 0.12s,box-shadow 0.12s",display:"block",textAlign:"left",padding:"0",
+            position:"relative",
           }}
           onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 32px rgba(219,39,119,0.7), inset 0 1px 0 rgba(255,255,255,0.25)";}}
-          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 6px 24px rgba(219,39,119,0.55), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25)";}}>
-          <div style={{padding:"12px 18px"}}>
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 6px 24px rgba(219,39,119,0.55), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2), 0 0 60px rgba(219,39,119,0.12)";}}>
+          {/* noise texture overlay */}
+          <div style={{position:"absolute",inset:0,background:"url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",pointerEvents:"none",borderRadius:18}}/>
+          {/* diagonal stripes */}
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 24px,rgba(255,255,255,0.018) 24px,rgba(255,255,255,0.018) 25px)",pointerEvents:"none",borderRadius:18}}/>
+          {/* radial spotlight top-right */}
+          <div style={{position:"absolute",top:"-40%",right:"-10%",width:"60%",height:"200%",background:"radial-gradient(ellipse at 80% 30%, rgba(255,255,255,0.08) 0%, transparent 65%)",pointerEvents:"none"}}/>
+          {/* shimmer line */}
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent)",pointerEvents:"none"}}/>
+          <div style={{padding:"12px 18px",position:"relative"}}>
             <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Training Pitch</div>
             <div style={{fontSize:15,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>30s High Score Mode ⚡</div>
             <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontFamily:"'Inter',sans-serif",marginTop:2}}>Go for a perfect run · 2× multiplier</div>
           </div>
+        </button>
+
+        {/* ── LEADERBOARD LINK ── */}
+        <button onClick={()=>{SFX.click();setPrevScreen("home");setScreen("leaderboard");}}
+          style={{
+            width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
+            background:"linear-gradient(135deg,#0e7490 0%,#0891b2 50%,#06b6d4 100%)",
+            border:"1px solid rgba(6,182,212,0.4)",
+            borderRadius:12,padding:"11px 16px",cursor:"pointer",marginBottom:12,
+            fontFamily:"'Inter',sans-serif",transition:"transform 0.12s,box-shadow 0.12s",
+            boxShadow:"0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+            position:"relative",overflow:"hidden",
+          }}
+          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(6,182,212,0.5), inset 0 1px 0 rgba(255,255,255,0.15)";}}
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:10,position:"relative"}}>
+            <span style={{fontSize:16}}>🏆</span>
+            <div style={{textAlign:"left"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#ffffff",fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.65)",fontFamily:"'Inter',sans-serif",marginTop:1}}>Caps · Golden Boot · Top Scorer</div>
+            </div>
+          </div>
+          <span style={{fontSize:13,color:"rgba(255,255,255,0.5)",position:"relative"}}>→</span>
         </button>
 
         {/* ── DEMO CONTROLS ── */}
@@ -2509,9 +2725,11 @@ function App(){
         {isDaily&&(
           <>
             {/* 1. SCORE CARD — top priority */}
-            <div style={{background:"#ffffff",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.25)"}}>
-              <div style={{height:4,background:accentCol}}/>
-              <div style={{padding:"18px 18px 16px"}}>
+            <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(0,0,0,0.06)",position:"relative"}}>
+              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.012) 16px,rgba(0,0,0,0.012) 17px)",pointerEvents:"none"}}/>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:"40%",background:`radial-gradient(ellipse at 50% 0%, ${accentCol}12 0%, transparent 80%)`,pointerEvents:"none"}}/>
+              <div style={{height:4,background:`linear-gradient(90deg,${accentCol},${accentCol}55)`,position:"relative"}}/>
+              <div style={{padding:"18px 18px 16px",position:"relative"}}>
 
                 {/* Score message */}
                 {latestScore>0&&(()=>{
@@ -2626,9 +2844,11 @@ function App(){
                 <div style={{color:"rgba(255,255,255,0.85)",fontSize:12,marginTop:4,fontFamily:"'Inter',sans-serif"}}>Zero mistakes · all 30 seconds · score doubled</div>
               </div>
             )}
-            <div style={{background:"#ffffff",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.25)"}}>
-              <div style={{height:4,background:isPerfect?"linear-gradient(90deg,#d97706,#f59e0b)":"#d97706"}}/>
-              <div style={{padding:"18px"}}>
+            <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(0,0,0,0.06)",position:"relative"}}>
+              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.012) 16px,rgba(0,0,0,0.012) 17px)",pointerEvents:"none"}}/>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:"40%",background:"radial-gradient(ellipse at 50% 0%, rgba(217,119,6,0.10) 0%, transparent 80%)",pointerEvents:"none"}}/>
+              <div style={{height:4,background:isPerfect?"linear-gradient(90deg,#d97706,#f59e0b)":"linear-gradient(90deg,#d97706,#d9770666)",position:"relative"}}/>
+              <div style={{padding:"18px",position:"relative"}}>
                 {/* Score + personal best side by side */}
                 <div style={{display:"flex",gap:12,marginBottom:10}}>
                   <div style={{flex:1,textAlign:"center"}}>
@@ -2670,7 +2890,14 @@ function App(){
                 }} style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:9,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
                   ↗ Share score
                 </button>
-                <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 12px rgba(219,39,119,0.4)"}}>Train Again ⚡</button>
+                <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 12px rgba(219,39,119,0.4)",marginBottom:8}}>Train Again ⚡</button>
+                <button onClick={()=>{SFX.click();setPrevScreen("rush");setScreen("leaderboard");}} style={{
+                  width:"100%",padding:"11px",borderRadius:10,border:"none",cursor:"pointer",
+                  background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",
+                  color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,
+                  boxShadow:"0 4px 14px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:8,
+                }}>🏆 View Leaderboards</button>
               </div>
             </div>
           </>
@@ -2740,9 +2967,10 @@ function App(){
 
         {/* ── QUESTION CARD ── */}
         {currentCard&&nextCard&&(
-          <div style={{background:"#ffffff",borderRadius:14,padding:"12px 16px",marginBottom:14,textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.15)"}}>
-            <div style={{fontSize:8,color:"#94a3b8",letterSpacing:3,fontWeight:700,marginBottom:6,textTransform:"uppercase"}}>Compare the {nextCard.statType}</div>
-            <div style={{fontSize:14,lineHeight:1.8,color:"#475569"}}>
+          <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:14,padding:"12px 16px",marginBottom:14,textAlign:"center",boxShadow:"0 4px 16px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(0,0,0,0.06)",position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(0,0,0,0.012) 14px,rgba(0,0,0,0.012) 15px)",pointerEvents:"none"}}/>
+            <div style={{fontSize:8,color:"#94a3b8",letterSpacing:3,fontWeight:700,marginBottom:6,textTransform:"uppercase",position:"relative"}}>Compare the {nextCard.statType}</div>
+            <div style={{fontSize:14,lineHeight:1.8,color:"#475569",position:"relative"}}>
               Will <strong style={{color:"#0f172a",fontFamily:"'Oswald',sans-serif",fontSize:16,fontWeight:700}}>{nextCard.player}</strong> be <strong style={{color:"#16a34a"}}>HIGHER</strong> or <strong style={{color:"#dc2626"}}>LOWER</strong> than <strong style={{color:"#d97706",fontFamily:"'Oswald',sans-serif",fontSize:18}}>{currentCard.stat}</strong>?
             </div>
           </div>
@@ -2758,27 +2986,35 @@ function App(){
         {/* ── BUTTONS / FEEDBACK ── */}
         {result===null||result==="yellow"?(
           result==="yellow"?(
-            <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 2px 12px rgba(0,0,0,0.1)"}}>
-              <div style={{fontSize:20,fontWeight:900,color:"#92400e",fontFamily:"'Oswald',sans-serif",letterSpacing:1}}>🟨 Yellow Card</div>
-              <div style={{color:"#92400e",fontSize:12,marginTop:4,opacity:0.7}}>Incoming...</div>
+            <div style={{background:"linear-gradient(135deg,#fffbeb,#fef3c7)",border:"1px solid #fde68a",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 4px 16px rgba(217,119,6,0.2), inset 0 1px 0 rgba(255,255,255,0.8)",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(217,119,6,0.04) 12px,rgba(217,119,6,0.04) 13px)",pointerEvents:"none"}}/>
+              <div style={{fontSize:20,fontWeight:900,color:"#92400e",fontFamily:"'Oswald',sans-serif",letterSpacing:1,position:"relative"}}>🟨 Yellow Card</div>
+              <div style={{color:"#92400e",fontSize:12,marginTop:4,opacity:0.7,position:"relative"}}>Incoming...</div>
             </div>
           ):(
             <div style={{display:"flex",gap:10,width:"100%"}}>
               <button onClick={()=>handleGuess("higher")}
-                style={{flex:1,padding:"16px 8px",background:"#16a34a",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4)"}}
+                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(22,163,74,0.55)";}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(22,163,74,0.4)";}}>⬆ Higher</button>
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+                <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.05) 12px,rgba(255,255,255,0.05) 13px)",pointerEvents:"none"}}/>
+                <span style={{position:"relative"}}>⬆ Higher</span>
+              </button>
               <button onClick={()=>handleGuess("lower")}
-                style={{flex:1,padding:"16px 8px",background:"#dc2626",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(220,38,38,0.4)"}}
+                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#b91c1c,#dc2626,#ef4444)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(220,38,38,0.55)";}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(220,38,38,0.4)";}}>⬇ Lower</button>
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+                <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.05) 12px,rgba(255,255,255,0.05) 13px)",pointerEvents:"none"}}/>
+                <span style={{position:"relative"}}>⬇ Lower</span>
+              </button>
             </div>
           )
         ):(
           result==="correct"?(
-            <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 2px 12px rgba(22,163,74,0.15)"}}>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:22,fontWeight:700,color:"#16a34a",letterSpacing:1}}>✓ Correct!</div>
-              <div style={{color:"#64748b",fontSize:12,marginTop:3}}>Keep going!</div>
+            <div style={{background:"linear-gradient(135deg,#f0fdf4,#dcfce7)",border:"1px solid #86efac",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 4px 16px rgba(22,163,74,0.15), inset 0 1px 0 rgba(255,255,255,0.8)",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(22,163,74,0.04) 12px,rgba(22,163,74,0.04) 13px)",pointerEvents:"none"}}/>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:22,fontWeight:700,color:"#16a34a",letterSpacing:1,position:"relative"}}>✓ Correct!</div>
+              <div style={{color:"#64748b",fontSize:12,marginTop:3,position:"relative"}}>Keep going!</div>
             </div>
           ):(
             !isRush?(
