@@ -1448,14 +1448,20 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
         )}
 
         {/* Board table */}
-        <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:14,overflow:"hidden",boxShadow:"0 4px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",border:`1px solid ${activeTab.accent}18`,position:"relative"}}>
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.01) 16px,rgba(0,0,0,0.01) 17px)",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",top:0,left:0,right:0,height:"30%",background:`radial-gradient(ellipse at 50% 0%, ${activeTab.accent}08 0%, transparent 80%)`,pointerEvents:"none"}}/>
+        <div style={{
+          background:`linear-gradient(145deg,#1a2535 0%,#0f1923 100%)`,
+          borderRadius:14,overflow:"hidden",
+          boxShadow:`0 4px 20px rgba(0,0,0,0.3), 0 0 40px ${activeTab.accent}08`,
+          border:`1px solid ${activeTab.accent}25`,
+          position:"relative",
+        }}>
+          <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(135deg,transparent,transparent 16px,${activeTab.accent}05 16px,${activeTab.accent}05 17px)`,pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${activeTab.accent}50,transparent)`,pointerEvents:"none"}}/>
           {/* Column headers */}
-          <div style={{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:"1px solid #f1f5f9",background:"linear-gradient(135deg,#f8fafc,#f1f5f9)"}}>
-            <div style={{width:34,color:"#94a3b8",fontSize:8,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>#</div>
-            <div style={{flex:1,color:"#94a3b8",fontSize:8,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Player</div>
-            <div style={{width:50,textAlign:"right",color:"#94a3b8",fontSize:8,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{tab==="caps"?"Caps":"Score"}</div>
+          <div style={{display:"flex",alignItems:"center",padding:"9px 16px",borderBottom:`1px solid ${activeTab.accent}15`,background:"rgba(255,255,255,0.03)",position:"relative"}}>
+            <div style={{width:34,color:"rgba(255,255,255,0.35)",fontSize:8,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>#</div>
+            <div style={{flex:1,color:"rgba(255,255,255,0.35)",fontSize:8,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Player</div>
+            <div style={{width:50,textAlign:"right",color:"rgba(255,255,255,0.35)",fontSize:8,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{tab==="caps"?"Caps":"Score"}</div>
           </div>
 
           {board.map((e,i)=>{
@@ -1464,31 +1470,31 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
             return(
               <div key={i} style={{
                 display:"flex",alignItems:"center",padding:"10px 16px",
-                borderBottom:i<board.length-1?"1px solid #f8fafc":"none",
-                background:e.isYou?`${activeTab.accent}10`:"transparent",
+                borderBottom:i<board.length-1?`1px solid rgba(255,255,255,0.04)`:"none",
+                background:e.isYou?`${activeTab.accent}15`:"transparent",
                 position:"relative",
               }}>
                 {e.isYou&&<div style={{position:"absolute",left:0,top:0,bottom:0,width:3,background:activeTab.accent,borderRadius:"0 2px 2px 0"}}/>}
                 <div style={{width:34,fontFamily:"'Bebas Neue',sans-serif",fontWeight:700,fontSize:medal?16:13,
-                  color:i===0?"#d97706":i===1?"#64748b":i===2?"#b45309":"#cbd5e1"}}>
+                  color:i===0?"#d97706":i===1?"#94a3b8":i===2?"#b45309":"rgba(255,255,255,0.2)"}}>
                   {medal||e.rank}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{fontFamily:"'Inter',sans-serif",fontWeight:e.isYou?800:600,fontSize:13,
-                      color:e.isYou?activeTab.accent:"#334155",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <span style={{fontFamily:"'Inter',sans-serif",fontWeight:e.isYou?800:500,fontSize:13,
+                      color:e.isYou?activeTab.accent:"rgba(255,255,255,0.75)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       {e.name}
                     </span>
-                    {e.isYou&&<span style={{fontSize:8,color:activeTab.accent,background:`${activeTab.accent}18`,padding:"2px 5px",borderRadius:4,fontWeight:800,fontFamily:"'Inter',sans-serif",flexShrink:0}}>YOU</span>}
+                    {e.isYou&&<span style={{fontSize:8,color:activeTab.accent,background:`${activeTab.accent}25`,padding:"2px 5px",borderRadius:4,fontWeight:800,fontFamily:"'Inter',sans-serif",flexShrink:0}}>YOU</span>}
                   </div>
                   {tab==="caps"&&(
-                    <div style={{fontSize:9,color:entryStatus.col,fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1}}>
+                    <div style={{fontSize:9,color:entryStatus.col,fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1,opacity:0.8}}>
                       {entryStatus.icon} {entryStatus.label}
                     </div>
                   )}
                 </div>
                 <div style={{width:50,textAlign:"right",fontFamily:"'Bebas Neue',sans-serif",fontWeight:700,fontSize:20,
-                  color:e.isYou?activeTab.accent:i<3?"#0f172a":"#94a3b8"}}>
+                  color:e.isYou?activeTab.accent:i<3?"#ffffff":"rgba(255,255,255,0.3)"}}>
                   {e.score}
                 </div>
               </div>
@@ -1628,9 +1634,19 @@ function StatPanel({card, revealed, flashResult=null}) {
       <div style={{width:"100%",height:4,background:`linear-gradient(90deg,${topAccent},${topAccent}66)`,transition:"background 0.25s",marginBottom:14,flexShrink:0,position:"relative"}}/>
       {/* Player name */}
       <div style={{fontSize:13,fontWeight:800,color:"#0f172a",letterSpacing:0.3,lineHeight:1.2,textAlign:"center",width:"100%",padding:"0 10px",marginBottom:2,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",position:"relative"}}>{card.player}</div>
-      {card.club
-        ? <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.5,textTransform:"uppercase",marginBottom:8,textAlign:"center",fontWeight:700,padding:"0 8px",position:"relative"}}>{card.club}{card.season?` · ${card.season}`:""}</div>
-        : <div style={{marginBottom:10}}/>}
+      {(()=>{
+        // Build a clear context label
+        const clubLabel = card.club==="PL All-Time" ? "Premier League · All-Time"
+          : card.club ? card.club
+          : card.statType==="Caps" ? "England · International"
+          : null;
+        const seasonLabel = card.season || null;
+        return clubLabel ? (
+          <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.2,textTransform:"uppercase",marginBottom:8,textAlign:"center",fontWeight:700,padding:"0 8px",position:"relative",lineHeight:1.4}}>
+            {clubLabel}{seasonLabel?<><br/><span style={{color:"#b0b8c8"}}>{seasonLabel}</span></>:""}
+          </div>
+        ) : <div style={{marginBottom:10}}/>;
+      })()}
       {/* Stat number */}
       <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%",padding:"0 10px",position:"relative"}}>
         {revealed
@@ -1661,7 +1677,7 @@ function ProgressDots({current, result, yellowCardIdx, declinedYellow}) {
         if(i===current&&result==="yellow")  {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=10;}
         // Straight red: declined yellow on this dot — override yellow
         if(i===current&&declinedYellow)     {bg="#fee2e2";borderC="#dc2626";cnt="🟥";col="#dc2626";fs=10;}
-        return <div key={i} style={{width:26,height:26,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,transition:"all 0.2s",fontFamily:"'Barlow Condensed',sans-serif"}}>{cnt}</div>;
+        return <div key={i} style={{width:26,height:26,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,transition:"all 0.2s",fontFamily:"'Inter',sans-serif"}}>{cnt}</div>;
       })}
     </div>
   );
@@ -1677,7 +1693,7 @@ function DailyResultDots({resultData}) {
         if(r==="yellow") {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=9;}
         if(r==="wrong")  {bg="#fee2e2";borderC="#fca5a5";cnt="🟥";col="#dc2626";fs=9;}
         if(r==="red")    {bg="#fee2e2";borderC="#dc2626";cnt="🟥";col="#dc2626";fs=9;}
-        return <div key={i} style={{width:24,height:24,flexShrink:0,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>{cnt}</div>;
+        return <div key={i} style={{width:24,height:24,flexShrink:0,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,fontFamily:"'Inter',sans-serif"}}>{cnt}</div>;
       })}
     </div>
   );
@@ -1706,8 +1722,8 @@ function YellowCardOverlay({onWatchAd,onDecline}) {
           </div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <button onClick={startAd} style={{padding:"14px",background:"#16a34a",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4)"}}>📺 Watch Ad &amp; Continue</button>
-            <button onClick={onDecline} style={{padding:"11px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,color:"#94a3b8",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Barlow Condensed',sans-serif"}}>🟥 End Match</button>
+            <button onClick={startAd} style={{padding:"14px",background:"#16a34a",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4)"}}>📺 Watch Ad &amp; Continue</button>
+            <button onClick={onDecline} style={{padding:"11px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,color:"#94a3b8",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>🟥 End Match</button>
           </div>
         )}
       </div>
@@ -1866,7 +1882,7 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
             <span style={{fontSize:16}}>🏆</span>
             <div>
               <div style={{fontSize:12,fontWeight:700,color:"#ffffff",lineHeight:1.2}}>Leaderboards</div>
-              <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",marginTop:2}}>Caps · Golden Boot · Top Scorer</div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",marginTop:2}}>Top Scorer · Golden Boot · Caps</div>
             </div>
           </div>
           <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",position:"relative",flexShrink:0}}>→</span>
@@ -1995,7 +2011,7 @@ function PasswordGate({ onUnlock }) {
               background:"#040f0a", border:`1px solid ${error ? "#ef4444" : "#1a4a38"}`,
               borderRadius:10, padding:"12px 16px",
               color: error ? "#ef4444" : S.textBright,
-              fontFamily:"'Barlow Condensed',sans-serif",
+              fontFamily:"'Inter',sans-serif",
               fontSize:18, fontWeight:700, outline:"none",
               textAlign:"center", letterSpacing:3,
               transition:"border-color 0.2s", marginBottom:8,
@@ -2010,7 +2026,7 @@ function PasswordGate({ onUnlock }) {
               width:"100%", padding:"13px 0",
               background:"linear-gradient(135deg,#0f766e,#0d9488)",
               border:"none", borderRadius:10,
-              color:"#fff", fontFamily:"'Barlow Condensed',sans-serif",
+              color:"#fff", fontFamily:"'Inter',sans-serif",
               fontSize:16, fontWeight:800, letterSpacing:2,
               cursor:"pointer",
             }}
@@ -2351,14 +2367,14 @@ function App(){
                 </div>
               </div>
               {canContinue&&(
-                <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)"}}>
+                <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)"}}>
                   ▶ Recover Possession <span style={{fontSize:11,opacity:0.8}}>({frozenTimeLeft}s left)</span>
                 </button>
               )}
-              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#7c0d3e,#be185d,#db2777)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 12px rgba(219,39,119,0.4), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
+              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#7c0d3e,#be185d,#db2777)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 12px rgba(219,39,119,0.4), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
                 ▶ Train Again ⚡
               </button>
-              <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#f8fafc,#f1f5f9)",border:"1px solid #e2e8f0",borderRadius:10,color:"#64748b",fontFamily:"'Barlow Condensed',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
+              <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#f8fafc,#f1f5f9)",border:"1px solid #e2e8f0",borderRadius:10,color:"#64748b",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                 See result
               </button>
             </div>
@@ -2369,69 +2385,167 @@ function App(){
   };
   // ── SHARED: player caps lookup for subtext (used on home + result) ─────────
   const CAPS_PLAYERS = [
-    {caps:1,name:"Steve Morrow",country:"N. Ireland"},{caps:2,name:"Robbie Savage",country:"Wales"},
-    {caps:3,name:"Roque Santa Cruz",country:"Paraguay"},{caps:4,name:"Celestine Babayaro",country:"Nigeria"},
-    {caps:5,name:"Cyrille Regis",country:"England"},{caps:6,name:"Kevin Hector",country:"England"},
-    {caps:7,name:"Tommy Taylor",country:"England"},{caps:8,name:"Darius Vassell",country:"England"},
-    {caps:9,name:"Paul Dickov",country:"Scotland"},{caps:10,name:"Robbie Brady",country:"Ireland"},
-    {caps:11,name:"Joe Royle",country:"England"},{caps:12,name:"Alan Ball Jr",country:"England"},
-    {caps:13,name:"Tony Cascarino",country:"Ireland"},{caps:14,name:"Luther Blissett",country:"England"},
-    {caps:15,name:"Steve Finnan",country:"Ireland"},{caps:16,name:"Pat Bonner",country:"Ireland"},
-    {caps:17,name:"Les Ferdinand",country:"England"},{caps:18,name:"Mark Lawrenson",country:"Ireland"},
-    {caps:19,name:"Tommy Lawton",country:"England"},{caps:20,name:"Peter Barnes",country:"England"},
-    {caps:21,name:"Ledley King",country:"England"},{caps:22,name:"Viv Anderson",country:"England"},
-    {caps:23,name:"Ian Wright",country:"England"},{caps:24,name:"Niall Quinn",country:"Ireland"},
-    {caps:25,name:"Ugo Ehiogu",country:"England"},{caps:26,name:"Robbie Fowler",country:"England"},
-    {caps:27,name:"Trevor Brooking",country:"England"},{caps:28,name:"Adam Johnson",country:"England"},
-    {caps:29,name:"David Rocastle",country:"England"},{caps:30,name:"Darren Anderton",country:"England"},
-    {caps:31,name:"Damien Duff",country:"Ireland"},{caps:32,name:"Kieron Dyer",country:"England"},
-    {caps:33,name:"Harry Redknapp",country:"England"},{caps:34,name:"David Platt",country:"England"},
-    {caps:35,name:"Jack Charlton",country:"England"},{caps:36,name:"Tom Finney",country:"England"},
-    {caps:37,name:"Steve McManaman",country:"England"},{caps:38,name:"Kevin Kilbane",country:"Ireland"},
-    {caps:39,name:"Ashley Young",country:"England"},{caps:40,name:"Tony Adams",country:"England"},
-    {caps:41,name:"Paul Robinson",country:"England"},{caps:42,name:"Trevor Francis",country:"England"},
-    {caps:43,name:"Chris Woods",country:"England"},{caps:44,name:"Martin Keown",country:"England"},
-    {caps:45,name:"George Cohen",country:"England"},{caps:46,name:"Mick Channon",country:"England"},
-    {caps:47,name:"Theo Walcott",country:"England"},{caps:48,name:"Denis Irwin",country:"Ireland"},
-    {caps:49,name:"Geoff Hurst",country:"England"},{caps:50,name:"Phil Neal",country:"England"},
-    {caps:51,name:"Teddy Sheringham",country:"England"},{caps:52,name:"Glen Hoddle",country:"England"},
-    {caps:53,name:"David James",country:"England"},{caps:54,name:"Glen Johnson",country:"England"},
-    {caps:55,name:"Edgar Davids",country:"Netherlands"},{caps:56,name:"Joe Cole",country:"England"},
-    {caps:57,name:"Gareth Southgate",country:"England"},{caps:58,name:"Emile Heskey",country:"England"},
-    {caps:59,name:"Des Walker",country:"England"},{caps:60,name:"Marcus Rashford",country:"England"},
-    {caps:61,name:"Ray Clemence",country:"England"},{caps:62,name:"Emlyn Hughes",country:"England"},
-    {caps:63,name:"Alan Shearer",country:"England"},{caps:64,name:"Bryan Robson",country:"England"},
-    {caps:65,name:"Dave Watson",country:"England"},{caps:66,name:"Tony Adams",country:"England"},
-    {caps:67,name:"Martin Peters",country:"England"},{caps:68,name:"Kevin Keegan",country:"England"},
-    {caps:69,name:"Harry Kane",country:"England"},{caps:70,name:"Ray Wilkins",country:"England"},
-    {caps:71,name:"Jimmy Greaves",country:"England"},{caps:72,name:"Alan Ball",country:"England"},
-    {caps:73,name:"Gordon Banks",country:"England"},{caps:74,name:"Stuart Pearce",country:"England"},
-    {caps:75,name:"Joe Hart",country:"England"},{caps:76,name:"Tom Finney",country:"England"},
-    {caps:77,name:"Terry Butcher",country:"England"},{caps:78,name:"Stuart Pearce",country:"England"},
-    {caps:79,name:"John Barnes",country:"England"},{caps:80,name:"Gary Lineker",country:"England"},
-    {caps:81,name:"Jordan Henderson",country:"England"},{caps:82,name:"Raheem Sterling",country:"England"},
-    {caps:83,name:"Rio Ferdinand",country:"England"},{caps:84,name:"Ray Wilkins",country:"England"},
-    {caps:85,name:"Gary Neville",country:"England"},{caps:86,name:"Michael Owen",country:"England"},
-    {caps:87,name:"Bryan Robson",country:"England"},{caps:88,name:"Phil Thompson",country:"England"},
-    {caps:89,name:"Bobby Charlton",country:"England"},{caps:90,name:"Sol Campbell",country:"England"},
-    {caps:91,name:"Wayne Rooney",country:"England"},{caps:92,name:"Steven Gerrard",country:"England"},
-    {caps:93,name:"Rio Ferdinand",country:"England"},{caps:94,name:"Harry Kane",country:"England"},
-    {caps:95,name:"Bobby Moore",country:"England"},{caps:96,name:"Peter Shilton",country:"England"},
-    {caps:97,name:"Frank Lampard",country:"England"},{caps:98,name:"Ashley Cole",country:"England"},
+    {caps:10,name:"Ray Parlour",country:"England",msg:"The Romford Pelé. Not everyone rates him, but those who do, really do."},
+    {caps:11,name:"Rickie Lambert",country:"England",msg:"Worked his way up from non-league to the national side. A proper journeyman story."},
+    {caps:12,name:"Gerry Francis",country:"England",msg:"One of the most gifted midfielders of his generation. Never got the caps his talent deserved."},
+    {caps:13,name:"Jackie Milburn",country:"England",msg:"Wor Jackie — a Newcastle legend and one of England's most natural goalscorers."},
+    {caps:14,name:"David Rocastle",country:"England",msg:"Rocky. Stylish, skilful, and loved by everyone who watched him. Gone too soon."},
+    {caps:15,name:"Andy Cole",country:"England",msg:"One of the deadliest strikers in Premier League history. Somehow only 15 caps."},
+    {caps:16,name:"Dixie Dean",country:"England",msg:"60 league goals in a season. 16 caps was a criminal undercount."},
+    {caps:17,name:"Les Ferdinand",country:"England",msg:"Sir Les. Power, pace, and an eye for goal. A proper No.9."},
+    {caps:18,name:"Duncan Edwards",country:"England",msg:"The greatest player England never got to see flourish. A tragedy of football history."},
+    {caps:19,name:"Tommy Taylor",country:"England",msg:"A Busby Babe. Lost at Munich. 19 caps and a goals record that would have grown much further."},
+    {caps:20,name:"Bobby Robson",country:"England",msg:"Manager and player. A true servant of the game in every sense."},
+    {caps:21,name:"Dennis Wise",country:"England",msg:"Mouthy, tenacious, effective. You didn't want to play against Dennis Wise."},
+    {caps:22,name:"Gary Pallister",country:"England",msg:"Alongside Stam in the debate for Man United's greatest ever centre-back. Underrated England career."},
+    {caps:23,name:"Tommy Lawton",country:"England",msg:"One of the finest headers of a ball England has ever produced. A true post-war great."},
+    {caps:25,name:"Stan Mortensen",country:"England",msg:"Hat-trick in the FA Cup final, 25 England caps. Overshadowed by Matthews but equally brilliant."},
+    {caps:26,name:"Robbie Fowler",country:"England",msg:"God. One of the most natural finishers the country has ever seen."},
+    {caps:27,name:"Francis Lee",country:"England",msg:"Tough, direct, and loved a penalty. A key part of the great Man City side of the 70s."},
+    {caps:28,name:"Nobby Stiles",country:"England",msg:"No nonsense, all heart. A World Cup winner who'd run through a wall for you."},
+    {caps:30,name:"Darren Anderton",country:"England",msg:"Sick as a parrot, but when fit — pure class. Deserved a longer career at this level."},
+    {caps:32,name:"Alf Ramsey",country:"England",msg:"Better known as the manager, but a fine player too. The man who brought it home."},
+    {caps:33,name:"Nat Lofthouse",country:"England",msg:"The Lion of Vienna. One of England's most courageous centre-forwards."},
+    {caps:34,name:"Michael Carrick",country:"England",msg:"The most underrated midfielder of his generation. Finally getting the recognition he deserves."},
+    {caps:35,name:"Jack Charlton",country:"England",msg:"Big Jack — World Cup winner, manager of Ireland, and a proper football man."},
+    {caps:37,name:"George Cohen",country:"England",msg:"One of the unsung heroes of 1966. A reliable, tireless right back."},
+    {caps:38,name:"Jamie Carragher",country:"England",msg:"Warrior. Would die for Liverpool. Did his best for England too."},
+    {caps:39,name:"Nicky Butt",country:"England",msg:"The man who held it together when everyone else got the glory. Quietly brilliant."},
+    {caps:41,name:"Paul Robinson",country:"England",msg:"One of England's most reliable keepers of his era. Remember that goal against Croatia?"},
+    {caps:42,name:"Peter Crouch",country:"England",msg:"A robot, allegedly. 42 caps and a goal record for a target man that's hard to argue with."},
+    {caps:43,name:"Jimmy Armfield",country:"England",msg:"Often called the best right-back England has ever had. A true gentleman of the game."},
+    {caps:44,name:"César Azpilicueta",country:"Spain",msg:"Mr Chelsea. A decade of top-level consistency and a Spain career to match."},
+    {caps:46,name:"Mick Channon",country:"England",msg:"The windmill celebration, 46 caps, and a proper career on both sides of the white line."},
+    {caps:47,name:"Trevor Brooking",country:"England",msg:"Elegant, intelligent football. One of England's finest playmakers."},
+    {caps:48,name:"Colin Bell",country:"England",msg:"The King of the Kippax. Injury robbed England of so much more from him."},
+    {caps:49,name:"Geoff Hurst",country:"England",msg:"The only man to score a hat-trick in a World Cup final. You're keeping legendary company."},
+    {caps:50,name:"Garrincha",country:"Brazil",msg:"Joy of the People. Some say he was better than Pelé. 50 caps and two World Cup winners medals."},
+    {caps:51,name:"Teddy Sheringham",country:"England",msg:"Still scoring at the top level in his late 30s. A footballer's footballer."},
+    {caps:52,name:"Trevor Francis",country:"England",msg:"England's first £1m player. The fee was justified."},
+    {caps:53,name:"Glenn Hoddle",country:"England",msg:"One of the most technically gifted players England has ever produced. 53 caps wasn't enough."},
+    {caps:54,name:"Stanley Matthews",country:"England",msg:"The Wizard of the Dribble. Playing top-flight football at 50. A genuine one-off."},
+    {caps:55,name:"Benjamin Pavard",country:"France",msg:"That goal against Argentina at the 2018 World Cup alone would justify his place in history."},
+    {caps:56,name:"Roberto Baggio",country:"Italy",msg:"The Divine Ponytail. One of the most complete players Italy has ever produced. The penalty miss haunts him still."},
+    {caps:57,name:"Paul Gascoigne",country:"England",msg:"Genius, chaos, and everything in between. One of the greatest to ever pull on an England shirt."},
+    {caps:58,name:"Marco van Basten",country:"Netherlands",msg:"Three Ballon d'Or awards. That volley in the Euro 88 final. A career ended too soon by injury."},
+    {caps:59,name:"Peter Beardsley",country:"England",msg:"The most creative English forward of his generation. Lineker got the goals, Beardsley made them."},
+    {caps:60,name:"Sócrates",country:"Brazil",msg:"Doctor, philosopher, captain. Sócrates played football like he thought about life — with total freedom."},
+    {caps:61,name:"Ray Clemence",country:"England",msg:"Unlucky to share an era with Shilton. Either of them would walk into most England XIs of all time."},
+    {caps:62,name:"Gerd Müller",country:"Germany",msg:"Der Bomber. 68 international goals for West Germany. Pure, ruthless efficiency in front of goal."},
+    {caps:63,name:"Alan Shearer",country:"England",msg:"The Premier League's all-time top scorer. Turned down Real Madrid to stay at Newcastle. True icon."},
+    {caps:64,name:"Eusébio",country:"Portugal",msg:"The Black Panther. Portugal's greatest player before a certain someone came along. 64 caps, timeless legend."},
+    {caps:65,name:"Pedro",country:"Spain",msg:"Part of the greatest club and country side ever assembled. Three consecutive La Liga titles, Champions League, and World Cup winner."},
+    {caps:66,name:"Ruud Gullit",country:"Netherlands",msg:"The total footballer. Dreads, elegance, and a ballon d'Or. Euro 88 was his masterpiece."},
+    {caps:67,name:"N'Golo Kanté",country:"France",msg:"Somehow everywhere at once. Two league titles, a Champions League, and a World Cup winner."},
+    {caps:68,name:"Francesco Totti",country:"Italy",msg:"One club, one city, one legend. Roma's captain, Italy's most beloved player."},
+    {caps:70,name:"Ruud van Nistelrooy",country:"Netherlands",msg:"Cold-blooded in the box. One of the most clinical finishers European football has ever seen."},
+    {caps:71,name:"Zico",country:"Brazil",msg:"The White Pelé. The 1982 Brazil team he led may be the greatest side never to win a World Cup."},
+    {caps:72,name:"Uwe Seeler",country:"Germany",msg:"A one-club man in an era before that was rare. Hamburg's greatest ever player."},
+    {caps:73,name:"Gordon Banks",country:"England",msg:"The greatest save in history, the best goalkeeper England has ever had. A different level."},
+    {caps:74,name:"Rivaldo",country:"Brazil",msg:"Left foot, right foot, chest, bicycle kick — it didn't matter. One of the most gifted forwards of his generation."},
+    {caps:75,name:"David Seaman",country:"England",msg:"Safe hands, great moustache. One of England's finest ever goalkeepers."},
+    {caps:76,name:"Carlos Tevez",country:"Argentina",msg:"Relentless. Tore apart Premier League defences for years. Loved at every club. Almost."},
+    {caps:77,name:"Bebeto",country:"Brazil",msg:"Baby, baby, baby. The rock-a-baby celebration and a World Cup winner with Romário. Pure class."},
+    {caps:78,name:"Gabriel Batistuta",country:"Argentina",msg:"Batigol. One of the most feared strikers of the 90s. Argentina never had a better finisher."},
+    {caps:79,name:"Dennis Bergkamp",country:"Netherlands",msg:"The Non-Flying Dutchman. Goals of breathtaking beauty. That touch against Newcastle. Immortal."},
+    {caps:80,name:"Gary Lineker",country:"England",msg:"Never booked, never sent off, never stopped scoring. A clean record — just like your streak."},
+    {caps:81,name:"Franco Baresi",country:"Italy",msg:"The best sweeper who ever lived, some say. Italy and AC Milan were built around him for a decade."},
+    {caps:82,name:"Youri Djorkaeff",country:"France",msg:"The Snake. Glided through the 98 World Cup and Euro 2000 like it was effortless."},
+    {caps:84,name:"Blaise Matuidi",country:"France",msg:"The engine room of the 2018 World Cup winning France side. Unglamorous, essential, brilliant."},
+    {caps:85,name:"Gary Neville",country:"England",msg:"Fergie's trusted sergeant. The best right back of his generation and now the most opinionated man in football."},
+    {caps:86,name:"Oliver Kahn",country:"Germany",msg:"The Titan. Possibly the most intense goalkeeper in football history. That 2002 World Cup was incredible."},
+    {caps:87,name:"Fabien Barthez",country:"France",msg:"The bald head, the mind games, the World Cup and Euros medals. A great keeper who wore his eccentricity with pride."},
+    {caps:89,name:"Michael Owen",country:"England",msg:"That goal against Argentina. 18 years old, best player on the planet. England's most precocious talent."},
+    {caps:90,name:"Rudi Völler",country:"Germany",msg:"Goals in three World Cups, a manager who famously lost it at half time. One of Germany's great characters."},
+    {caps:91,name:"Diego Maradona",country:"Argentina",msg:"The Hand of God, the Goal of the Century — and now your streak. You're in Maradona territory. Keep going 🔥"},
+    {caps:92,name:"Pelé",country:"Brazil",msg:"Arguably the greatest of all time. Three World Cups. Your streak is now in the same conversation. Remarkable 🏆"},
+    {caps:93,name:"Raphaël Varane",country:"France",msg:"Champions League four times, World Cup once. The most decorated defender of his generation."},
+    {caps:94,name:"Rui Costa",country:"Portugal",msg:"The magician who preceded Ronaldo. A sublime playmaker who lit up European football for a decade."},
+    {caps:95,name:"Karl-Heinz Rummenigge",country:"Germany",msg:"Two Ballon d'Or awards and two World Cup finals. One of the deadliest forwards of the 80s."},
+    {caps:96,name:"Arjen Robben",country:"Netherlands",msg:"The left foot was a myth. The right foot was unstoppable. He cut inside every single time and no one could stop him."},
+    {caps:97,name:"Ronaldinho",country:"Brazil",msg:"The biggest smile in football, the most creative player of his era. Pure joy to watch at his peak."},
+    {caps:98,name:"Ronaldo",country:"Brazil",msg:"R9. The original Ronaldo. Two World Cups, three World Cup Golden Boots. An alien in football boots."},
+    {caps:100,name:"Carles Puyol",country:"Spain",msg:"The heart and soul of the golden generation. That header against Germany. A warrior in the truest sense."},
+    {caps:101,name:"Sergio Agüero",country:"Argentina",msg:"AGUEROOOOO. The most dramatic goal in Premier League history and one of the greatest strikers of his era."},
+    {caps:102,name:"Robin van Persie",country:"Netherlands",msg:"That header against Spain in 2014. That volley against Aston Villa. Simply one of the best ever to do it."},
+    {caps:103,name:"Franz Beckenbauer",country:"Germany",msg:"Der Kaiser. Won the World Cup as captain and manager. Redefined what a sweeper could be."},
+    {caps:105,name:"Billy Wright",country:"England",msg:"England's first 100-cap man. A true pioneer — and now you've matched him. Legendary 🏆"},
+    {caps:106,name:"Bobby Charlton",country:"England",msg:"Survived Munich, won the World Cup, won the European Cup. One of England's greatest ever players."},
+    {caps:107,name:"Patrick Vieira",country:"France",msg:"Dominant, powerful, and the engine of Arsenal's Invincibles. A colossus of the Premier League era."},
+    {caps:108,name:"Zinedine Zidane",country:"France",msg:"The greatest player of his generation. That World Cup final headbutt aside. A genius with a football."},
+    {caps:109,name:"Dries Mertens",country:"Belgium",msg:"Belgium's all-time top scorer. A cult hero at Napoli. Small in stature, enormous in quality."},
+    {caps:110,name:"Fernando Torres",country:"Spain",msg:"El Niño at his peak was unplayable. That Euro 2008 final goal defined a golden generation."},
+    {caps:111,name:"Gareth Bale",country:"Wales",msg:"Five Champions League medals. Wales' greatest ever player. The Golf, Wales, Madrid memes aside — an absolute superstar."},
+    {caps:112,name:"Dino Zoff",country:"Italy",msg:"Won the World Cup at 40. Possibly the greatest goalkeeper Italy has ever produced."},
+    {caps:113,name:"Philipp Lahm",country:"Germany",msg:"The perfect footballer. Could play anywhere, never had a bad game. World Cup winner in his final year."},
+    {caps:114,name:"Xabi Alonso",country:"Spain",msg:"The passing was metronomic. That goal from his own half against Newcastle. A true great of his era."},
+    {caps:115,name:"David Beckham",country:"England",msg:"Free kicks, fame, and an era-defining career. That goal from the halfway line against Wimbledon was special."},
+    {caps:116,name:"Andrea Pirlo",country:"Italy",msg:"The Architect. Made the game look slow when he was on the ball. A maestro."},
+    {caps:117,name:"Giorgio Chiellini",country:"Italy",msg:"Possibly the most aggressive defender of his era — in the best way. You did not want to play against him."},
+    {caps:118,name:"James Rodríguez",country:"Colombia",msg:"That volley against Uruguay at the 2014 World Cup. The goal of the tournament, possibly the decade."},
+    {caps:119,name:"Pat Jennings",country:"N. Ireland",msg:"Scored in the 1967 Charity Shield with a kick from his own area. One of the all-time great keepers."},
+    {caps:120,name:"Wayne Rooney",country:"England",msg:"England's all-time top scorer. A force of nature at his peak. Your streak matches his cap count — respect."},
+    {caps:121,name:"Bastian Schweinsteiger",country:"Germany",msg:"The heart of the 2014 World Cup winning Germany side. Limping through that final on one leg was pure character."},
+    {caps:122,name:"Zlatan Ibrahimović",country:"Sweden",msg:"No one like Zlatan. That bicycle kick against England. Played top-level football into his 40s. Ridiculous career."},
+    {caps:123,name:"Thierry Henry",country:"France",msg:"The greatest Premier League player? Many would say yes. That run and finish was on repeat for a decade."},
+    {caps:124,name:"Manuel Neuer",country:"Germany",msg:"Reinvented goalkeeping. The sweeper-keeper. His 2014 World Cup was one of the best individual tournament performances ever."},
+    {caps:125,name:"Roberto Carlos",country:"Brazil",msg:"That free kick against France in 1997 defied physics. One of the greatest left backs in football history."},
+    {caps:126,name:"Paolo Maldini",country:"Italy",msg:"The greatest defender who ever lived, many say. Your streak is built like his defending — immovable."},
+    {caps:127,name:"Luís Figo",country:"Portugal",msg:"Ballon d'Or, World Player of the Year, and the transfer that broke Barcelona's heart. A true great."},
+    {caps:128,name:"Neymar",country:"Brazil",msg:"The most skilful player of his generation. The weight of carrying Brazil is heavy — your streak carries its own."},
+    {caps:129,name:"Peter Schmeichel",country:"Denmark",msg:"The Great Dane. Won everything at United, then led Denmark to Euro 92. A genuine colossus."},
+    {caps:130,name:"Edwin van der Sar",country:"Netherlands",msg:"Kept a Premier League record 1,311 minutes without conceding. Unflappable. Like your streak."},
+    {caps:131,name:"Andrés Iniesta",country:"Spain",msg:"The quietest genius in football history. That goal in the 2010 World Cup final. Perfection."},
+    {caps:132,name:"Simon Kjær",country:"Denmark",msg:"A fine defender, but remembered forever for saving Christian Eriksen's life at Euro 2020. A true hero."},
+    {caps:133,name:"Xavi",country:"Spain",msg:"The metronome. 767 passes in the 2010 World Cup, 0 lost. Football as chess. Your streak has the same discipline."},
+    {caps:134,name:"Wesley Sneijder",country:"Netherlands",msg:"Should have won the Ballon d'Or in 2010. Led the Netherlands to a World Cup final. Criminally underrated."},
+    {caps:136,name:"Fabio Cannavaro",country:"Italy",msg:"Won the World Cup and the Ballon d'Or as a defender. The captain who lifted the trophy in Berlin."},
+    {caps:137,name:"Miroslav Klose",country:"Germany",msg:"The World Cup's all-time top scorer with 16 goals. Clinical, reliable, extraordinary. Just like your streak."},
+    {caps:141,name:"Pepe",country:"Portugal",msg:"Fierce, physical, and utterly relentless. One of the most intimidating defenders of the Champions League era."},
+    {caps:142,name:"Cafu",country:"Brazil",msg:"The train. Never stopped running. Won two World Cups and is arguably the greatest right back ever."},
+    {caps:143,name:"Javier Zanetti",country:"Argentina",msg:"Over 850 games for Inter Milan, 143 caps for Argentina. One of football's greatest servants."},
+    {caps:145,name:"Ángel Di María",country:"Argentina",msg:"The man of the match in the 2014 World Cup final before injury cut him short. A World Cup winner in 2022."},
+    {caps:146,name:"Robbie Keane",country:"Ireland",msg:"Ireland's greatest ever player and joint record goalscorer in European qualifying. 146 caps — an icon."},
+    {caps:147,name:"Javier Mascherano",country:"Argentina",msg:"El Jefecito. Played at centre back despite being a midfielder and somehow made it look easy. Titan."},
+    {caps:148,name:"Ali Daei",country:"Iran",msg:"109 international goals, 148 caps. Iran's greatest ever player — held the record for most international goals until Ronaldo."},
+    {caps:150,name:"Lothar Matthäus",country:"Germany",msg:"The most capped outfield player in World Cup history. You're at the summit now. Outstanding."},
+    {caps:157,name:"Jan Vertonghen",country:"Belgium",msg:"Belgium's most capped player and one of the finest left-sided centre-backs of his era. A quiet colossus."},
+    {caps:167,name:"Iker Casillas",country:"Spain",msg:"Saint Iker. Won everything there is to win — two Euros, a World Cup, three Champions Leagues. A legend."},
+    {caps:176,name:"Gianluigi Buffon",country:"Italy",msg:"Twenty years of international football. The most dedicated goalkeeper of the modern era. Exceptional commitment."},
+    {caps:180,name:"Sergio Ramos",country:"Spain",msg:"The most decorated defender in football history. 180 caps, every honour the game offers. You've reached the very top."},
+  ];
+  const EARLY_MESSAGES = [
+    "Play today's match to get on the board 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    "Day 1 down. The journey starts here. Come back tomorrow 🔥",
+    "2 caps in. Every legend started somewhere. Keep going 🔥",
+    "3 days straight. You're forming a habit. Don't break it 🔥",
+    "4 caps. Early doors but you're showing up. Keep going 🔥",
+    "5 caps in. One week nearly done. Stay consistent 🔥",
+    "6 caps. You're proving you mean business. Don't stop now 🔥",
+    "7 days — a full week. Plenty more where that came from 🔥",
+    "8 caps. You're past the casual phase now. Keep pushing 🔥",
+    "9 caps in. One more and you're into proper company 🔥",
   ];
   function getStreakPlayer(days){
-    const cap=Math.min(days,98);
-    let best=CAPS_PLAYERS[0];
-    for(const p of CAPS_PLAYERS){if(Math.abs(p.caps-cap)<=Math.abs(best.caps-cap))best=p;}
+    // Always find the highest player whose caps <= days (never reveal ahead)
+    const cap=Math.min(days,180);
+    let best=null;
+    for(const p of CAPS_PLAYERS){
+      if(p.caps<=cap){
+        if(!best||p.caps>best.caps) best=p;
+      }
+    }
     return best;
   }
   function getStreakSubtext(){
-    if(streak===0) return "Play today's match to get on the board 🏴󠁧󠁢󠁥󠁮󠁧󠁿";
+    if(streak<=0) return EARLY_MESSAGES[0];
+    if(streak<10) return EARLY_MESSAGES[streak];
     const p=getStreakPlayer(streak);
-    const closeness=Math.abs(p.caps-streak);
-    if(streak===p.caps) return `You're a prime ${p.name} — ${p.caps} caps for ${p.country}. Come back tomorrow to keep going 🔥`;
-    if(closeness<=2) return `Almost ${p.name} levels (${p.caps} caps for ${p.country}). One more day to match a legend 🔥`;
-    return `${streak} caps in. ${p.name} had ${p.caps} caps for ${p.country} — you're in that territory. Keep going 🔥`;
+    if(!p) return `${streak} caps in. Keep going 🔥`;
+    const diff=streak-p.caps; // always >= 0 now
+    if(diff===0) return `${p.name} — ${p.caps} caps for ${p.country}. ${p.msg} Come back tomorrow 🔥`;
+    if(diff<=3) return `Beyond ${p.name}'s ${p.caps} caps for ${p.country}. ${p.msg.split('.')[0]}. Keep going 🔥`;
+    return `${streak} caps in. You've surpassed ${p.name} (${p.caps} caps for ${p.country}). ${p.msg.split('.')[0]}. Keep going 🔥`;
   }
 
   // Career status — shared between home + result screens
@@ -2678,7 +2792,7 @@ function App(){
             <span style={{fontSize:16}}>🏆</span>
             <div style={{textAlign:"left"}}>
               <div style={{fontSize:12,fontWeight:700,color:"#ffffff",fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.65)",fontFamily:"'Inter',sans-serif",marginTop:1}}>Caps · Golden Boot · Top Scorer</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.65)",fontFamily:"'Inter',sans-serif",marginTop:1}}>Top Scorer · Golden Boot · Caps</div>
             </div>
           </div>
           <span style={{fontSize:13,color:"rgba(255,255,255,0.5)",position:"relative"}}>→</span>
@@ -2979,7 +3093,7 @@ function App(){
         {/* ── STAT PANELS ── */}
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,justifyContent:"center"}}>
           {currentCard&&<StatPanel card={currentCard} revealed={true} flashResult={null}/>}
-          <div style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"rgba(255,255,255,0.5)",fontWeight:800,flexShrink:0,fontFamily:"'Barlow Condensed',sans-serif",letterSpacing:1}}>VS</div>
+          <div style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"rgba(255,255,255,0.5)",fontWeight:800,flexShrink:0,fontFamily:"'Inter',sans-serif",letterSpacing:1}}>VS</div>
           {nextCard&&<StatPanel card={nextCard} revealed={revealedNext} flashResult={revealedNext?flashResult:null}/>}
         </div>
 
@@ -2994,14 +3108,14 @@ function App(){
           ):(
             <div style={{display:"flex",gap:10,width:"100%"}}>
               <button onClick={()=>handleGuess("higher")}
-                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
+                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(22,163,74,0.55)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
                 <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.05) 12px,rgba(255,255,255,0.05) 13px)",pointerEvents:"none"}}/>
                 <span style={{position:"relative"}}>⬆ Higher</span>
               </button>
               <button onClick={()=>handleGuess("lower")}
-                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#b91c1c,#dc2626,#ef4444)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Barlow Condensed',sans-serif",boxShadow:"0 4px 16px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
+                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#b91c1c,#dc2626,#ef4444)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 16px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(220,38,38,0.55)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
                 <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.05) 12px,rgba(255,255,255,0.05) 13px)",pointerEvents:"none"}}/>
