@@ -1242,10 +1242,16 @@ function smartOrder(rawCards) {
 }
 
 // Moderate difficulty shuffle: interleave high/mid/low stat cards so consecutive
-// pairs have a mix of obvious and close gaps — avoids all-easy or all-hard runs
+// pairs have a mix of obvious and close gaps — avoids all-easy or all-hard runs.
+// Difficulty note: CLOSE stats = HARD (8 vs 7 goals), FAR apart = EASY (260 vs 8).
+// We enforce a MAX_GAP to prevent trivially obvious pairs where the answer is
+// a foregone conclusion (e.g. 260 goals vs 0 goals). Tight pairs are allowed —
+// they are the hard, interesting questions.
 function rushShuffle(cards){
+  if(!cards||cards.length<2) return cards;
   const sorted=[...cards].sort((a,b)=>a.stat-b.stat);
   const n=sorted.length;
+  // Difficulty is enforced per-card via ratio (see Pass 2 below) — no global range needed
   const lo=sorted.slice(0,Math.floor(n*0.33));
   const mid=sorted.slice(Math.floor(n*0.33),Math.floor(n*0.66));
   const hi=sorted.slice(Math.floor(n*0.66));
@@ -1257,14 +1263,38 @@ function rushShuffle(cards){
     if(hi[i])out.push(hi[i]);
     if(mid[i])out.push(mid[i]);
   }
-  // Guarantee no consecutive same-stat pairs
+  // Pass 1: fix identical stats (equal stats = unguessable, always remove)
   for(let i=1;i<out.length;i++){
     if(out[i].stat===out[i-1].stat){
       let swapped=false;
       for(let j=i+1;j<out.length;j++){
         if(out[j].stat!==out[i-1].stat){[out[i],out[j]]=[out[j],out[i]];swapped=true;break;}
       }
-      if(!swapped){out.splice(i,1);i--;} // remove unfixable duplicate
+      if(!swapped){out.splice(i,1);i--;}
+    }
+  }
+  // Pass 2: enforce per-card relative difficulty.
+  // Gap is measured as a ratio of the LARGER of the two stats — this is card-by-card,
+  // not against the overall range. e.g. 260 vs 160 = 62% of 260 = easy (swap it out).
+  // 80 vs 60 = 25% of 80 = reasonable. 8 vs 7 = 12% of 8 = hard (keep it, that's good).
+  // MAX_RATIO = 0.50 means the smaller stat must be at least 50% of the larger.
+  const MAX_RATIO = 0.50; // second card must be within 50% of the first card's value
+  for(let i=1;i<out.length;i++){
+    const larger = Math.max(out[i].stat, out[i-1].stat);
+    const smaller = Math.min(out[i].stat, out[i-1].stat);
+    // ratio = smaller/larger; low ratio = easy (far apart); high ratio = hard (close)
+    const ratio = larger>0 ? smaller/larger : 1;
+    if(ratio < MAX_RATIO){ // too easy — gap is too wide for this card's value
+      for(let j=i+1;j<out.length;j++){
+        const lg2 = Math.max(out[j].stat, out[i-1].stat);
+        const sm2 = Math.min(out[j].stat, out[i-1].stat);
+        const r2  = lg2>0 ? sm2/lg2 : 1;
+        if(r2 >= MAX_RATIO && out[j].stat!==out[i-1].stat){
+          [out[i],out[j]]=[out[j],out[i]];
+          break;
+        }
+      }
+      // If no suitable swap found, leave in place
     }
   }
   return out;
@@ -1441,14 +1471,14 @@ function ProgressDots({current, result, yellowCardIdx}) {
 
 function DailyResultDots({resultData}) {
   return (
-    <div style={{display:"flex",gap:5,alignItems:"center",justifyContent:"center",flexWrap:"wrap"}}>
+    <div style={{display:"flex",gap:4,alignItems:"center",justifyContent:"center",flexWrap:"nowrap",width:"100%"}}>
       {Array.from({length:10}).map((_,i)=>{
         const r=resultData[i]||null;
-        let bg="#e2e8f0", borderC="#cbd5e1", cnt=i+1, col="#94a3b8", fs=9;
-        if(r==="correct"){bg="#dcfce7";borderC="#86efac";cnt="✓";col="#16a34a";fs=10;}
-        if(r==="yellow") {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=10;}
-        if(r==="wrong")  {bg="#fee2e2";borderC="#fca5a5";cnt="🟥";col="#dc2626";fs=10;}
-        return <div key={i} style={{width:26,height:26,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>{cnt}</div>;
+        let bg="#e2e8f0", borderC="#cbd5e1", cnt=i+1, col="#94a3b8", fs=8;
+        if(r==="correct"){bg="#dcfce7";borderC="#86efac";cnt="✓";col="#16a34a";fs=9;}
+        if(r==="yellow") {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=9;}
+        if(r==="wrong")  {bg="#fee2e2";borderC="#fca5a5";cnt="🟥";col="#dc2626";fs=9;}
+        return <div key={i} style={{width:24,height:24,flexShrink:0,borderRadius:"50%",background:bg,border:`1.5px solid ${borderC}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:fs,color:col,fontWeight:800,fontFamily:"'Barlow Condensed',sans-serif"}}>{cnt}</div>;
       })}
     </div>
   );
@@ -1507,6 +1537,81 @@ function getScoreMessage(score) {
   return msgs[idx];
 }
 
+// ── RUSH RESULT MESSAGES ──────────────────────────────────────────────────────
+// Funny football messages relative to personal high score
+function getRushMessage(score, catBest) {
+  const isNewBest = score > catBest;
+  const isEqualBest = score === catBest && catBest > 0;
+  const gap = catBest - score;
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  // New best
+  if(isNewBest && score === 0) return "You set a new best of zero. Impressive in the worst possible way.";
+  if(isNewBest) return pick([
+    "Get in. New personal best. Frame it.",
+    "That's a new one. Write it down.",
+    "New high score. Tell someone who'll appreciate it.",
+    "Top of your own charts. For now.",
+    "Different level today. New PB.",
+    "New PB. The bar just moved.",
+    "Personal best smashed. Who are you?",
+    "That's the one. New high score.",
+  ]);
+
+  // Matched best
+  if(isEqualBest) return pick([
+    "Matched your best. So close to something special.",
+    "Level with your best. Try harder.",
+    "Equal PB. The bar remains exactly where you left it.",
+    "Matched it. Now go one better.",
+    "Same peak. Different day. Push harder.",
+    "You've been here before. Time to go further.",
+  ]);
+
+  // Score = 0
+  if(score === 0) return "Nil-nil. You've achieved absolutely nothing. Respect the process, I suppose.";
+
+  // Below best — 3 rotating variants per bucket
+  if(gap >= 10) return pick([
+    "You've been much better than this. Have a word with yourself.",
+    "This isn't you. Where did you go?",
+    "A disaster by your standards. Regroup.",
+  ]);
+  if(gap >= 7) return pick([
+    "A shadow of your former self today. Disappointing.",
+    "Well below your best. Rough one.",
+    "You've forgotten how good you are.",
+  ]);
+  if(gap >= 5) return pick([
+    "Off the pace. Your best self would be embarrassed.",
+    "Not your day. Try again.",
+    "You've done better. Significantly.",
+  ]);
+  if(gap >= 3) return pick([
+    `${gap} short of your best. You're better than this and you know it.`,
+    "Close but no cigar. Again.",
+    "Getting there. Just not today.",
+  ]);
+  if(gap === 2) return pick([
+    "Two off your best. Tantalisingly close. Annoyingly so.",
+    "Two away. You were right there.",
+    "Nearly. Not quite. Painful.",
+  ]);
+  if(gap === 1) return pick([
+    "One short of your best. One. Imagine how that feels.",
+    "One away. Absolutely gutting.",
+    "So close it hurts. Go again.",
+  ]);
+
+  // No best yet (catBest === 0)
+  if(catBest === 0 && score === 0) return "Why are you here? Actually, why are you here?";
+  if(catBest === 0 && score <= 2)  return "A few more hours on the training pitch and you might be dangerous.";
+  if(catBest === 0 && score <= 5)  return "Decent start. Room to grow. A lot of room.";
+  if(catBest === 0)                return "Solid first run. The data is in. Now beat it.";
+
+  return "Go again.";
+}
+
 // ── TRAINING PITCH PAGE ───────────────────────────────────────────────────────
 function RushPage({onBack, onPlay, onLeaderboard}) {
   return (
@@ -1528,9 +1633,14 @@ function RushPage({onBack, onPlay, onLeaderboard}) {
           <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Score as many as you can. Zero mistakes = <strong style={{color:"#fde047"}}>2× score</strong>. Pick a category below.</div>
         </div>
 
-        {/* Category grid */}
+        {/* Category grid — sorted by personal best descending, unplayed categories last */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-          {RUSH_CATEGORIES.map(cat=>{
+          {[...RUSH_CATEGORIES].sort((a,b)=>{
+            const ba=lsGet(`rush_best_${a.id}`,0);
+            const bb=lsGet(`rush_best_${b.id}`,0);
+            if(bb!==ba) return bb-ba; // higher best first
+            return 0; // preserve original order for ties/unplayed
+          }).map(cat=>{
             const catBest=lsGet(`rush_best_${cat.id}`,0);
             return(
               <button key={cat.id} onClick={()=>onPlay(cat.id)} style={{padding:"0",background:"#ffffff",border:"1px solid #e2e8f0",borderRadius:14,cursor:"pointer",textAlign:"left",transition:"transform 0.1s,box-shadow 0.1s",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,0.08)"}}
@@ -1752,6 +1862,8 @@ function App(){
   const [username,setUsernameState]      = useState(()=>lsGet("username",""));
   const [testDayOffset,setTestDayOffset] = useState(0);
   const [latestScore,setLatestScore]     = useState(null);
+  const [rawCorrect,setRawCorrect]       = useState(0);  // pre-multiplier correct count for display
+  const [prevCatBest,setPrevCatBest]     = useState(0);  // best BEFORE this run saved — for new-best detection
   const [answerLog,setAnswerLog]         = useState([]);
   // Rush monetisation
   const [cleanScore,setCleanScore]       = useState(0);   // score before any continue
@@ -1762,8 +1874,16 @@ function App(){
   const [frozenIdx,setFrozenIdx]         = useState(0);
   const [countdown,setCountdown]         = useState(null); // 3,2,1 pre-game countdown
   const timeoutRef = useRef();
+  // Refs to hold live values for use inside timer/interval callbacks (avoids stale closures)
+  const scoreRef   = useRef(0);
+  const rushCatRef = useRef(null);
+  const continueCountRef = useRef(0);
 
   function setUsername(n){lsSet("username",n);setUsernameState(n);}
+  // Keep refs in sync with state so interval callbacks always read current values
+  scoreRef.current = score;
+  rushCatRef.current = rushCat;
+  continueCountRef.current = continueCount;
   const rushBest=rushScores.length?Math.max(...rushScores):0;
   const todayKey=getTodayKey();
   const todayPlayed=dailyDone===todayKey;
@@ -1837,10 +1957,18 @@ function App(){
   function endRushRun(reason){
     setTimerActive(false);
     if(reason==="timeout"){
-      const finalClean = continueCount===0 ? score : cleanScore;
-      saveRushScore(score, continueCount===0);
-      setLatestScore(score);
-      if(continueCount===0) setCleanScore(score);
+      // Use refs to read live values — avoids stale closure from setInterval callback
+      const liveScore = scoreRef.current;
+      const liveIsPerfect = continueCountRef.current===0;
+      const finalScore = liveIsPerfect ? liveScore * 2 : liveScore;
+      const finalClean = liveIsPerfect ? finalScore : cleanScore;
+      // Capture best BEFORE saving so result screen can detect a new PB correctly
+      const preBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
+      setPrevCatBest(preBest);
+      saveRushScore(finalScore, liveIsPerfect);
+      setLatestScore(finalScore);
+      setRawCorrect(liveScore);  // store pre-multiplier count for result display
+      setCleanScore(finalClean);
       setGameOutcome("timeout");
       setScreen("result");
       return;
@@ -1872,10 +2000,13 @@ function App(){
     resetState();setTimerActive(true);setScreen("game");
   }
 
-  // User dismisses modal — go to result
+  // User dismisses modal — go to result (always a non-clean run since they got a wrong answer)
   function rushDismiss(){
     setShowRushModal(false);
-    saveRushScore(score, continueCount===0);
+    // Capture best BEFORE saving for new-PB detection on result screen
+    const preBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
+    setPrevCatBest(preBest);
+    saveRushScore(score, false);
     setLatestScore(score);
     setGameOutcome("lose");
     setScreen("result");
@@ -1936,13 +2067,19 @@ function App(){
     const r={key:todayKey,dots:log||answerLog};lsSet("daily_result",r);setDailyResult(r);
   }
   function saveRushScore(s, isClean){
-    const u=[s,...rushScores].slice(0,50);lsSet("rush_scores",u);setRushScores(u);
-    if(rushCat){
-      // Only clean scores update best
-      if(isClean){
-        const p=lsGet(`rush_best_${rushCat}`,0);if(s>p)lsSet(`rush_best_${rushCat}`,s);
-      }
-      lsSet(`rush_plays_${rushCat}`,lsGet(`rush_plays_${rushCat}`,0)+1);
+    // Read fresh from localStorage to avoid stale closure
+    const existing = lsGet("rush_scores", []);
+    const u=[s,...existing].slice(0,50);
+    lsSet("rush_scores",u);
+    setRushScores(u);
+    // Use ref for rushCat — this may be called from inside a timer callback (stale closure)
+    const cat = rushCatRef.current || rushCat;
+    if(cat){
+      // Capture previous best BEFORE overwriting so the result screen can compare correctly
+      const prev = lsGet(`rush_best_${cat}`,0);
+      setPrevCatBest(prev);
+      if(s>prev) lsSet(`rush_best_${cat}`,s);
+      lsSet(`rush_plays_${cat}`,lsGet(`rush_plays_${cat}`,0)+1);
     }
   }
   useEffect(()=>()=>clearTimeout(timeoutRef.current),[]);
@@ -1990,18 +2127,27 @@ function App(){
                 <div style={{background:"#f8fafc",border:"1px solid #f1f5f9",borderRadius:10,padding:"12px 14px"}}>
                   <div style={{color:"#94a3b8",fontSize:9,letterSpacing:2,marginBottom:6,fontWeight:700,textTransform:"uppercase"}}>Training Score</div>
                   <div style={{color:"#0f172a",fontWeight:900,fontSize:32,fontFamily:"'Oswald',sans-serif",lineHeight:1,marginBottom:6}}>{score}</div>
-                  {pct&&<div style={{color:"#d97706",fontWeight:700,fontSize:12,marginBottom:2}}>🏆 Top {pct}% today</div>}
-                  {next&&<div style={{color:"#64748b",fontSize:11}}>+{next.need} to reach <strong style={{color:"#d97706"}}>{next.label}</strong></div>}
-                  {continueCount>0&&<div style={{color:"#94a3b8",fontSize:10,marginTop:8,borderTop:"1px solid #f1f5f9",paddingTop:8}}>Perfect score: <strong style={{color:"#16a34a"}}>{cleanScore}</strong> · no mistakes</div>}
+                  {(()=>{
+                    const catBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`,0);
+                    const toHigh = catBest>0 ? catBest-score : null;
+                    if(catBest>0 && score>=catBest){
+                      return <div style={{color:"#16a34a",fontWeight:700,fontSize:12,marginBottom:2}}>🏆 New personal best!</div>;
+                    } else if(toHigh!==null && toHigh>0){
+                      return <div style={{color:"#d97706",fontWeight:700,fontSize:12,marginBottom:2}}>+{toHigh} to beat your best ({catBest})</div>;
+                    } else {
+                      return <div style={{color:"#94a3b8",fontSize:11,marginBottom:2}}>No best yet — keep going!</div>;
+                    }
+                  })()}
+                  {continueCount>0&&<div style={{color:"#94a3b8",fontSize:10,marginTop:8,borderTop:"1px solid #f1f5f9",paddingTop:8}}>Clean run: <strong style={{color:"#16a34a"}}>{cleanScore}</strong> · no mistakes</div>}
                 </div>
               </div>
               {canContinue&&(
                 <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"#16a34a",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.4)"}}>
-                  ▶ Recover — keep training <span style={{fontSize:11,opacity:0.8}}>({frozenTimeLeft}s)</span>
+                  ▶ Recover Possession <span style={{fontSize:11,opacity:0.8}}>({frozenTimeLeft}s left)</span>
                 </button>
               )}
-              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"12px",background:"#fffbeb",border:"1px solid #fde68a",borderRadius:12,color:"#92400e",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8}}>
-                ▶ Train again
+              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#be185d,#db2777)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 12px rgba(219,39,119,0.4)"}}>
+                ▶ Train Again ⚡
               </button>
               <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,color:"#94a3b8",fontFamily:"'Barlow Condensed',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
                 See result
@@ -2256,11 +2402,11 @@ function App(){
                 <div style={{textAlign:"center",marginBottom:12}}>
                   <DailyResultDots resultData={todayResult}/>
                 </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",borderRadius:10,overflow:"hidden",border:"1px solid #f1f5f9",marginBottom:12}}>
+                {/* 2-col: score + global avg */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderRadius:10,overflow:"hidden",border:"1px solid #f1f5f9",marginBottom:10}}>
                   {[
                     {label:"Your Score",val:`${todayResult.filter(r=>r==="correct").length}/10`,col:"#16a34a"},
                     {label:"Global Avg",val:"4.2",col:"#64748b"},
-                    {label:"Top 10%",val:"8+",col:"#d97706"},
                   ].map((item,i)=>(
                     <div key={i} style={{textAlign:"center",padding:"12px 6px",borderLeft:i>0?"1px solid #f1f5f9":"none"}}>
                       <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.5,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{item.label}</div>
@@ -2268,7 +2414,16 @@ function App(){
                     </div>
                   ))}
                 </div>
-                {/* Tomorrow's fixture — only shown after playing */}
+                {/* Blue share button */}
+                <button onClick={()=>{
+                  const s=todayResult.filter(r=>r==="correct").length;
+                  const emojiGrid=todayResult.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
+                  const t=`StatStreaks #${effectiveDayIdx+1} ⚽\n${emojiGrid}\n${s}/10 🧢 ${streak}`;
+                  try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
+                }} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:10,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
+                  ↗ Share your score
+                </button>
+                {/* Tomorrow's fixture */}
                 <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"#f8fafc",borderRadius:10,border:"1px solid #f1f5f9"}}>
                   <span style={{fontSize:14}}>🔭</span>
                   <div>
@@ -2380,7 +2535,7 @@ function App(){
                   const emojiGrid=answerLog.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
                   const t=`StatStreaks #${effectiveDayIdx+1} ⚽\n${emojiGrid}\n${s}/10 🧢 ${streak}`;
                   try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
-                }} style={{width:"100%",padding:"12px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,color:"#475569",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10}}>
+                }} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:10,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
                   ↗ Share your score
                 </button>
 
@@ -2444,45 +2599,69 @@ function App(){
         )}
 
         {/* ── TRAINING PITCH RESULT ── */}
-        {!isDaily&&(
+        {!isDaily&&(()=>{
+          const isPerfect = timeout && continueCount===0;
+          const displayScore = latestScore||score;
+          const leaderboardScore = continueCount>0 ? cleanScore : displayScore;
+          return(
           <>
+            {isPerfect&&(
+              <div style={{background:"linear-gradient(135deg,#d97706,#f59e0b)",borderRadius:14,padding:"14px 18px",marginBottom:12,boxShadow:"0 4px 20px rgba(217,119,6,0.5)",textAlign:"center"}}>
+                <div style={{fontSize:22,marginBottom:4}}>🔥</div>
+                <div style={{color:"#ffffff",fontWeight:900,fontSize:18,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:2,lineHeight:1}}>PERFECT RUN — 2× APPLIED!</div>
+                <div style={{color:"rgba(255,255,255,0.85)",fontSize:12,marginTop:4,fontFamily:"'Inter',sans-serif"}}>Zero mistakes · all 30 seconds · score doubled</div>
+              </div>
+            )}
             <div style={{background:"#ffffff",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.25)"}}>
-              <div style={{height:4,background:"#d97706"}}/>
+              <div style={{height:4,background:isPerfect?"linear-gradient(90deg,#d97706,#f59e0b)":"#d97706"}}/>
               <div style={{padding:"18px"}}>
+                {/* Score + personal best side by side */}
                 <div style={{display:"flex",gap:12,marginBottom:10}}>
                   <div style={{flex:1,textAlign:"center"}}>
-                    <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,marginBottom:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Score</div>
-                    <div style={{fontSize:52,fontWeight:900,color:"#0f172a",lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{latestScore||score}</div>
+                    <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,marginBottom:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isPerfect?"Final Score ×2":"Score"}</div>
+                    <div style={{fontSize:52,fontWeight:900,color:isPerfect?"#d97706":"#0f172a",lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{displayScore}</div>
+                    {isPerfect&&(
+                      <div style={{fontSize:10,color:"#94a3b8",marginTop:2,fontFamily:"'Inter',sans-serif"}}>({rawCorrect} correct × 2)</div>
+                    )}
                   </div>
-                  {continueCount>0&&(
-                    <div style={{flex:1,textAlign:"center",borderLeft:"1px solid #f1f5f9",paddingLeft:12}}>
-                      <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,marginBottom:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Perfect Run</div>
-                      <div style={{fontSize:52,fontWeight:900,color:"#d97706",lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{cleanScore}</div>
-                      <div style={{fontSize:9,color:"#94a3b8",marginTop:2,fontFamily:"'Inter',sans-serif"}}>leaderboard</div>
-                    </div>
-                  )}
+                  {(()=>{
+                    // prevCatBest is stored in state before this run's score was saved
+                    // so comparison is always against the OLD best — correct for new-PB detection
+                    const isNewBest = displayScore > prevCatBest;
+                    const shownBest = isNewBest ? displayScore : prevCatBest;
+                    return(
+                      <div style={{flex:1,textAlign:"center",borderLeft:"1px solid #f1f5f9",paddingLeft:12}}>
+                        <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,marginBottom:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Personal Best</div>
+                        <div style={{fontSize:52,fontWeight:900,color:isNewBest?"#16a34a":"#0f172a",lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{shownBest||displayScore}</div>
+                        {isNewBest&&<div style={{fontSize:9,color:"#16a34a",marginTop:2,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>New best! 🏆</div>}
+                        {!isNewBest&&prevCatBest>0&&displayScore===prevCatBest&&<div style={{fontSize:9,color:"#d97706",marginTop:2,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>Matched your best</div>}
+                      </div>
+                    );
+                  })()}
                 </div>
+                {/* Funny football message — compare against pre-run best so new PB is detected correctly */}
                 {(()=>{
-                  const ds=continueCount>0?cleanScore:(latestScore||score);
-                  const pct=getPercentile(ds);const next=getNextTarget(ds);
-                  return(<div style={{borderTop:"1px solid #f1f5f9",paddingTop:10,marginBottom:12}}>
-                    {pct?<div style={{color:"#d97706",fontWeight:700,fontSize:12,marginBottom:2,fontFamily:"'Inter',sans-serif"}}>🏆 Top {pct}% globally</div>:<div style={{color:"#94a3b8",fontSize:11,marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Score more to enter rankings</div>}
-                    {next&&<div style={{color:"#64748b",fontSize:11,fontFamily:"'Inter',sans-serif"}}>+{next.need} to reach <strong style={{color:"#d97706"}}>{next.label}</strong></div>}
-                    {activeCatData&&<div style={{color:"#94a3b8",fontSize:10,marginTop:4,fontFamily:"'Inter',sans-serif"}}>Category avg: {activeCatData.globalAvg}</div>}
-                  </div>);
+                  const msg = getRushMessage(displayScore, prevCatBest);
+                  return(
+                    <div style={{borderTop:"1px solid #f1f5f9",paddingTop:10,marginBottom:12}}>
+                      <div style={{color:"#475569",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.5}}>{msg}</div>
+                      {activeCatData&&<div style={{color:"#94a3b8",fontSize:10,marginTop:6,fontFamily:"'Inter',sans-serif"}}>Category avg: {activeCatData.globalAvg}</div>}
+                    </div>
+                  );
                 })()}
                 <button onClick={()=>{
-                  const s=continueCount>0?cleanScore:(latestScore||score);
-                  const t=`StatStreaks Training Pitch\n${theme}\nScore: ${s} — can you beat me?`;
+                  const perfTag=isPerfect?" 🔥 PERFECT RUN (2×)":"";
+                  const t=`StatStreaks Training Pitch\n${theme}\nScore: ${displayScore}${perfTag} — can you beat me?`;
                   try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
-                }} style={{width:"100%",padding:"10px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:9,color:"#475569",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10}}>
+                }} style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:9,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
                   ↗ Share score
                 </button>
                 <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 12px rgba(219,39,119,0.4)"}}>Train Again ⚡</button>
               </div>
             </div>
           </>
-        )}
+          );
+        })()}
 
       </div>
     </PageWrap>
@@ -2529,6 +2708,11 @@ function App(){
               ? <div style={{color:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"rgba(255,255,255,0.7)",fontWeight:900,fontSize:20,fontFamily:"'Oswald',sans-serif",animation:timeLeft<=8?"timerPulse 0.6s infinite":"none"}}>{timeLeft}s</div>
               : <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",letterSpacing:0.5}}>{yellowUsed?"🟥 last save gone":"🟨 save ready"}</div>
             }
+            {isRush&&(()=>{
+              const catBest=lsGet(`rush_best_${rushCat}`,0);
+              if(catBest>0) return <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Best: {catBest}</div>;
+              return null;
+            })()}
           </div>
         </div>
 
