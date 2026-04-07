@@ -1793,6 +1793,138 @@ function DailyResultDots({resultData}) {
   );
 }
 
+// ── STATIC AD BANNER ──────────────────────────────────────────────────────────
+// In production: replace the inner div content with your AdSense ins tag.
+// The `slotId` prop ensures each placement gets a unique key so React remounts
+// the slot on navigation, registering a fresh impression with AdSense.
+function AdBanner({slotId}) {
+  return(
+    <div key={slotId} style={{width:"100%",marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px dashed rgba(255,255,255,0.08)",position:"relative"}}>
+      {/* DEMO label — remove in production */}
+      <div style={{position:"absolute",top:4,right:6,fontSize:8,color:"rgba(255,255,255,0.2)",fontFamily:"'Inter',sans-serif",letterSpacing:1,fontWeight:600,textTransform:"uppercase",zIndex:1}}>Ad</div>
+      {/* Replace this div with your AdSense <ins> tag */}
+      <div style={{height:60,background:"linear-gradient(135deg,#0f1923,#1a2535)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <span style={{fontSize:10,color:"rgba(255,255,255,0.15)",fontFamily:"'Inter',sans-serif",letterSpacing:2,fontWeight:600,textTransform:"uppercase"}}>Advertisement</span>
+      </div>
+    </div>
+  );
+}
+
+// ── STREAK RESTORE OVERLAY ────────────────────────────────────────────────────
+function StreakRestoreOverlay({mode, streak, peakStreak, onWatch, onDecline}) {
+  const [watching,setWatching] = useState(false);
+  const [cd,setCd]             = useState(5);
+  const ref = useRef();
+  const isRestore = mode==="restore";
+  const accentCol = isRestore ? "#0d9488" : "#f59e0b";
+  const accentGlow = isRestore ? "rgba(13,148,136,0.35)" : "rgba(245,158,11,0.35)";
+
+  function startAd(){
+    setWatching(true);setCd(5);
+    ref.current=setInterval(()=>setCd(c=>{
+      if(c<=1){clearInterval(ref.current);onWatch();return 0;}
+      return c-1;
+    }),1000);
+  }
+  useEffect(()=>()=>clearInterval(ref.current),[]);
+
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(4,12,12,0.96)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:150,padding:"0 20px",backdropFilter:"blur(8px)"}}>
+      <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:`1px solid ${accentCol}30`,borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:`0 20px 60px rgba(0,0,0,0.7), 0 0 80px ${accentGlow}`}}>
+        <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,transparent,${accentCol},transparent)`,borderRadius:"20px 20px 0 0"}}/>
+
+        {watching?(
+          <div style={{padding:"12px 0"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",letterSpacing:3,marginBottom:12,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Manager's Call</div>
+            <div style={{color:accentCol,fontWeight:900,fontSize:64,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:`0 0 40px ${accentGlow}`,letterSpacing:-1}}>{cd}</div>
+            <div style={{color:"rgba(255,255,255,0.35)",fontSize:12,marginTop:10,fontFamily:"'Inter',sans-serif"}}>{isRestore?"Welcome back to the squad...":"+3 caps on the way..."}</div>
+          </div>
+        ):(
+          <>
+            {/* Icon */}
+            <div style={{fontSize:36,marginBottom:12}}>{isRestore?"🤝":"💪"}</div>
+
+            {/* Title + body */}
+            <div style={{color:"#ffffff",fontWeight:900,fontSize:20,fontFamily:"'Oswald',sans-serif",letterSpacing:1,marginBottom:8,textTransform:"uppercase"}}>
+              {isRestore?"Manager Still Believes In You":"Fight Back Into the Squad"}
+            </div>
+            <div style={{color:"rgba(255,255,255,0.65)",fontSize:13,fontFamily:"'Inter',sans-serif",lineHeight:1.6,marginBottom:16}}>
+              {isRestore
+                ? "You've been missed. One call from the gaffer and your career picks up exactly where it left off."
+                : "Your career has started to fade. But the door isn't closed."}
+            </div>
+
+            {/* Caps display */}
+            <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"12px 16px",marginBottom:16,display:"flex",alignItems:"center",justifyContent:"center",gap:16}}>
+              <div style={{textAlign:"center"}}>
+                <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:2}}>Current Caps</div>
+                <div style={{fontSize:36,fontWeight:900,color:accentCol,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:`0 0 20px ${accentGlow}`}}>{streak}</div>
+              </div>
+              {!isRestore&&(
+                <>
+                  <div style={{color:"rgba(255,255,255,0.2)",fontSize:18,fontFamily:"'Oswald',sans-serif"}}>→</div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:2}}>After Boost</div>
+                    <div style={{fontSize:36,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:"0 0 20px rgba(6,182,212,0.4)"}}>{Math.min(streak+3,peakStreak)}</div>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.25)",fontFamily:"'Inter',sans-serif",marginTop:2}}>peak: {peakStreak}</div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Buttons */}
+            <button onClick={startAd} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${isRestore?"#0e7490,#0891b2,#06b6d4":"#92400e,#b45309,#d97706"})`,border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:0.5,cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:`0 4px 20px ${accentGlow}, inset 0 1px 0 rgba(255,255,255,0.2)`,marginBottom:8}}>
+              {isRestore?"Return to Squad":"Fight Back (+3 Caps)"}
+            </button>
+            <button onClick={onDecline} style={{width:"100%",padding:"11px",background:"transparent",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,color:"rgba(255,255,255,0.3)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+              {isRestore?"Start Fresh":"Not Today"}
+            </button>
+            {!isRestore&&<div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:8,fontFamily:"'Inter',sans-serif"}}>One boost per day · capped at your peak of {peakStreak}</div>}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── INTERSTITIAL AD DEMO OVERLAY ──────────────────────────────────────────────
+function InterstitialOverlay({onDismiss}) {
+  const [cd,setCd]=useState(4);
+  const ref=useRef();
+  useEffect(()=>{
+    ref.current=setInterval(()=>setCd(c=>{
+      if(c<=1){clearInterval(ref.current);onDismiss();return 0;}
+      return c-1;
+    }),1000);
+    return()=>clearInterval(ref.current);
+  },[]);
+  return(
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"0 20px",backdropFilter:"blur(6px)"}}>
+      <div style={{width:"100%",maxWidth:320,textAlign:"center"}}>
+        {/* Demo label */}
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,0.06)",border:"1px dashed rgba(255,255,255,0.2)",borderRadius:6,padding:"4px 10px",marginBottom:20}}>
+          <span style={{fontSize:9,color:"rgba(255,255,255,0.4)",fontWeight:700,letterSpacing:2,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>⚠ Demo — Interstitial Ad</span>
+        </div>
+        {/* Mock ad block */}
+        <div style={{background:"linear-gradient(160deg,#1a1a2e,#16213e)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:16,padding:"32px 24px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 18px,rgba(255,255,255,0.01) 18px,rgba(255,255,255,0.01) 19px)",pointerEvents:"none"}}/>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.2)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:16}}>Advertisement</div>
+          <div style={{width:80,height:80,borderRadius:18,background:"linear-gradient(135deg,#374151,#1f2937)",border:"1px solid rgba(255,255,255,0.08)",margin:"0 auto 14px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>📱</div>
+          <div style={{fontSize:15,fontWeight:700,color:"rgba(255,255,255,0.6)",fontFamily:"'Inter',sans-serif",marginBottom:6}}>Your Ad Here</div>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.25)",fontFamily:"'Inter',sans-serif"}}>In production this would be a full AdMob / AdSense interstitial</div>
+        </div>
+        {/* Countdown */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+          <div style={{width:32,height:32,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <span style={{fontSize:14,fontWeight:900,color:"rgba(255,255,255,0.5)",fontFamily:"'Oswald',sans-serif"}}>{cd}</span>
+          </div>
+          <span style={{fontSize:11,color:"rgba(255,255,255,0.3)",fontFamily:"'Inter',sans-serif"}}>Skipping in {cd}s...</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function YellowCardOverlay({onWatchAd,onDecline}) {
   const [watching,setWatching]=useState(false);
   const [cd,setCd]=useState(5);
@@ -1812,23 +1944,20 @@ function YellowCardOverlay({onWatchAd,onDecline}) {
           <div style={{position:"absolute",inset:"-8px",background:"radial-gradient(ellipse at 50% 60%,rgba(217,119,6,0.35) 0%,transparent 70%)",borderRadius:20,pointerEvents:"none"}}/>
         </div>
 
-        <div style={{color:"#fbbf24",fontWeight:900,fontSize:22,letterSpacing:2,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",textShadow:"0 0 20px rgba(251,191,36,0.4)"}}>Yellow Card</div>
-        <div style={{color:"rgba(255,255,255,0.6)",fontSize:13,marginBottom:6,lineHeight:1.6}}>Wrong answer — watch a short ad to stay on the pitch.</div>
-        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(220,38,38,0.12)",border:"1px solid rgba(220,38,38,0.25)",borderRadius:8,padding:"5px 12px",marginBottom:20}}>
-          <span style={{fontSize:12}}>🟥</span>
-          <span style={{color:"#f87171",fontWeight:700,fontSize:12,fontFamily:"'Inter',sans-serif"}}>Another wrong = Red Card</span>
-        </div>
+        <div style={{color:"#fbbf24",fontWeight:900,fontSize:22,letterSpacing:2,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",textShadow:"0 0 20px rgba(251,191,36,0.4)"}}>🟨 Yellow Card</div>
+        <div style={{color:"rgba(255,255,255,0.85)",fontSize:14,marginBottom:4,lineHeight:1.5,fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Show your manager you deserve to stay on the pitch.</div>
+        <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,marginBottom:20,lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>One mistake forgiven. Keep your cap alive.</div>
 
         {watching?(
           <div style={{background:"rgba(255,255,255,0.04)",borderRadius:12,padding:"20px",border:"1px solid rgba(255,255,255,0.08)"}}>
-            <div style={{color:"rgba(255,255,255,0.35)",fontSize:9,letterSpacing:3,marginBottom:8,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>AD PLAYING</div>
+            <div style={{color:"rgba(255,255,255,0.35)",fontSize:9,letterSpacing:3,marginBottom:8,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>MANAGER CALL</div>
             <div style={{color:"#fbbf24",fontWeight:900,fontSize:52,fontFamily:"'Oswald',sans-serif",lineHeight:1,textShadow:"0 0 30px rgba(251,191,36,0.5)"}}>{cd}</div>
-            <div style={{color:"rgba(255,255,255,0.4)",fontSize:11,marginTop:6,fontFamily:"'Inter',sans-serif"}}>Resuming your match...</div>
+            <div style={{color:"rgba(255,255,255,0.4)",fontSize:11,marginTop:6,fontFamily:"'Inter',sans-serif"}}>Back on the pitch...</div>
           </div>
         ):(
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <button onClick={startAd} style={{padding:"14px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 20px rgba(6,182,212,0.45), inset 0 1px 0 rgba(255,255,255,0.2)"}}>📺 Watch Ad &amp; Continue</button>
-            <button onClick={onDecline} style={{padding:"11px",background:"rgba(220,38,38,0.08)",border:"1px solid rgba(220,38,38,0.2)",borderRadius:10,color:"rgba(248,113,113,0.8)",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>🟥 End Match</button>
+            <button onClick={startAd} style={{padding:"14px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 20px rgba(6,182,212,0.45), inset 0 1px 0 rgba(255,255,255,0.2)"}}>Stay On Pitch</button>
+            <button onClick={onDecline} style={{padding:"11px",background:"rgba(220,38,38,0.08)",border:"1px solid rgba(220,38,38,0.2)",borderRadius:10,color:"rgba(248,113,113,0.8)",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Head Off</button>
           </div>
         )}
       </div>
@@ -2304,6 +2433,11 @@ function App(){
   const [dailyDone,setDailyDone]         = useState(()=>lsGet("daily_done",""));
   const [dailyResult,setDailyResult]     = useState(()=>lsGet("daily_result",null));
   const [streak,setStreak]               = useState(()=>lsGet("streak",0));
+  const [peakStreak,setPeakStreak]       = useState(()=>lsGet("peak_streak",0));
+  const [restoreOffered,setRestoreOffered] = useState(()=>lsGet("restore_offered",false));
+  const [decayStart,setDecayStart]       = useState(()=>lsGet("decay_start",""));
+  const [careerMode,setCareerMode]       = useState("normal"); // "normal"|"restore"|"decay"
+  const [lastDecayApplied,setLastDecayApplied] = useState(()=>lsGet("last_decay_applied",""));
   const [username,setUsernameState]      = useState(()=>lsGet("username",""));
   const [userId]                         = useState(()=>{
     const existing=lsGet("user_id","");
@@ -2326,6 +2460,7 @@ function App(){
   const [frozenCards,setFrozenCards]     = useState([]);  // card state saved for continue
   const [frozenIdx,setFrozenIdx]         = useState(0);
   const [countdown,setCountdown]         = useState(null); // 3,2,1 pre-game countdown
+  const [showInterstitial,setShowInterstitial] = useState(false); // interstitial before results
   const timeoutRef = useRef();
   // Refs to hold live values for use inside timer/interval callbacks (avoids stale closures)
   const scoreRef   = useRef(0);
@@ -2333,6 +2468,43 @@ function App(){
   const continueCountRef = useRef(0);
 
   function setUsername(n){lsSet("username",n);setUsernameState(n);}
+
+  // ── CAREER RESTORE / DECAY — runs once on mount ───────────────────────────
+  useEffect(()=>{
+    const lastPlayed = lsGet("last_played","");
+    if(!lastPlayed){ setCareerMode("normal"); return; }
+    const today = getTodayKey();
+    if(lastPlayed === today){ setCareerMode("normal"); return; }
+    // Days missed (yesterday = 1, two days ago = 2, etc.)
+    const msPerDay = 86400000;
+    const lastDate = new Date(lastPlayed);
+    const todayDate = new Date(today);
+    const daysMissed = Math.round((todayDate - lastDate) / msPerDay);
+    if(daysMissed <= 0){ setCareerMode("normal"); return; }
+    const alreadyOffered = lsGet("restore_offered", false);
+    if(!alreadyOffered){
+      // First open after absence — offer full restore
+      setCareerMode("restore");
+      lsSet("restore_offered", true);
+      setRestoreOffered(true);
+    } else {
+      // Already declined restore — apply decay
+      const dStart = lsGet("decay_start","") || today;
+      if(!lsGet("decay_start","")){ lsSet("decay_start", today); setDecayStart(today); }
+      const lastApplied = lsGet("last_decay_applied","");
+      if(lastApplied !== today){
+        // Apply one cap decay for today
+        const current = lsGet("streak", 0);
+        const decayed = Math.max(0, current - 1);
+        lsSet("streak", decayed);
+        setStreak(decayed);
+        lsSet("last_decay_applied", today);
+        setLastDecayApplied(today);
+      }
+      setCareerMode(lsGet("streak",0) <= 0 ? "normal" : "decay");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
   // Keep refs in sync with state so interval callbacks always read current values
   scoreRef.current = score;
   rushCatRef.current = rushCat;
@@ -2378,7 +2550,7 @@ function App(){
     setCurrentIdx(0);setRevealedNext(false);setResult(null);setFlashResult(null);
     setGameOutcome(null);setScore(0);setTimeLeft(TOTAL_TIME);setTimerActive(false);
     setYellowUsed(false);setShowYellow(false);setYellowCardIdx(null);setDeclinedYellow(false);setAnswerLog([]);
-    setCleanScore(0);setContinueCount(0);setShowRushModal(false);setFrozenTimeLeft(0);
+    setCleanScore(0);setContinueCount(0);setShowRushModal(false);setFrozenTimeLeft(0);setShowInterstitial(false);
   }
 
   function launchDaily(){
@@ -2423,7 +2595,12 @@ function App(){
       setRawCorrect(liveScore);  // store pre-multiplier count for result display
       setCleanScore(finalClean);
       setGameOutcome("timeout");
-      setScreen("result");
+      // Interstitial only if no continue (rewarded) was used this run
+      if(liveIsPerfect){
+        setShowInterstitial(true);
+      } else {
+        setScreen("result");
+      }
       return;
     }
     // Wrong answer — lock in clean score if first wrong
@@ -2462,7 +2639,12 @@ function App(){
     saveRushScore(score, false);
     setLatestScore(score);
     setGameOutcome("lose");
-    setScreen("result");
+    // Interstitial only if no continue (rewarded) was used this run
+    if(continueCount===0){
+      setShowInterstitial(true);
+    } else {
+      setScreen("result");
+    }
   }
 
   function finishGame(outcome,finalScore,log){
@@ -2470,7 +2652,16 @@ function App(){
     if(mode==="daily")markDailyPlayed(log||answerLog);
     if(mode==="rush")saveRushScore(finalScore, true);
     setLatestScore(finalScore);
-    timeoutRef.current=setTimeout(()=>{setGameOutcome(outcome);setScreen("result");},outcome==="win"?900:1300);
+    const delay = outcome==="win" ? 900 : 3000;
+    timeoutRef.current=setTimeout(()=>{
+      setGameOutcome(outcome);
+      // Show interstitial before results only if no rewarded ad was used this attempt
+      if(!yellowUsed){
+        setShowInterstitial(true);
+      } else {
+        setScreen("result");
+      }
+    },delay);
   }
 
   function handleGuess(guess){
@@ -2500,9 +2691,17 @@ function App(){
           setTimeout(()=>setShowYellow(true),600);
         } else if(mode==="rush"){
           SFX.wrong();setFlashResult("wrong");setResult("wrong");
-          if(continueCount===0)setCleanScore(score); // lock in clean score at first wrong
-          // Brief flash then show modal
-          setTimeout(()=>endRushRun("wrong"),900);
+          if(continueCount > 0){
+            // Rewarded already used — loose touch only, session continues, no modal, no interstitial
+            setTimeout(()=>{setCurrentIdx(i=>i+1);setRevealedNext(false);setResult(null);setFlashResult(null);},1600);
+          } else if(timeLeft > 20){
+            // Loose touch (early, no continue used yet) — flash and continue, no modal
+            setTimeout(()=>{setCurrentIdx(i=>i+1);setRevealedNext(false);setResult(null);setFlashResult(null);},1600);
+          } else {
+            // Clutch moment — ≤20s, first wrong, show modal
+            setCleanScore(score);
+            setTimeout(()=>endRushRun("wrong"),900);
+          }
         } else {
           SFX.wrong();setFlashResult("wrong");setResult("wrong");
           const newLog=[...answerLog,"wrong"];setAnswerLog(newLog);
@@ -2517,6 +2716,14 @@ function App(){
   function markDailyPlayed(log){
     lsSet("daily_done",todayKey);setDailyDone(todayKey);
     const ns=streak+1;lsSet("streak",ns);setStreak(ns);
+    // Track peak and last played date, reset restore flags for next absence
+    const peak = lsGet("peak_streak",0);
+    if(ns>peak){lsSet("peak_streak",ns);setPeakStreak(ns);}
+    lsSet("last_played",todayKey);
+    lsSet("restore_offered",false);setRestoreOffered(false);
+    lsSet("decay_start","");setDecayStart("");
+    lsSet("last_decay_applied","");setLastDecayApplied("");
+    setCareerMode("normal");
     const r={key:todayKey,dots:log||answerLog};lsSet("daily_result",r);setDailyResult(r);
   }
   function saveRushScore(s, isClean){
@@ -2579,18 +2786,19 @@ function App(){
 
           {watching?(
             <div style={{position:"relative",padding:"12px 0"}}>
-              <div style={{color:"rgba(255,255,255,0.3)",fontSize:9,letterSpacing:3,marginBottom:12,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Ad Playing</div>
+              <div style={{color:"rgba(255,255,255,0.3)",fontSize:9,letterSpacing:3,marginBottom:12,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Back In Session</div>
               <div style={{color:"#fbbf24",fontWeight:900,fontSize:64,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:"0 0 40px rgba(251,191,36,0.5)",letterSpacing:-1}}>{cd}</div>
-              <div style={{color:"rgba(255,255,255,0.35)",fontSize:12,marginTop:10,fontFamily:"'Inter',sans-serif"}}>{watching==="continue"?"Back on the training pitch...":"Setting up again..."}</div>
+              <div style={{color:"rgba(255,255,255,0.35)",fontSize:12,marginTop:10,fontFamily:"'Inter',sans-serif"}}>{watching==="continue"?"Winning possession back...":"Starting fresh run..."}</div>
             </div>
           ):(
             <div style={{position:"relative"}}>
 
               {/* Icon + title */}
               <div style={{marginBottom:14}}>
-                <div style={{width:52,height:52,background:"linear-gradient(135deg,rgba(236,72,153,0.2),rgba(190,24,93,0.1))",border:"1px solid rgba(236,72,153,0.3)",borderRadius:14,margin:"0 auto 10px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,boxShadow:"0 4px 16px rgba(190,24,93,0.2)"}}>😤</div>
-                <div style={{color:"#ffffff",fontWeight:900,fontSize:20,marginBottom:3,fontFamily:"'Oswald',sans-serif",letterSpacing:1}}>Lost Possession</div>
-                <div style={{color:"rgba(255,255,255,0.4)",fontSize:12,fontFamily:"'Inter',sans-serif"}}>Watch an ad to recover and keep training</div>
+                <div style={{width:52,height:52,background:"linear-gradient(135deg,rgba(236,72,153,0.2),rgba(190,24,93,0.1))",border:"1px solid rgba(236,72,153,0.3)",borderRadius:14,margin:"0 auto 10px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,boxShadow:"0 4px 16px rgba(190,24,93,0.2)"}}>🔥</div>
+                <div style={{color:"#ffffff",fontWeight:900,fontSize:20,marginBottom:3,fontFamily:"'Oswald',sans-serif",letterSpacing:1}}>🔥 LOST POSSESSION</div>
+                <div style={{color:"rgba(255,255,255,0.55)",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:600}}>Win it back?</div>
+                <div style={{color:"rgba(255,255,255,0.35)",fontSize:12,fontFamily:"'Inter',sans-serif",marginTop:3}}>Stay in the session and keep the run alive.</div>
               </div>
 
               {/* Score panel */}
@@ -2618,16 +2826,16 @@ function App(){
               {canContinue&&(
                 <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(6,182,212,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,position:"relative",overflow:"hidden"}}>
                   <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.04) 12px,rgba(255,255,255,0.04) 13px)",pointerEvents:"none"}}/>
-                  <span style={{position:"relative"}}>▶ Recover Possession</span>
+                  <span style={{position:"relative"}}>Win It Back</span>
                   <span style={{position:"relative",fontSize:11,opacity:0.75,fontWeight:600}}>({frozenTimeLeft}s left)</span>
                 </button>
               )}
               <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,position:"relative",overflow:"hidden"}}>
                 <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.04) 12px,rgba(255,255,255,0.04) 13px)",pointerEvents:"none"}}/>
-                <span style={{position:"relative"}}>⚡ Train Again</span>
+                <span style={{position:"relative"}}>⚡ Back to Training</span>
               </button>
               <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.09)",borderRadius:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:600,cursor:"pointer",letterSpacing:0.3}}>
-                See Result
+                End Training Session
               </button>
             </div>
           )}
@@ -2855,6 +3063,12 @@ function App(){
       lsSet("daily_done","");setDailyDone("");
       lsSet("daily_result",null);setDailyResult(null);
       lsSet("streak",0);setStreak(0);
+      lsSet("peak_streak",0);setPeakStreak(0);
+      lsSet("last_played","");
+      lsSet("restore_offered",false);setRestoreOffered(false);
+      lsSet("decay_start","");setDecayStart("");
+      lsSet("last_decay_applied","");setLastDecayApplied("");
+      setCareerMode("normal");
       lsSet("rush_scores",[]);setRushScores([]);
       RUSH_CATEGORIES.forEach(c=>{lsSet(`rush_best_${c.id}`,0);lsSet(`rush_plays_${c.id}`,0);});
       setTestDayOffset(0);
@@ -2868,6 +3082,39 @@ function App(){
 
     return(
     <PageWrap>
+      {/* ── CAREER RESTORE / DECAY OVERLAY ── */}
+      {(careerMode==="restore"||careerMode==="decay")&&(
+        <StreakRestoreOverlay
+          mode={careerMode}
+          streak={streak}
+          peakStreak={peakStreak||streak}
+          onWatch={()=>{
+            if(careerMode==="restore"){
+              // Full restore — streak unchanged, just reset flags
+              lsSet("restore_offered",false);setRestoreOffered(false);
+              lsSet("last_played",todayKey);
+            } else {
+              // Decay boost — +3 capped at peak
+              const peak = Math.max(lsGet("peak_streak",0), streak+3);
+              const boosted = Math.min(streak+3, peak);
+              lsSet("streak",boosted);setStreak(boosted);
+              lsSet("last_decay_applied",todayKey);setLastDecayApplied(todayKey);
+            }
+            setCareerMode("normal");
+          }}
+          onDecline={()=>{
+            if(careerMode==="restore"){
+              // Declined restore — start decay, transition straight to decay card
+              lsSet("decay_start",todayKey);setDecayStart(todayKey);
+              lsSet("last_decay_applied",todayKey);setLastDecayApplied(todayKey);
+              // Only show decay card if they still have caps to lose
+              setCareerMode(streak > 0 ? "decay" : "normal");
+            } else {
+              setCareerMode("normal");
+            }
+          }}
+        />
+      )}
       <div style={{width:"100%"}}>
 
         {/* ── HEADER — centred ── */}
@@ -3109,7 +3356,23 @@ function App(){
         <div style={{display:"flex",gap:6}}>
           {[
             {label:`🔄 Day ${effectiveDayIdx+1}/${DAILY_CHALLENGES.length}`,fn:()=>{SFX.click();setTestDayOffset(o=>(o+1)%DAILY_CHALLENGES.length);}},
-            {label:"🧢 +1 Cap",fn:()=>{const ns=streak+1;lsSet("streak",ns);setStreak(ns);}},
+            {label:"🧢 +1 Cap",fn:()=>{const ns=streak+1;lsSet("streak",ns);setStreak(ns);if(ns>peakStreak){lsSet("peak_streak",ns);setPeakStreak(ns);}}},
+            {label:"💤 Miss Day",fn:()=>{
+              const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+              const yk=`${yesterday.getFullYear()}-${yesterday.getMonth()+1}-${yesterday.getDate()}`;
+              lsSet("last_played",yk);
+              lsSet("restore_offered",false);setRestoreOffered(false);
+              lsSet("decay_start","");setDecayStart("");
+              setCareerMode("restore");
+            }},
+            {label:"📉 Decay",fn:()=>{
+              const decayed = Math.max(0, streak-1);
+              lsSet("streak",decayed);setStreak(decayed);
+              lsSet("restore_offered",true);setRestoreOffered(true);
+              lsSet("decay_start",todayKey);setDecayStart(todayKey);
+              lsSet("last_decay_applied","");setLastDecayApplied("");
+              setCareerMode(decayed > 0 ? "decay" : "normal");
+            }},
             {label:"🗑 Reset",fn:resetDemo,danger:true},
           ].map((b,i)=>(
             <button key={i} onClick={b.fn} style={{flex:1,padding:"6px",background:"transparent",border:`1px dashed ${b.danger?"rgba(220,38,38,0.25)":"rgba(255,255,255,0.08)"}`,borderRadius:7,color:b.danger?"rgba(220,38,38,0.4)":"rgba(255,255,255,0.2)",fontSize:9,letterSpacing:1,cursor:"pointer",fontFamily:"'Inter',sans-serif",textTransform:"uppercase"}}>{b.label}</button>
@@ -3117,7 +3380,8 @@ function App(){
         </div>
 
         {/* ── FOOTER ── */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginTop:16,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+        <AdBanner slotId="home"/>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginTop:4,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)"}}>
           <button onClick={()=>setScreen("terms")} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Terms & Privacy</button>
           <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
           <a href="mailto:statstreaks@gmail.com" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",textDecoration:"none",letterSpacing:0.5}}>Contact Us</a>
@@ -3154,6 +3418,15 @@ function App(){
         {/* ── DAILY RESULT ── */}
         {isDaily&&(
           <>
+            {/* FULL TIME header */}
+            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,padding:"10px 14px",background:"rgba(255,255,255,0.04)",borderRadius:10,border:"1px solid rgba(255,255,255,0.08)"}}>
+              <div style={{fontSize:18,lineHeight:1}}>⚽</div>
+              <div>
+                <div style={{fontSize:11,fontWeight:900,color:"rgba(255,255,255,0.9)",fontFamily:"'Oswald',sans-serif",letterSpacing:2,textTransform:"uppercase",lineHeight:1}}>{win?"Full Time — Cap Secured":"Full Time"}</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:2}}>{win?"Your international career rolls on.":"Back tomorrow for the next fixture."}</div>
+              </div>
+            </div>
+
             {/* 1. SCORE CARD */}
             <div style={{background:"linear-gradient(160deg,#1a2535 0%,#0f1923 100%)",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.35)",border:`1px solid ${accentCol}25`,position:"relative"}}>
               <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.012) 16px,rgba(255,255,255,0.012) 17px)",pointerEvents:"none"}}/>
@@ -3208,8 +3481,8 @@ function App(){
                 }}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(190,24,93,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
-                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Get Some Training In</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>Tomorrow's fixture: {tomorrowTheme}</div>
+                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Hit the Training Pitch</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>Next fixture: {tomorrowTheme}</div>
                 </button>
               </div>
             </div>
@@ -3250,6 +3523,7 @@ function App(){
             })()}
 
             {/* Home button only — daily is one attempt per day */}
+            <AdBanner slotId="daily-result"/>
             <button onClick={()=>{SFX.click();setScreen("home");}} style={{width:"100%",padding:"12px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:12,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,cursor:"pointer",marginTop:4}}>← Home</button>
           </>
         )}
@@ -3261,7 +3535,14 @@ function App(){
           const leaderboardScore = continueCount>0 ? cleanScore : displayScore;
           const isNewBest = displayScore > prevCatBest;
           const shownBest = isNewBest ? displayScore : prevCatBest;
-          const msg = getRushMessage(displayScore, prevCatBest);
+          const toughSession = displayScore < 4;
+          const msg = toughSession
+            ? "Tough session. Shake it off and go again."
+            : getRushMessage(displayScore, prevCatBest);
+          // Session complete subtext — driven by whether rewarded was used
+          const sessionSubtext = continueCount > 0
+            ? "Good recovery to finish strong."
+            : "Solid work on the training pitch.";
           return(
           <>
             {/* ── SCORE CARD ── */}
@@ -3269,6 +3550,12 @@ function App(){
               <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.01) 16px,rgba(255,255,255,0.01) 17px)",pointerEvents:"none"}}/>
               <div style={{position:"absolute",top:0,left:0,right:0,height:"55%",background:`radial-gradient(ellipse at 50% 0%, ${isPerfect?"rgba(245,158,11,0.18)":"rgba(217,119,6,0.1)"} 0%, transparent 75%)`,pointerEvents:"none"}}/>
               <div style={{height:3,background:isPerfect?"linear-gradient(90deg,#d97706,#f59e0b,#fbbf24)":"linear-gradient(90deg,#d97706,#d9770633)",position:"relative"}}/>
+
+              {/* Session complete header */}
+              <div style={{padding:"14px 18px 0",position:"relative"}}>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:2}}>🏟️ Session Complete</div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",fontWeight:500}}>{sessionSubtext}</div>
+              </div>
 
               {/* ── SCORES ROW ── */}
               <div style={{display:"flex",padding:"20px 18px 0",gap:0,position:"relative"}}>
@@ -3328,7 +3615,8 @@ function App(){
             </div>
 
             {/* ── BUTTONS — outside card ── */}
-            <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8,letterSpacing:0.3}}>⚡ Train Again</button>
+            <AdBanner slotId="rush-result"/>
+            <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8,letterSpacing:0.3}}>⚡ Back on the Training Pitch</button>
             <div style={{display:"flex",gap:8,marginBottom:0}}>
               <button onClick={()=>{
                 const perfTag=isPerfect?" 🔥 PERFECT RUN (2×)":"";
@@ -3361,6 +3649,7 @@ function App(){
     <PageWrap glow={isRush?"gold":"default"}>
       {showYellow&&<YellowCardOverlay onWatchAd={onWatchAd} onDecline={onDeclineAd}/>}
       {showRushModal&&<RushModal/>}
+      {showInterstitial&&<InterstitialOverlay onDismiss={()=>{setShowInterstitial(false);setScreen("result");}}/>}
       {/* 3-2-1 countdown overlay */}
       {countdown!==null&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,backdropFilter:"blur(4px)"}}>
@@ -3397,7 +3686,7 @@ function App(){
             {/* Timer or save indicator */}
             {isRush
               ? <div style={{color:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"rgba(255,255,255,0.7)",fontWeight:900,fontSize:20,fontFamily:"'Oswald',sans-serif",animation:timeLeft<=8?"timerPulse 0.6s infinite":"none",lineHeight:1}}>{timeLeft}s</div>
-              : <div style={{fontSize:9,color:yellowUsed?"rgba(220,38,38,0.6)":"rgba(255,255,255,0.3)",letterSpacing:0.5,fontFamily:"'Inter',sans-serif"}}>{yellowUsed?"🟥 no saves left":"🟨 save ready"}</div>
+              : <div style={{fontSize:9,color:yellowUsed?"rgba(220,38,38,0.6)":"rgba(255,255,255,0.3)",letterSpacing:0.5,fontFamily:"'Inter',sans-serif"}}>{yellowUsed?"🟥 no reprieve left":"🟨 one chance saved"}</div>
             }
             {isRush&&(()=>{
               const catBest=lsGet(`rush_best_${rushCat}`,0);
@@ -3443,7 +3732,7 @@ function App(){
             <div style={{background:"linear-gradient(135deg,#fffbeb,#fef3c7)",border:"1px solid #fde68a",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 4px 16px rgba(217,119,6,0.2), inset 0 1px 0 rgba(255,255,255,0.8)",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(217,119,6,0.04) 12px,rgba(217,119,6,0.04) 13px)",pointerEvents:"none"}}/>
               <div style={{fontSize:20,fontWeight:900,color:"#92400e",fontFamily:"'Oswald',sans-serif",letterSpacing:1,position:"relative"}}>🟨 Yellow Card</div>
-              <div style={{color:"#92400e",fontSize:12,marginTop:4,opacity:0.7,position:"relative"}}>Incoming...</div>
+              <div style={{color:"#92400e",fontSize:12,marginTop:4,opacity:0.7,position:"relative"}}>Manager's watching...</div>
             </div>
           ):(
             <div style={{display:"flex",gap:10,width:"100%"}}>
@@ -3468,10 +3757,14 @@ function App(){
             <div style={{background:"linear-gradient(135deg,#ecfeff,#cffafe)",border:"1px solid #67e8f9",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 4px 16px rgba(6,182,212,0.15), inset 0 1px 0 rgba(255,255,255,0.8)",position:"relative",overflow:"hidden"}}>
               <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(6,182,212,0.04) 12px,rgba(6,182,212,0.04) 13px)",pointerEvents:"none"}}/>
               <div style={{fontFamily:"'Oswald',sans-serif",fontSize:22,fontWeight:700,color:"#0891b2",letterSpacing:1,position:"relative"}}>✓ Correct!</div>
-              <div style={{color:"#64748b",fontSize:12,marginTop:3,position:"relative"}}>Keep going!</div>
+              <div style={{color:"#64748b",fontSize:12,marginTop:3,position:"relative"}}>{isRush?"Keep the run alive.":"Keep going!"}</div>
             </div>
           ):(
-            !isRush?(
+            isRush?(
+              <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"12px",textAlign:"center"}}>
+                <div style={{color:"rgba(255,255,255,0.5)",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:600,fontStyle:"italic"}}>Loose touch — go again</div>
+              </div>
+            ):(!isRush?(
             <div style={{position:"fixed",inset:0,background:"rgba(10,18,28,0.94)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50,padding:"0 20px",backdropFilter:"blur(8px)"}}>
               <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:"1px solid rgba(220,38,38,0.2)",borderRadius:20,padding:"28px 24px",maxWidth:300,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(220,38,38,0.06)"}}>
                 {/* Red card graphic */}
@@ -3482,12 +3775,13 @@ function App(){
                   </div>
                   <div style={{position:"absolute",inset:"-8px",background:"radial-gradient(ellipse at 50% 60%,rgba(220,38,38,0.3) 0%,transparent 70%)",borderRadius:20,pointerEvents:"none"}}/>
                 </div>
-                <div style={{color:"#f87171",fontWeight:900,fontSize:22,letterSpacing:2,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",textShadow:"0 0 20px rgba(248,113,113,0.4)"}}>Red Card</div>
-                <div style={{color:"rgba(255,255,255,0.5)",fontSize:13,marginBottom:6,lineHeight:1.5}}>{yellowUsed?"Two wrong answers — match over.":"Wrong answer — match over."}</div>
-                <div style={{color:"rgba(255,255,255,0.25)",fontSize:11,fontFamily:"'Inter',sans-serif"}}>Taking you to results...</div>
+                <div style={{color:"#f87171",fontWeight:900,fontSize:22,letterSpacing:2,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",textShadow:"0 0 20px rgba(248,113,113,0.4)"}}>🟥 Red Card</div>
+                <div style={{color:"rgba(255,255,255,0.85)",fontSize:14,marginBottom:4,lineHeight:1.5,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>Early bath.</div>
+                <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,marginBottom:6,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Back tomorrow for the next fixture. Or hit the training pitch to sharpen up.</div>
+                <div style={{color:"rgba(255,255,255,0.2)",fontSize:11,fontFamily:"'Inter',sans-serif"}}>Taking you to results...</div>
               </div>
             </div>
-            ):null
+            ):null)
           )
         )}
       </div>
