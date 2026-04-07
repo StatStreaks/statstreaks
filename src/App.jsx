@@ -47,6 +47,8 @@ function lsGet(k,fb=null){try{const v=localStorage.getItem(LS(k));return v!==nul
 function lsSet(k,v){try{localStorage.setItem(LS(k),JSON.stringify(v));}catch{}}
 function getTodayKey(){const d=new Date();return`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
 function getDayIndex(){const s=new Date("2025-01-01");return Math.floor((new Date()-s)/86400000)%10;}
+// Returns YYYY-Www string for the current ISO week (Monday start)
+function getWeekKey(){const d=new Date();const day=d.getDay()||7;d.setDate(d.getDate()-day+1);return`${d.getFullYear()}-W${String(Math.ceil(d.getDate()/7)).padStart(2,"0")}-${d.getMonth()}`;}
 const STAT_ICONS={Goals:"⚽",Assists:"🎯","Clean Sheets":"🧤",Appearances:"👟",Trophies:"🏆",Caps:"🌐","Red Cards":"🟥"};
 
 // ── RUSH CATEGORIES (8 categories, 100 cards each) ────────────────────────────
@@ -1379,16 +1381,16 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
       <div style={{width:"100%"}}>
 
         {/* Header */}
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
           <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,flexShrink:0}}>← Back</button>
-          <div style={{flex:1}}>
+          <div style={{flex:1,minWidth:0}}>
             <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
             <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Leaderboards</div>
           </div>
-          {/* Your identity */}
-          <div style={{textAlign:"right",flexShrink:0}}>
-            <div style={{fontSize:12,fontWeight:800,color:yourStatus.col,fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>{username||"—"}</div>
-            <div style={{fontSize:9,color:yourStatus.col,opacity:0.75,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginTop:2}}>{yourStatus.icon} {yourStatus.label}</div>
+          {/* Your identity — truncates long names */}
+          <div style={{textAlign:"right",flexShrink:0,maxWidth:"36%",minWidth:0}}>
+            <div style={{fontSize:12,fontWeight:800,color:yourStatus.col,fontFamily:"'Inter',sans-serif",lineHeight:1.2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{username||"—"}</div>
+            <div style={{fontSize:9,color:yourStatus.col,opacity:0.75,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginTop:2,whiteSpace:"nowrap"}}>{yourStatus.icon} {yourStatus.label}</div>
           </div>
         </div>
 
@@ -2012,6 +2014,8 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
             return 0;
           }).map(cat=>{
             const catBest=lsGet(`rush_best_${cat.id}`,0);
+            const wk=getWeekKey();
+            const catWeekly=lsGet(`rush_weekly_${cat.id}_${wk}`,0);
             const hasPlayed=catBest>0;
             return(
               <button key={cat.id} onClick={()=>onPlay(cat.id)} style={{
@@ -2023,7 +2027,7 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
                   borderRadius:14,cursor:"pointer",textAlign:"left",
                   transition:"transform 0.1s,box-shadow 0.1s",overflow:"hidden",
                   boxShadow:hasPlayed
-                    ? `0 4px 20px rgba(0,0,0,0.3), 0 0 0 0px ${cat.color}00`
+                    ? `0 4px 20px rgba(0,0,0,0.3)`
                     : `0 2px 10px rgba(0,0,0,0.25)`,
                   position:"relative",
                 }}
@@ -2032,7 +2036,6 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
 
                 {/* Top accent bar */}
                 <div style={{height:3,background:hasPlayed?`linear-gradient(90deg,${cat.color},${cat.color}44)`:`linear-gradient(90deg,rgba(255,255,255,0.1),transparent)`,width:"100%"}}/>
-
                 {/* Colour bloom */}
                 <div style={{position:"absolute",top:0,left:0,right:0,height:"70%",background:`radial-gradient(ellipse at 20% 0%, ${cat.color}${hasPlayed?"18":"0a"} 0%, transparent 75%)`,pointerEvents:"none"}}/>
                 {/* Diagonal texture */}
@@ -2040,31 +2043,38 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
 
                 <div style={{padding:"11px 12px 12px",position:"relative"}}>
                   {/* Icon + label row */}
-                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:hasPlayed?10:8}}>
-                    <div style={{width:32,height:32,borderRadius:8,background:`${cat.color}18`,border:`1px solid ${cat.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:hasPlayed?9:8}}>
+                    <div style={{width:30,height:30,borderRadius:8,background:`${cat.color}18`,border:`1px solid ${cat.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>
                       {cat.icon}
                     </div>
-                    <span style={{fontSize:11,fontWeight:800,color:hasPlayed?"#ffffff":"rgba(255,255,255,0.55)",fontFamily:"'Inter',sans-serif",lineHeight:1.2,letterSpacing:0.1}}>{cat.label}</span>
+                    <span style={{fontSize:11,fontWeight:800,color:hasPlayed?"#ffffff":"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",lineHeight:1.2,letterSpacing:0.1}}>{cat.label}</span>
                   </div>
 
                   {hasPlayed?(
-                    /* Played state — show score prominently */
-                    <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between"}}>
-                      <div>
-                        <div style={{fontSize:7.5,color:"rgba(255,255,255,0.3)",letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:1}}>Best</div>
-                        <div style={{fontSize:32,fontWeight:900,color:cat.color,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:`0 0 20px ${cat.color}55`}}>{catBest}</div>
+                    /* Played — show Golden Boot (all-time) and Top Scorer (weekly) */
+                    <div style={{display:"flex",gap:6}}>
+                      {/* All-time — Golden Boot */}
+                      <div style={{flex:1,background:"rgba(236,72,153,0.08)",border:"1px solid rgba(236,72,153,0.18)",borderRadius:8,padding:"6px 8px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
+                          <span style={{fontSize:8}}>🥾</span>
+                          <span style={{fontSize:7,color:"rgba(236,72,153,0.7)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>All-Time</span>
+                        </div>
+                        <div style={{fontSize:26,fontWeight:900,color:"#ec4899",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(236,72,153,0.45)"}}>{catBest}</div>
                       </div>
-                      <div style={{textAlign:"right",paddingBottom:2}}>
-                        <div style={{fontSize:7.5,color:"rgba(255,255,255,0.25)",letterSpacing:1,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:1}}>Avg</div>
-                        <div style={{fontSize:13,fontWeight:700,color:catBest>cat.globalAvg?"#06b6d4":"rgba(255,255,255,0.3)",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0}}>{cat.globalAvg}</div>
-                        <div style={{fontSize:7.5,color:catBest>cat.globalAvg?"#06b6d4":"rgba(255,255,255,0.2)",fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{catBest>cat.globalAvg?"↑ above":"↓ below"}</div>
+                      {/* Weekly — Top Scorer */}
+                      <div style={{flex:1,background:catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
+                          <span style={{fontSize:8}}>⚽</span>
+                          <span style={{fontSize:7,color:catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>This Week</span>
+                        </div>
+                        <div style={{fontSize:26,fontWeight:900,color:catWeekly>0?"#06b6d4":"rgba(255,255,255,0.15)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:catWeekly>0?"0 0 16px rgba(6,182,212,0.4)":"none"}}>{catWeekly||"—"}</div>
                       </div>
                     </div>
                   ):(
-                    /* Unplayed state — prompt to play */
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <span style={{fontSize:10,color:"rgba(255,255,255,0.2)",fontWeight:600,fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>Not played yet</span>
-                      <span style={{fontSize:9,color:"rgba(255,255,255,0.2)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>avg {cat.globalAvg}</span>
+                    /* Unplayed */
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:2}}>
+                      <span style={{fontSize:10,color:"rgba(255,255,255,0.18)",fontWeight:600,fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>Not played yet</span>
+                      <span style={{fontSize:9,color:"rgba(255,255,255,0.18)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>avg {cat.globalAvg}</span>
                     </div>
                   )}
                 </div>
@@ -2518,10 +2528,14 @@ function App(){
     // Use ref for rushCat — this may be called from inside a timer callback (stale closure)
     const cat = rushCatRef.current || rushCat;
     if(cat){
-      // Capture previous best BEFORE overwriting so the result screen can compare correctly
       const prev = lsGet(`rush_best_${cat}`,0);
       setPrevCatBest(prev);
       if(s>prev) lsSet(`rush_best_${cat}`,s);
+      // Weekly best per category — keyed by ISO week so it auto-resets each Monday
+      const wk = getWeekKey();
+      const weeklyKey = `rush_weekly_${cat}_${wk}`;
+      const prevWeekly = lsGet(weeklyKey,0);
+      if(s>prevWeekly) lsSet(weeklyKey,s);
       lsSet(`rush_plays_${cat}`,lsGet(`rush_plays_${cat}`,0)+1);
     }
   }
@@ -3160,7 +3174,7 @@ function App(){
                   {latestScore>0&&(()=>{
                     const msg=getScoreMessage(latestScore);
                     return msg?<div style={{flex:1,paddingTop:4,textAlign:"right"}}>
-                      <div style={{color:"rgba(255,255,255,0.45)",fontWeight:600,fontSize:12,lineHeight:1.45,fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{msg}</div>
+                      <div style={{color:accentCol,fontWeight:700,fontSize:12,lineHeight:1.45,fontFamily:"'Inter',sans-serif",fontStyle:"italic",opacity:0.85}}>{msg}</div>
                     </div>:null;
                   })()}
                 </div>
@@ -3258,40 +3272,59 @@ function App(){
 
               {/* ── SCORES ROW ── */}
               <div style={{display:"flex",padding:"20px 18px 0",gap:0,position:"relative"}}>
-                {/* Score */}
-                <div style={{flex:1,textAlign:"center",paddingRight:12}}>
-                  <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>{isPerfect?"Score ×2":"Score"}</div>
-                  <div style={{fontSize:72,fontWeight:900,color:isPerfect?"#fbbf24":"#ffffff",lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:-1,textShadow:isPerfect?"0 0 40px rgba(251,191,36,0.5)":"0 2px 0 rgba(0,0,0,0.3)"}}>{displayScore}</div>
-                  {isPerfect&&<div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>({rawCorrect} × 2)</div>}
-                </div>
+                {/* Score — cyan if beat avg, amber if not, gold if perfect */}
+                {(()=>{
+                  const scoreCol = isPerfect ? "#fbbf24" : displayScore>=(activeCatData?.globalAvg||0) ? "#06b6d4" : "#f97316";
+                  const scoreGlow = isPerfect ? "rgba(251,191,36,0.5)" : displayScore>=(activeCatData?.globalAvg||0) ? "rgba(6,182,212,0.4)" : "rgba(249,115,22,0.35)";
+                  return(
+                    <div style={{flex:1,textAlign:"center",paddingRight:12}}>
+                      <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>{isPerfect?"Score ×2":"Score"}</div>
+                      <div style={{fontSize:72,fontWeight:900,color:scoreCol,lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:-1,textShadow:`0 0 40px ${scoreGlow}`}}>{displayScore}</div>
+                      {isPerfect&&<div style={{fontSize:10,color:"rgba(255,255,255,0.35)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>({rawCorrect} × 2)</div>}
+                    </div>
+                  );
+                })()}
                 {/* Divider */}
                 <div style={{width:1,background:"rgba(255,255,255,0.07)",margin:"4px 0 0",alignSelf:"stretch"}}/>
                 {/* Personal Best */}
                 <div style={{flex:1,textAlign:"center",paddingLeft:12}}>
                   <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>Personal Best</div>
-                  <div style={{fontSize:72,fontWeight:900,color:isNewBest?"#06b6d4":"rgba(255,255,255,0.45)",lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:-1,textShadow:isNewBest?"0 0 40px rgba(6,182,212,0.4)":"none"}}>{shownBest||displayScore}</div>
+                  <div style={{fontSize:72,fontWeight:900,
+                    color:isNewBest?"#06b6d4":prevCatBest>0?"#d97706":"rgba(255,255,255,0.2)",
+                    lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:-1,
+                    textShadow:isNewBest?"0 0 40px rgba(6,182,212,0.45)":prevCatBest>0?"0 0 30px rgba(217,119,6,0.35)":"none"
+                  }}>{shownBest||displayScore}</div>
                   {isNewBest
-                    ? <div style={{fontSize:10,color:"#06b6d4",marginTop:4,fontWeight:700,fontFamily:"'Inter',sans-serif",letterSpacing:0.3}}>✦ New best!</div>
+                    ? <div style={{fontSize:10,color:"#06b6d4",marginTop:4,fontWeight:800,fontFamily:"'Inter',sans-serif",letterSpacing:0.3}}>✦ New best!</div>
                     : prevCatBest>0&&displayScore===prevCatBest
-                      ? <div style={{fontSize:10,color:"#d97706",marginTop:4,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>Matched</div>
+                      ? <div style={{fontSize:10,color:"#d97706",marginTop:4,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>Matched ✓</div>
                       : prevCatBest>0
-                        ? <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>{prevCatBest-displayScore} off best</div>
-                        : <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>First run!</div>
+                        ? <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>{prevCatBest-displayScore} off best</div>
+                        : <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>First run!</div>
                   }
                 </div>
               </div>
 
               {/* ── MESSAGE + AVG BAND ── */}
-              <div style={{margin:"16px 18px 18px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"11px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-                <div style={{color:"rgba(255,255,255,0.65)",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.4,flex:1}}>{msg}</div>
-                {activeCatData&&(
-                  <div style={{flexShrink:0,textAlign:"center",borderLeft:"1px solid rgba(255,255,255,0.07)",paddingLeft:12}}>
-                    <div style={{fontSize:7.5,color:"rgba(255,255,255,0.3)",letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:2}}>Cat. avg</div>
-                    <div style={{fontSize:20,fontWeight:900,color:displayScore>activeCatData.globalAvg?"#06b6d4":"rgba(255,255,255,0.4)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>{activeCatData.globalAvg}</div>
-                    <div style={{fontSize:8,color:displayScore>activeCatData.globalAvg?"#06b6d4":"rgba(255,255,255,0.25)",fontWeight:700,fontFamily:"'Inter',sans-serif",marginTop:1}}>{displayScore>activeCatData.globalAvg?"↑ above":"↓ below"}</div>
+              {(()=>{
+                const beatAvg = activeCatData && displayScore > activeCatData.globalAvg;
+                const avgCol = beatAvg ? "#06b6d4" : "#f97316";
+                const avgGlow = beatAvg ? "rgba(6,182,212,0.3)" : "rgba(249,115,22,0.25)";
+                const bandBg = beatAvg ? "rgba(6,182,212,0.06)" : "rgba(249,115,22,0.06)";
+                const bandBorder = beatAvg ? "rgba(6,182,212,0.15)" : "rgba(249,115,22,0.15)";
+                return(
+                  <div style={{margin:"14px 18px 18px",background:bandBg,border:`1px solid ${bandBorder}`,borderRadius:10,padding:"11px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                    <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.4,flex:1,fontWeight:500}}>{msg}</div>
+                    {activeCatData&&(
+                      <div style={{flexShrink:0,textAlign:"center",borderLeft:`1px solid ${bandBorder}`,paddingLeft:12}}>
+                        <div style={{fontSize:7.5,color:avgCol,opacity:0.7,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:1}}>Cat. avg</div>
+                        <div style={{fontSize:24,fontWeight:900,color:avgCol,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:`0 0 16px ${avgGlow}`}}>{activeCatData.globalAvg}</div>
+                        <div style={{fontSize:8,color:avgCol,fontWeight:700,fontFamily:"'Inter',sans-serif",marginTop:1,opacity:0.8}}>{beatAvg?"↑ above":"↓ below"}</div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
             </div>
 
             {/* ── BUTTONS — outside card ── */}
