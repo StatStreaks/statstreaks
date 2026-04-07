@@ -1347,9 +1347,9 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   const youEntry = board.find(e=>e.isYou);
 
   const TABS = [
-    {id:"weekly",  label:"Top Scorer",  sub:"this week",  icon:"⚽", accent:"#60a5fa", desc:"Best Training Pitch score · this week"},
+    {id:"weekly",  label:"Top Scorer",  sub:"this week",  icon:"⚽", accent:"#06b6d4", desc:"Best Training Pitch score · this week"},
     {id:"alltime", label:"Golden Boot", sub:"all time",    icon:"🥾", accent:"#ec4899", desc:"Best single Training Pitch score · all-time"},
-    {id:"caps",    label:"Caps",        sub:"all time",    icon:"🧢", accent:"#fbbf24", desc:"Longest active streak · all-time"},
+    {id:"caps",    label:"Caps",        sub:"all time",    icon:"🧢", accent:"#d97706", desc:"Longest active streak · all-time"},
   ];
   const activeTab = TABS.find(t=>t.id===tab);
 
@@ -1367,7 +1367,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
     if(rank <= 3)    return {msg:"Title challenger. Trophy's in sight.",      badge:"🥇 Title Race"};
     if(pct <= 0.15)  return {msg:"European places — you're in the hunt.",    badge:"🔵 Top 4 Push"};
     if(pct <= 0.30)  return {msg:"Solid mid-table. Respectable showing.",    badge:"🟢 Mid Table"};
-    if(pct <= 0.50)  return {msg:"Bottom half. Plenty of room to climb.",    badge:"🟡 Lower Half"};
+    if(pct <= 0.50)  return {msg:"Just outside the top half. Push on.",     badge:"🟡 Upper Mid"};
     if(pct <= 0.65)  return {msg:"Championship push. You can go up.",        badge:"🟠 Championship"};
     if(pct <= 0.80)  return {msg:"League One territory. Need a reaction.",   badge:"🔴 League One"};
     if(pct <= 0.90)  return {msg:"League Two. Relegation is getting close.", badge:"⚠️ League Two"};
@@ -1563,7 +1563,7 @@ function PageWrap({children, glow="default"}) {
   const topBar = glow==="gold"  ? "linear-gradient(90deg,#be185d,#ec4899)"
                : glow==="red"   ? "linear-gradient(90deg,#dc2626,#ef4444)"
                : glow==="cyan"  ? "linear-gradient(90deg,#2563eb,#3b82f6)"
-               :                  "linear-gradient(90deg,#16a34a,#22c55e)";
+               : "linear-gradient(90deg,#0891b2,#06b6d4)";
   return (
     <div style={{minHeight:"100vh",background:S.bg,fontFamily:"'Inter',sans-serif",position:"relative"}}>
       {/* Top colour bar */}
@@ -1596,7 +1596,7 @@ function Card({children, style={}, variant="default"}) {
     green:   { bg:"#f0fdf4",      border:"#bbf7d0", shadow:"0 0 0 2px #16a34a18, 0 4px 16px rgba(22,163,74,0.1)" },
     red:     { bg:"#fef2f2",      border:"#fecaca", shadow:"0 0 0 2px #dc262618, 0 4px 16px rgba(220,38,38,0.1)" },
     dark:    { bg:"#1a2535",      border:"#2a3a50", shadow:"0 4px 20px rgba(0,0,0,0.3)" },
-    pitch:   { bg:"#16a34a",      border:"#15803d", shadow:"0 4px 20px rgba(22,163,74,0.4)" },
+    pitch:   { bg:"#16a34a",      border:"#15803d", shadow:"0 4px 20px rgba(6,182,212,0.4)" },
   };
   const v = variants[variant]||variants.default;
   return (
@@ -1609,8 +1609,63 @@ const GlowCard = ({children,style={},gold=false,active=false})=>(
   <Card style={style} variant={gold?"gold":active?"active":"default"}>{children}</Card>
 );
 
-// Stat display panel — white card with strong contrast
-function StatPanel({card, revealed, flashResult=null}) {
+// Derive context labels from card data + optional category id or theme hint
+function getCardContext(card, catId) {
+  catId = catId || "";
+  const club = card.club || "";
+  const statType = card.statType || "";
+
+  const PL_CLUBS = ["Man City","Man United","Liverpool","Arsenal","Chelsea","Tottenham",
+    "Blackburn","Sunderland","Newcastle","Everton","Leicester","Aston Villa",
+    "West Ham","Leeds","Wolves","Southampton","Burnley","Fulham","Crystal Palace",
+    "Brentford","Nottm Forest","Brighton","Ipswich","Coventry","Middlesbrough","Bolton"];
+
+  let teamLine = "";
+  let compLine = "";
+
+  // Derive competition from daily theme strings
+  const isEnglandTheme = catId.toLowerCase().includes("england");
+  const isWorldCupTheme = catId.toLowerCase().includes("world cup");
+  const isCLTheme = catId.toLowerCase().includes("champions league");
+  const isPLTheme = catId.toLowerCase().includes("premier league");
+
+  if (club === "PL All-Time") {
+    teamLine = "All-Time";
+    compLine = "Premier League";
+  } else if (club) {
+    teamLine = club;
+    if (catId === "rmcf_fcb") {
+      compLine = "All Competitions";
+    } else if (PL_CLUBS.includes(club)) {
+      compLine = "Premier League";
+    } else {
+      compLine = "Club Career";
+    }
+  } else if (statType === "Caps") {
+    teamLine = "England";
+    compLine = "International";
+  } else if (catId === "england_goals" || catId === "england_caps" || isEnglandTheme) {
+    teamLine = "England";
+    compLine = "International";
+  } else if (catId === "pl_cleansheets" || catId === "pl_goals" || catId === "pl_assists" || catId === "pl_appearances" || isPLTheme) {
+    teamLine = "All-Time";
+    compLine = "Premier League";
+  } else if (isWorldCupTheme) {
+    teamLine = "All-Time";
+    compLine = "World Cup";
+  } else if (isCLTheme) {
+    teamLine = "All-Time";
+    compLine = "Champions League";
+  } else {
+    teamLine = "All-Time";
+    compLine = "Career";
+  }
+
+  return { teamLine, compLine, season: card.season || "" };
+}
+
+// Stat display panel — always shows: player · stat · statType · team/all-time · league/competition
+function StatPanel({card, revealed, flashResult=null, catId=""}) {
   const isCorrect=flashResult==="correct", isWrong=flashResult==="wrong", isYellow=flashResult==="yellow";
 
   let bg = "#ffffff";
@@ -1618,45 +1673,82 @@ function StatPanel({card, revealed, flashResult=null}) {
   let numCol = "#0f172a";
   let shadow = "0 2px 8px rgba(0,0,0,0.08)";
   let topAccent = "#e2e8f0";
+  let pillBg = "rgba(0,0,0,0.04)";
+  let pillBorder = "rgba(0,0,0,0.08)";
+  let pillText = "#475569";
+  let compText = "#94a3b8";
+  let divCol = "#e2e8f0";
 
-  if(revealed && !flashResult) { borderCol="#93c5fd"; topAccent="#3b82f6"; numCol="#1d4ed8"; shadow="0 0 0 2px #3b82f618, 0 4px 16px rgba(59,130,246,0.15)"; }
-  if(isCorrect) { bg="#f0fdf4"; borderCol="#86efac"; topAccent="#16a34a"; numCol="#15803d"; shadow="0 0 0 2px #16a34a22, 0 6px 24px rgba(22,163,74,0.25)"; }
-  if(isWrong)   { bg="#fef2f2"; borderCol="#fca5a5"; topAccent="#dc2626"; numCol="#dc2626"; shadow="0 0 0 2px #dc262622, 0 6px 24px rgba(220,38,38,0.25)"; }
-  if(isYellow)  { bg="#fffbeb"; borderCol="#fde68a"; topAccent="#d97706"; numCol="#b45309"; shadow="0 0 0 2px #d9770622, 0 6px 24px rgba(217,119,6,0.25)"; }
+  if(revealed && !flashResult) {
+    borderCol="#93c5fd"; topAccent="#3b82f6"; numCol="#1d4ed8";
+    shadow="0 0 0 2px #3b82f618, 0 4px 16px rgba(59,130,246,0.15)";
+    pillBg="#dbeafe"; pillBorder="#93c5fd"; pillText="#1d4ed8"; compText="#60a5fa"; divCol="#bfdbfe";
+  }
+  if(isCorrect) {
+    bg="#ecfeff"; borderCol="#67e8f9"; topAccent="#0891b2"; numCol="#0e7490";
+    shadow="0 0 0 2px #06b6d422, 0 6px 24px rgba(6,182,212,0.25)";
+    pillBg="#cffafe"; pillBorder="#67e8f9"; pillText="#0e7490"; compText="#0891b2"; divCol="#a5f3fc";
+  }
+  if(isWrong) {
+    bg="#fef2f2"; borderCol="#fca5a5"; topAccent="#dc2626"; numCol="#dc2626";
+    shadow="0 0 0 2px #dc262622, 0 6px 24px rgba(220,38,38,0.25)";
+    pillBg="#fee2e2"; pillBorder="#fca5a5"; pillText="#dc2626"; compText="#f87171"; divCol="#fecaca";
+  }
+  if(isYellow) {
+    bg="#fffbeb"; borderCol="#fde68a"; topAccent="#d97706"; numCol="#b45309";
+    shadow="0 0 0 2px #d9770622, 0 6px 24px rgba(217,119,6,0.25)";
+    pillBg="#fef3c7"; pillBorder="#fde68a"; pillText="#b45309"; compText="#d97706"; divCol="#fde68a";
+  }
+
+  const { teamLine, compLine, season } = getCardContext(card, catId);
+
+  // Auto-scale player name font based on length
+  const nameLen = card.player.length;
+  const nameFontSize = nameLen > 18 ? 10 : nameLen > 14 ? 11 : nameLen > 10 ? 12 : 13;
 
   return (
-    <div style={{width:155,minHeight:200,background:bg,border:`1.5px solid ${borderCol}`,borderRadius:14,boxShadow:shadow,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 0 14px",position:"relative",overflow:"hidden",transition:"border-color 0.25s,box-shadow 0.25s,background 0.25s"}}>
-      {/* diagonal stripe texture */}
-      <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(0,0,0,0.015) 12px,rgba(0,0,0,0.015) 13px)",pointerEvents:"none"}}/>
-      {/* radial bloom from top */}
-      <div style={{position:"absolute",top:0,left:0,right:0,height:"55%",background:`radial-gradient(ellipse at 50% 0%, ${topAccent}18 0%, transparent 80%)`,pointerEvents:"none",transition:"background 0.25s"}}/>
-      {/* Top colour accent bar */}
-      <div style={{width:"100%",height:4,background:`linear-gradient(90deg,${topAccent},${topAccent}66)`,transition:"background 0.25s",marginBottom:14,flexShrink:0,position:"relative"}}/>
-      {/* Player name */}
-      <div style={{fontSize:13,fontWeight:800,color:"#0f172a",letterSpacing:0.3,lineHeight:1.2,textAlign:"center",width:"100%",padding:"0 10px",marginBottom:2,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",position:"relative"}}>{card.player}</div>
-      {(()=>{
-        // Build a clear context label
-        const clubLabel = card.club==="PL All-Time" ? "Premier League · All-Time"
-          : card.club ? card.club
-          : card.statType==="Caps" ? "England · International"
-          : null;
-        const seasonLabel = card.season || null;
-        return clubLabel ? (
-          <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.2,textTransform:"uppercase",marginBottom:8,textAlign:"center",fontWeight:700,padding:"0 8px",position:"relative",lineHeight:1.4}}>
-            {clubLabel}{seasonLabel?<><br/><span style={{color:"#b0b8c8"}}>{seasonLabel}</span></>:""}
-          </div>
-        ) : <div style={{marginBottom:10}}/>;
-      })()}
-      {/* Stat number */}
-      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%",padding:"0 10px",position:"relative"}}>
-        {revealed
-          ? <div style={{fontSize:56,fontWeight:900,color:numCol,lineHeight:1,fontFamily:"'Oswald',sans-serif",transition:"color 0.25s"}}>{card.stat}</div>
-          : <div style={{fontSize:28,fontWeight:700,color:"#cbd5e1",lineHeight:1,letterSpacing:6,fontFamily:"'Oswald',sans-serif"}}>???</div>}
+    <div style={{width:158,background:bg,border:`1.5px solid ${borderCol}`,borderRadius:14,boxShadow:shadow,display:"flex",flexDirection:"column",alignItems:"center",padding:"0 0 10px",position:"relative",overflow:"hidden",transition:"border-color 0.25s,box-shadow 0.25s,background 0.25s"}}>
+      {/* Texture */}
+      <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(0,0,0,0.012) 12px,rgba(0,0,0,0.012) 13px)",pointerEvents:"none"}}/>
+      {/* Bloom */}
+      <div style={{position:"absolute",top:0,left:0,right:0,height:"45%",background:`radial-gradient(ellipse at 50% 0%, ${topAccent}20 0%, transparent 80%)`,pointerEvents:"none",transition:"background 0.25s"}}/>
+      {/* Accent bar */}
+      <div style={{width:"100%",height:4,background:`linear-gradient(90deg,${topAccent},${topAccent}55)`,transition:"background 0.25s",marginBottom:8,flexShrink:0,position:"relative"}}/>
+
+      {/* ── PLAYER NAME — auto-shrinks for long names, max 2 lines ── */}
+      <div style={{fontSize:nameFontSize,fontWeight:800,color:"#0f172a",letterSpacing:0.2,lineHeight:1.2,textAlign:"center",width:"100%",padding:"0 7px",marginBottom:5,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",position:"relative",minHeight:nameFontSize*2.4,display:"flex",alignItems:"center",justifyContent:"center"}}>{card.player}</div>
+
+      {/* ── TEAM / ALL-TIME pill ── */}
+      <div style={{background:pillBg,border:`1px solid ${pillBorder}`,borderRadius:20,padding:"2px 8px",marginBottom:2,maxWidth:"92%",position:"relative"}}>
+        <span style={{fontSize:8,fontWeight:800,color:pillText,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",display:"block",overflow:"hidden",textOverflow:"ellipsis",textAlign:"center"}}>{teamLine}</span>
       </div>
-      {/* Divider */}
-      <div style={{width:"50%",height:1,background:"#e2e8f0",margin:"10px 0",transition:"background 0.25s",position:"relative"}}/>
-      {/* Stat type */}
-      <div style={{fontSize:9,fontWeight:700,color:"#64748b",letterSpacing:2,textTransform:"uppercase",textAlign:"center",position:"relative"}}>
+
+      {/* ── LEAGUE / COMPETITION + SEASON ── */}
+      <div style={{fontSize:7.5,color:compText,letterSpacing:1.2,textTransform:"uppercase",fontWeight:700,fontFamily:"'Inter',sans-serif",marginBottom:5,position:"relative",textAlign:"center"}}>
+        {compLine}{season ? ` · ${season}` : ""}
+      </div>
+
+      {/* ── STAT NUMBER / UNREVEALED ── */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",padding:"0 10px",position:"relative",minHeight:62}}>
+        {revealed
+          ? <div style={{fontSize:card.stat>=1000?46:58,fontWeight:900,color:numCol,lineHeight:1,fontFamily:"'Oswald',sans-serif",transition:"color 0.25s",letterSpacing:-1}}>{card.stat}</div>
+          : (
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
+              <div style={{display:"flex",gap:5,alignItems:"center"}}>
+                {[0,1,2].map(i=>(
+                  <div key={i} style={{width:8,height:8,borderRadius:"50%",background:"#cbd5e1",opacity:0.5+i*0.15}}/>
+                ))}
+              </div>
+              <div style={{fontSize:9,color:"#94a3b8",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>hidden</div>
+            </div>
+          )}
+      </div>
+
+      {/* ── DIVIDER ── */}
+      <div style={{width:"38%",height:1,background:divCol,margin:"7px 0 5px",transition:"background 0.25s",position:"relative"}}/>
+
+      {/* ── STAT TYPE ── */}
+      <div style={{fontSize:8.5,fontWeight:700,color:"#475569",letterSpacing:1.8,textTransform:"uppercase",textAlign:"center",position:"relative",fontFamily:"'Inter',sans-serif"}}>
         {STAT_ICONS[card.statType]||"📊"} {card.statType}
       </div>
     </div>
@@ -1688,8 +1780,8 @@ function DailyResultDots({resultData}) {
     <div style={{display:"flex",gap:4,alignItems:"center",justifyContent:"center",flexWrap:"nowrap",width:"100%"}}>
       {Array.from({length:10}).map((_,i)=>{
         const r=resultData[i]||null;
-        let bg="#e2e8f0", borderC="#cbd5e1", cnt=i+1, col="#94a3b8", fs=8;
-        if(r==="correct"){bg="#dcfce7";borderC="#86efac";cnt="✓";col="#16a34a";fs=9;}
+        let bg="rgba(255,255,255,0.06)", borderC="rgba(255,255,255,0.12)", cnt=i+1, col="rgba(255,255,255,0.25)", fs=8;
+        if(r==="correct"){bg="#cffafe";borderC="#67e8f9";cnt="✓";col="#0891b2";fs=9;}
         if(r==="yellow") {bg="#fef9c3";borderC="#fde047";cnt="🟨";col="#ca8a04";fs=9;}
         if(r==="wrong")  {bg="#fee2e2";borderC="#fca5a5";cnt="🟥";col="#dc2626";fs=9;}
         if(r==="red")    {bg="#fee2e2";borderC="#dc2626";cnt="🟥";col="#dc2626";fs=9;}
@@ -1706,24 +1798,35 @@ function YellowCardOverlay({onWatchAd,onDecline}) {
   function startAd(){setWatching(true);setCd(5);ref.current=setInterval(()=>setCd(c=>{if(c<=1){clearInterval(ref.current);onWatchAd();return 0;}return c-1;}),1000);}
   useEffect(()=>()=>clearInterval(ref.current),[]);
   return(
-    <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.85)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px",backdropFilter:"blur(6px)"}}>
-      <div style={{background:"#ffffff",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
-        {/* Yellow card graphic */}
-        <div style={{width:52,height:68,background:"linear-gradient(160deg,#fbbf24,#d97706)",borderRadius:8,margin:"0 auto 16px",boxShadow:"0 4px 20px rgba(219,39,119,0.5)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <div style={{width:38,height:50,background:"linear-gradient(160deg,#fde68a,#fbbf24)",borderRadius:5}}/>
+    <div style={{position:"fixed",inset:0,background:"rgba(10,18,28,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px",backdropFilter:"blur(8px)"}}>
+      <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:"1px solid rgba(251,191,36,0.2)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(217,119,6,0.08)"}}>
+        {/* Yellow card graphic — more dramatic */}
+        <div style={{position:"relative",width:56,height:72,margin:"0 auto 18px"}}>
+          <div style={{width:56,height:72,background:"linear-gradient(150deg,#fde68a,#fbbf24,#d97706)",borderRadius:9,boxShadow:"0 8px 32px rgba(217,119,6,0.6), 0 2px 0 rgba(255,255,255,0.3) inset",position:"relative"}}>
+            <div style={{position:"absolute",inset:0,background:"repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(255,255,255,0.06) 8px,rgba(255,255,255,0.06) 9px)",borderRadius:9}}/>
+            <div style={{position:"absolute",top:6,left:6,right:6,bottom:6,border:"1.5px solid rgba(255,255,255,0.25)",borderRadius:5}}/>
+          </div>
+          {/* Glow */}
+          <div style={{position:"absolute",inset:"-8px",background:"radial-gradient(ellipse at 50% 60%,rgba(217,119,6,0.35) 0%,transparent 70%)",borderRadius:20,pointerEvents:"none"}}/>
         </div>
-        <div style={{color:"#92400e",fontWeight:900,fontSize:22,letterSpacing:1,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase"}}>Yellow Card</div>
-        <div style={{color:"#64748b",fontSize:13,marginBottom:20,lineHeight:1.6}}>Wrong answer — watch a short ad to stay on the pitch.<br/><span style={{color:"#dc2626",fontWeight:700,fontSize:12}}>Another wrong = 🟥 Red Card</span></div>
+
+        <div style={{color:"#fbbf24",fontWeight:900,fontSize:22,letterSpacing:2,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",textShadow:"0 0 20px rgba(251,191,36,0.4)"}}>Yellow Card</div>
+        <div style={{color:"rgba(255,255,255,0.6)",fontSize:13,marginBottom:6,lineHeight:1.6}}>Wrong answer — watch a short ad to stay on the pitch.</div>
+        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(220,38,38,0.12)",border:"1px solid rgba(220,38,38,0.25)",borderRadius:8,padding:"5px 12px",marginBottom:20}}>
+          <span style={{fontSize:12}}>🟥</span>
+          <span style={{color:"#f87171",fontWeight:700,fontSize:12,fontFamily:"'Inter',sans-serif"}}>Another wrong = Red Card</span>
+        </div>
+
         {watching?(
-          <div style={{background:"#f8fafc",borderRadius:12,padding:"20px",border:"1px solid #e2e8f0"}}>
-            <div style={{color:"#94a3b8",fontSize:9,letterSpacing:3,marginBottom:8,fontWeight:700}}>AD PLAYING</div>
-            <div style={{color:"#d97706",fontWeight:900,fontSize:52,fontFamily:"'Oswald',sans-serif",lineHeight:1}}>{cd}</div>
-            <div style={{color:"#94a3b8",fontSize:11,marginTop:6}}>Resuming your match...</div>
+          <div style={{background:"rgba(255,255,255,0.04)",borderRadius:12,padding:"20px",border:"1px solid rgba(255,255,255,0.08)"}}>
+            <div style={{color:"rgba(255,255,255,0.35)",fontSize:9,letterSpacing:3,marginBottom:8,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>AD PLAYING</div>
+            <div style={{color:"#fbbf24",fontWeight:900,fontSize:52,fontFamily:"'Oswald',sans-serif",lineHeight:1,textShadow:"0 0 30px rgba(251,191,36,0.5)"}}>{cd}</div>
+            <div style={{color:"rgba(255,255,255,0.4)",fontSize:11,marginTop:6,fontFamily:"'Inter',sans-serif"}}>Resuming your match...</div>
           </div>
         ):(
-          <div style={{display:"flex",flexDirection:"column",gap:10}}>
-            <button onClick={startAd} style={{padding:"14px",background:"#16a34a",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4)"}}>📺 Watch Ad &amp; Continue</button>
-            <button onClick={onDecline} style={{padding:"11px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,color:"#94a3b8",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>🟥 End Match</button>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            <button onClick={startAd} style={{padding:"14px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 20px rgba(6,182,212,0.45), inset 0 1px 0 rgba(255,255,255,0.2)"}}>📺 Watch Ad &amp; Continue</button>
+            <button onClick={onDecline} style={{padding:"11px",background:"rgba(220,38,38,0.08)",border:"1px solid rgba(220,38,38,0.2)",borderRadius:10,color:"rgba(248,113,113,0.8)",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>🟥 End Match</button>
           </div>
         )}
       </div>
@@ -1866,23 +1969,23 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
         {/* Leaderboard link */}
         <button onClick={onLeaderboard} style={{
           width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
-          background:"linear-gradient(135deg,#0e7490 0%,#0891b2 50%,#06b6d4 100%)",
-          border:"1px solid rgba(6,182,212,0.4)",
+          background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
+          border:"1px solid rgba(217,119,6,0.4)",
           borderRadius:10,padding:"10px 14px",cursor:"pointer",marginBottom:14,
           fontFamily:"'Inter',sans-serif",textAlign:"left",
-          boxShadow:"0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+          boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
           position:"relative",overflow:"hidden",
           transition:"transform 0.12s,box-shadow 0.12s",
         }}
-        onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(6,182,212,0.5)";}}
-        onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
+        onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5)";}}
+        onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
           <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
           <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
           <div style={{display:"flex",alignItems:"center",gap:8,position:"relative"}}>
             <span style={{fontSize:16}}>🏆</span>
             <div>
-              <div style={{fontSize:12,fontWeight:700,color:"#ffffff",lineHeight:1.2}}>Leaderboards</div>
-              <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",marginTop:2}}>Top Scorer · Golden Boot · Caps</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#ffffff",lineHeight:1.2}}>Leaderboards</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.65)",marginTop:2}}>Top Scorer · Golden Boot · Caps</div>
             </div>
           </div>
           <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",position:"relative",flexShrink:0}}>→</span>
@@ -1900,42 +2003,70 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
           </div>
         </div>
 
-        {/* Category grid — sorted by personal best descending, unplayed categories last */}
+        {/* Category grid */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
           {[...RUSH_CATEGORIES].sort((a,b)=>{
             const ba=lsGet(`rush_best_${a.id}`,0);
             const bb=lsGet(`rush_best_${b.id}`,0);
-            if(bb!==ba) return bb-ba; // higher best first
-            return 0; // preserve original order for ties/unplayed
+            if(bb!==ba) return bb-ba;
+            return 0;
           }).map(cat=>{
             const catBest=lsGet(`rush_best_${cat.id}`,0);
+            const hasPlayed=catBest>0;
             return(
               <button key={cat.id} onClick={()=>onPlay(cat.id)} style={{
                   padding:"0",
-                  background:"linear-gradient(160deg,#ffffff 0%,#f8fafc 100%)",
-                  border:`1px solid ${cat.color}25`,
+                  background:hasPlayed
+                    ? `linear-gradient(160deg,#1a2535 0%,#0f1923 100%)`
+                    : `linear-gradient(160deg,#141e2e 0%,#0c1520 100%)`,
+                  border:`1px solid ${hasPlayed?cat.color+"40":"rgba(255,255,255,0.07)"}`,
                   borderRadius:14,cursor:"pointer",textAlign:"left",
                   transition:"transform 0.1s,box-shadow 0.1s",overflow:"hidden",
-                  boxShadow:`0 4px 14px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)`,
+                  boxShadow:hasPlayed
+                    ? `0 4px 20px rgba(0,0,0,0.3), 0 0 0 0px ${cat.color}00`
+                    : `0 2px 10px rgba(0,0,0,0.25)`,
                   position:"relative",
                 }}
-                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 24px rgba(0,0,0,0.12), 0 0 0 1px ${cat.color}40`;}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=`0 4px 14px rgba(0,0,0,0.07), inset 0 1px 0 rgba(255,255,255,0.9)`;}}>
-                {/* colour accent bar — gradient fade */}
-                <div style={{height:4,background:`linear-gradient(90deg,${cat.color},${cat.color}33)`,width:"100%"}}/>
-                <div style={{padding:"12px 12px 10px",position:"relative"}}>
-                  {/* faint diagonal stripe in category colour */}
-                  <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(135deg,transparent,transparent 12px,${cat.color}08 12px,${cat.color}08 13px)`,pointerEvents:"none"}}/>
-                  {/* soft radial bloom from top */}
-                  <div style={{position:"absolute",top:0,left:0,right:0,height:"60%",background:`radial-gradient(ellipse at 50% 0%, ${cat.color}14 0%, transparent 80%)`,pointerEvents:"none"}}/>
-                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8,position:"relative"}}>
-                    <span style={{fontSize:18}}>{cat.icon}</span>
-                    <span style={{fontSize:12,fontWeight:800,color:"#0f172a",fontFamily:"'Inter',sans-serif"}}>{cat.label}</span>
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow=`0 8px 28px rgba(0,0,0,0.4), 0 0 0 1px ${cat.color}50`;}}
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow=hasPlayed?`0 4px 20px rgba(0,0,0,0.3)`:`0 2px 10px rgba(0,0,0,0.25)`;}}>
+
+                {/* Top accent bar */}
+                <div style={{height:3,background:hasPlayed?`linear-gradient(90deg,${cat.color},${cat.color}44)`:`linear-gradient(90deg,rgba(255,255,255,0.1),transparent)`,width:"100%"}}/>
+
+                {/* Colour bloom */}
+                <div style={{position:"absolute",top:0,left:0,right:0,height:"70%",background:`radial-gradient(ellipse at 20% 0%, ${cat.color}${hasPlayed?"18":"0a"} 0%, transparent 75%)`,pointerEvents:"none"}}/>
+                {/* Diagonal texture */}
+                <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(135deg,transparent,transparent 12px,${cat.color}06 12px,${cat.color}06 13px)`,pointerEvents:"none"}}/>
+
+                <div style={{padding:"11px 12px 12px",position:"relative"}}>
+                  {/* Icon + label row */}
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:hasPlayed?10:8}}>
+                    <div style={{width:32,height:32,borderRadius:8,background:`${cat.color}18`,border:`1px solid ${cat.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>
+                      {cat.icon}
+                    </div>
+                    <span style={{fontSize:11,fontWeight:800,color:hasPlayed?"#ffffff":"rgba(255,255,255,0.55)",fontFamily:"'Inter',sans-serif",lineHeight:1.2,letterSpacing:0.1}}>{cat.label}</span>
                   </div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",position:"relative"}}>
-                    <span style={{fontSize:10,color:catBest>0?cat.color:"#94a3b8",fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{catBest>0?`Best: ${catBest}`:"No score yet"}</span>
-                    <span style={{fontSize:9,color:"#94a3b8",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>avg {cat.globalAvg}</span>
-                  </div>
+
+                  {hasPlayed?(
+                    /* Played state — show score prominently */
+                    <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between"}}>
+                      <div>
+                        <div style={{fontSize:7.5,color:"rgba(255,255,255,0.3)",letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:1}}>Best</div>
+                        <div style={{fontSize:32,fontWeight:900,color:cat.color,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:`0 0 20px ${cat.color}55`}}>{catBest}</div>
+                      </div>
+                      <div style={{textAlign:"right",paddingBottom:2}}>
+                        <div style={{fontSize:7.5,color:"rgba(255,255,255,0.25)",letterSpacing:1,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:1}}>Avg</div>
+                        <div style={{fontSize:13,fontWeight:700,color:catBest>cat.globalAvg?"#06b6d4":"rgba(255,255,255,0.3)",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0}}>{cat.globalAvg}</div>
+                        <div style={{fontSize:7.5,color:catBest>cat.globalAvg?"#06b6d4":"rgba(255,255,255,0.2)",fontWeight:700,fontFamily:"'Inter',sans-serif"}}>{catBest>cat.globalAvg?"↑ above":"↓ below"}</div>
+                      </div>
+                    </div>
+                  ):(
+                    /* Unplayed state — prompt to play */
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                      <span style={{fontSize:10,color:"rgba(255,255,255,0.2)",fontWeight:600,fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>Not played yet</span>
+                      <span style={{fontSize:9,color:"rgba(255,255,255,0.2)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>avg {cat.globalAvg}</span>
+                    </div>
+                  )}
                 </div>
               </button>
             );
@@ -2423,50 +2554,66 @@ function App(){
     useEffect(()=>()=>clearInterval(ref.current),[]);
 
     return(
-      <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.88)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px",backdropFilter:"blur(6px)"}}>
-        <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:20,padding:"24px 20px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.9)",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(0,0,0,0.012) 14px,rgba(0,0,0,0.012) 15px)",pointerEvents:"none"}}/>
+      <div style={{position:"fixed",inset:0,background:"rgba(10,18,28,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px",backdropFilter:"blur(8px)"}}>
+        <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:"1px solid rgba(190,24,93,0.25)",borderRadius:20,padding:"24px 20px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(190,24,93,0.08)",position:"relative",overflow:"hidden"}}>
+          {/* Diagonal texture */}
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(255,255,255,0.012) 14px,rgba(255,255,255,0.012) 15px)",pointerEvents:"none"}}/>
+          {/* Top shimmer */}
           <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#be185d,#ec4899,#06b6d4)",pointerEvents:"none"}}/>
+          {/* Radial bloom */}
+          <div style={{position:"absolute",top:"-30%",left:"50%",transform:"translateX(-50%)",width:"80%",height:"60%",background:"radial-gradient(ellipse,rgba(190,24,93,0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>
+
           {watching?(
-            <div style={{position:"relative"}}>
-              <div style={{color:"#94a3b8",fontSize:9,letterSpacing:3,marginBottom:8,fontWeight:700,textTransform:"uppercase"}}>Ad Playing</div>
-              <div style={{color:"#d97706",fontWeight:900,fontSize:52,fontFamily:"'Oswald',sans-serif",lineHeight:1}}>{cd}</div>
-              <div style={{color:"#94a3b8",fontSize:11,marginTop:8}}>{watching==="continue"?"Back on the training pitch...":"Setting up again..."}</div>
+            <div style={{position:"relative",padding:"12px 0"}}>
+              <div style={{color:"rgba(255,255,255,0.3)",fontSize:9,letterSpacing:3,marginBottom:12,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Ad Playing</div>
+              <div style={{color:"#fbbf24",fontWeight:900,fontSize:64,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:"0 0 40px rgba(251,191,36,0.5)",letterSpacing:-1}}>{cd}</div>
+              <div style={{color:"rgba(255,255,255,0.35)",fontSize:12,marginTop:10,fontFamily:"'Inter',sans-serif"}}>{watching==="continue"?"Back on the training pitch...":"Setting up again..."}</div>
             </div>
           ):(
             <div style={{position:"relative"}}>
-              <div style={{marginBottom:16}}>
-                <div style={{width:48,height:48,background:"linear-gradient(135deg,#fee2e2,#fecaca)",borderRadius:12,margin:"0 auto 12px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,boxShadow:"0 4px 12px rgba(220,38,38,0.15)"}}>😤</div>
-                <div style={{color:"#0f172a",fontWeight:900,fontSize:20,marginBottom:4,fontFamily:"'Oswald',sans-serif"}}>Lost Possession</div>
-                <div style={{color:"#64748b",fontSize:12,marginBottom:14}}>Watch an ad to recover and keep training</div>
-                <div style={{background:"linear-gradient(135deg,#f8fafc,#f1f5f9)",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",position:"relative",overflow:"hidden"}}>
-                  <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 10px,rgba(0,0,0,0.01) 10px,rgba(0,0,0,0.01) 11px)",pointerEvents:"none"}}/>
-                  <div style={{color:"#94a3b8",fontSize:9,letterSpacing:2,marginBottom:6,fontWeight:700,textTransform:"uppercase",position:"relative"}}>Training Score</div>
-                  <div style={{color:"#0f172a",fontWeight:900,fontSize:32,fontFamily:"'Oswald',sans-serif",lineHeight:1,marginBottom:6,position:"relative"}}>{score}</div>
-                  {(()=>{
-                    const catBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`,0);
-                    const toHigh = catBest>0 ? catBest-score : null;
-                    if(catBest>0 && score>=catBest){
-                      return <div style={{color:"#16a34a",fontWeight:700,fontSize:12,marginBottom:2,position:"relative"}}>🏆 New personal best!</div>;
-                    } else if(toHigh!==null && toHigh>0){
-                      return <div style={{color:"#d97706",fontWeight:700,fontSize:12,marginBottom:2,position:"relative"}}>+{toHigh} to beat your best ({catBest})</div>;
-                    } else {
-                      return <div style={{color:"#94a3b8",fontSize:11,marginBottom:2,position:"relative"}}>No best yet — keep going!</div>;
-                    }
-                  })()}
-                  {continueCount>0&&<div style={{color:"#94a3b8",fontSize:10,marginTop:8,borderTop:"1px solid #e2e8f0",paddingTop:8,position:"relative"}}>Clean run: <strong style={{color:"#16a34a"}}>{cleanScore}</strong> · no mistakes</div>}
-                </div>
+
+              {/* Icon + title */}
+              <div style={{marginBottom:14}}>
+                <div style={{width:52,height:52,background:"linear-gradient(135deg,rgba(236,72,153,0.2),rgba(190,24,93,0.1))",border:"1px solid rgba(236,72,153,0.3)",borderRadius:14,margin:"0 auto 10px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,boxShadow:"0 4px 16px rgba(190,24,93,0.2)"}}>😤</div>
+                <div style={{color:"#ffffff",fontWeight:900,fontSize:20,marginBottom:3,fontFamily:"'Oswald',sans-serif",letterSpacing:1}}>Lost Possession</div>
+                <div style={{color:"rgba(255,255,255,0.4)",fontSize:12,fontFamily:"'Inter',sans-serif"}}>Watch an ad to recover and keep training</div>
               </div>
+
+              {/* Score panel */}
+              <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px",marginBottom:16,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 10px,rgba(255,255,255,0.008) 10px,rgba(255,255,255,0.008) 11px)",pointerEvents:"none"}}/>
+                <div style={{color:"rgba(255,255,255,0.25)",fontSize:8,letterSpacing:2.5,marginBottom:4,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",position:"relative"}}>Training Score</div>
+                <div style={{color:"#ffffff",fontWeight:900,fontSize:56,fontFamily:"'Bebas Neue',sans-serif",lineHeight:0.95,letterSpacing:-1,marginBottom:6,position:"relative",textShadow:"0 2px 0 rgba(0,0,0,0.3)"}}>{score}</div>
+                {(()=>{
+                  const catBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`,0);
+                  const toHigh = catBest>0 ? catBest-score : null;
+                  if(catBest>0 && score>=catBest){
+                    return <div style={{display:"inline-flex",alignItems:"center",gap:5,background:"rgba(6,182,212,0.12)",border:"1px solid rgba(6,182,212,0.25)",borderRadius:8,padding:"3px 10px",position:"relative"}}>
+                      <span style={{color:"#06b6d4",fontWeight:700,fontSize:12,fontFamily:"'Inter',sans-serif"}}>✦ New personal best!</span>
+                    </div>;
+                  } else if(toHigh!==null && toHigh>0){
+                    return <div style={{color:"#d97706",fontWeight:600,fontSize:11,fontFamily:"'Inter',sans-serif",position:"relative"}}>+{toHigh} to beat your best of {catBest}</div>;
+                  } else {
+                    return <div style={{color:"rgba(255,255,255,0.25)",fontSize:11,fontFamily:"'Inter',sans-serif",position:"relative"}}>No best yet — keep going!</div>;
+                  }
+                })()}
+                {continueCount>0&&<div style={{color:"rgba(255,255,255,0.25)",fontSize:10,marginTop:8,borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:8,position:"relative",fontFamily:"'Inter',sans-serif"}}>Clean run: <strong style={{color:"#06b6d4"}}>{cleanScore}</strong> · no mistakes</div>}
+              </div>
+
+              {/* Buttons */}
               {canContinue&&(
-                <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)"}}>
-                  ▶ Recover Possession <span style={{fontSize:11,opacity:0.8}}>({frozenTimeLeft}s left)</span>
+                <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(6,182,212,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,position:"relative",overflow:"hidden"}}>
+                  <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.04) 12px,rgba(255,255,255,0.04) 13px)",pointerEvents:"none"}}/>
+                  <span style={{position:"relative"}}>▶ Recover Possession</span>
+                  <span style={{position:"relative",fontSize:11,opacity:0.75,fontWeight:600}}>({frozenTimeLeft}s left)</span>
                 </button>
               )}
-              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#7c0d3e,#be185d,#db2777)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",marginBottom:8,boxShadow:"0 4px 12px rgba(219,39,119,0.4), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
-                ▶ Train Again ⚡
+              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,position:"relative",overflow:"hidden"}}>
+                <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.04) 12px,rgba(255,255,255,0.04) 13px)",pointerEvents:"none"}}/>
+                <span style={{position:"relative"}}>⚡ Train Again</span>
               </button>
-              <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#f8fafc,#f1f5f9)",border:"1px solid #e2e8f0",borderRadius:10,color:"#64748b",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:700,cursor:"pointer"}}>
-                See result
+              <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.09)",borderRadius:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:600,cursor:"pointer",letterSpacing:0.3}}>
+                See Result
               </button>
             </div>
           )}
@@ -2799,19 +2946,26 @@ function App(){
 
         {/* ══ TODAY'S MATCH ══ */}
         <div style={{
-          background:"linear-gradient(160deg,#ffffff 0%,#f0fdf4 100%)",
+          background: todayPlayed
+            ? "linear-gradient(160deg,#0d1f2d 0%,#0a1a25 100%)"
+            : "linear-gradient(160deg,#ffffff 0%,#ecfeff 100%)",
           borderRadius:18,
           overflow:"hidden",
           marginBottom:12,
-          boxShadow:"0 6px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",
-          border:"1px solid rgba(22,163,74,0.12)",
+          boxShadow: todayPlayed
+            ? "0 4px 16px rgba(0,0,0,0.3)"
+            : "0 6px 28px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",
+          border: todayPlayed
+            ? "1px solid rgba(6,182,212,0.12)"
+            : "1px solid rgba(6,182,212,0.2)",
           position:"relative",
+          opacity: todayPlayed ? 0.85 : 1,
         }}>
           {/* subtle diagonal stripe */}
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(22,163,74,0.02) 20px,rgba(22,163,74,0.02) 21px)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(6,182,212,0.02) 20px,rgba(6,182,212,0.02) 21px)",pointerEvents:"none"}}/>
           {/* Matchday header */}
           <div style={{
-            background:"linear-gradient(135deg,#15803d 0%,#16a34a 60%,#22c55e 100%)",
+            background:"linear-gradient(135deg,#0e7490 0%,#0891b2 60%,#06b6d4 100%)",
             padding:"12px 18px",
             position:"relative",
           }}>
@@ -2827,18 +2981,18 @@ function App(){
                   style={{
                     width:"100%",
                     padding:"16px",
-                    background:"linear-gradient(135deg,#15803d 0%,#16a34a 50%,#22c55e 100%)",
+                    background:"linear-gradient(135deg,#0e7490 0%,#0891b2 50%,#06b6d4 100%)",
                     border:"none",borderRadius:12,
                     color:"#ffffff",
                     fontSize:17,fontWeight:800,letterSpacing:0.5,
                     cursor:"pointer",
                     fontFamily:"'Inter',sans-serif",
-                    boxShadow:"0 6px 20px rgba(22,163,74,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
+                    boxShadow:"0 6px 20px rgba(6,182,212,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
                     transition:"transform 0.12s,box-shadow 0.12s",
                     display:"block",
                   }}
-                  onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(22,163,74,0.55), inset 0 1px 0 rgba(255,255,255,0.2)";}}
-                  onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 6px 20px rgba(22,163,74,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+                  onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(6,182,212,0.55), inset 0 1px 0 rgba(255,255,255,0.2)";}}
+                  onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 6px 20px rgba(6,182,212,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
                   Kick Off ⚽
                 </button>
                 <div style={{textAlign:"center",marginTop:7,fontSize:11,color:"#94a3b8",fontWeight:500,fontFamily:"'Inter',sans-serif"}}>Complete today's match to earn +1 Cap</div>
@@ -2851,18 +3005,18 @@ function App(){
                   <DailyResultDots resultData={todayResult}/>
                 </div>
                 {/* 2-col: score + global avg */}
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderRadius:10,overflow:"hidden",border:"1px solid #e2e8f0",marginBottom:10,background:"linear-gradient(135deg,#f8fafc,#f0fdf4)"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)",marginBottom:10,background:"rgba(255,255,255,0.05)"}}>
                   {[
-                    {label:"Your Score",val:`${todayResult.filter(r=>r==="correct").length}/10`,col:"#16a34a"},
-                    {label:"Global Avg",val:"4.2",col:"#64748b"},
+                    {label:"Your Score",val:`${todayResult.filter(r=>r==="correct").length}/10`,col:"#06b6d4"},
+                    {label:"Global Avg",val:"4.2",col:"rgba(255,255,255,0.4)"},
                   ].map((item,i)=>(
-                    <div key={i} style={{textAlign:"center",padding:"12px 6px",borderLeft:i>0?"1px solid #e2e8f0":"none"}}>
-                      <div style={{fontSize:8,color:"#94a3b8",letterSpacing:1.5,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{item.label}</div>
+                    <div key={i} style={{textAlign:"center",padding:"12px 6px",borderLeft:i>0?"1px solid rgba(255,255,255,0.08)":"none"}}>
+                      <div style={{fontSize:8,color:"rgba(255,255,255,0.4)",letterSpacing:1.5,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{item.label}</div>
                       <div style={{fontSize:20,fontWeight:800,color:item.col,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{item.val}</div>
                     </div>
                   ))}
                 </div>
-                {/* Blue share button */}
+                {/* Share button — blue */}
                 <button onClick={()=>{
                   const s=todayResult.filter(r=>r==="correct").length;
                   const emojiGrid=todayResult.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
@@ -2871,12 +3025,12 @@ function App(){
                 }} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:10,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
                   ↗ Share your score
                 </button>
-                {/* Tomorrow's fixture */}
-                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"linear-gradient(135deg,#f8fafc,#f0fdf4)",borderRadius:10,border:"1px solid #e2e8f0"}}>
+                {/* Tomorrow's fixture — light cyan */}
+                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(6,182,212,0.08)",borderRadius:10,border:"1px solid rgba(6,182,212,0.2)"}}>
                   <span style={{fontSize:14}}>🔭</span>
                   <div>
-                    <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,fontWeight:600,marginBottom:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Tomorrow's Fixture</div>
-                    <div style={{fontSize:12,color:"#475569",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{tomorrowChallenge.theme}</div>
+                    <div style={{fontSize:8,color:"rgba(6,182,212,0.6)",letterSpacing:2,fontWeight:600,marginBottom:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Tomorrow's Fixture</div>
+                    <div style={{fontSize:12,color:"#67e8f9",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{tomorrowChallenge.theme}</div>
                   </div>
                 </div>
               </>
@@ -2916,22 +3070,22 @@ function App(){
         <button onClick={()=>{SFX.click();setPrevScreen("home");setScreen("leaderboard");}}
           style={{
             width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
-            background:"linear-gradient(135deg,#0e7490 0%,#0891b2 50%,#06b6d4 100%)",
-            border:"1px solid rgba(6,182,212,0.4)",
+            background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
+            border:"1px solid rgba(217,119,6,0.4)",
             borderRadius:12,padding:"11px 16px",cursor:"pointer",marginBottom:12,
             fontFamily:"'Inter',sans-serif",transition:"transform 0.12s,box-shadow 0.12s",
-            boxShadow:"0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+            boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
             position:"relative",overflow:"hidden",
           }}
-          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(6,182,212,0.5), inset 0 1px 0 rgba(255,255,255,0.15)";}}
-          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
+          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5), inset 0 1px 0 rgba(255,255,255,0.15)";}}
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
           <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
           <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
           <div style={{display:"flex",alignItems:"center",gap:10,position:"relative"}}>
             <span style={{fontSize:16}}>🏆</span>
             <div style={{textAlign:"left"}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#ffffff",fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.65)",fontFamily:"'Inter',sans-serif",marginTop:1}}>Top Scorer · Golden Boot · Caps</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#ffffff",fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontFamily:"'Inter',sans-serif",marginTop:1}}>Top Scorer · Golden Boot · Caps</div>
             </div>
           </div>
           <span style={{fontSize:13,color:"rgba(255,255,255,0.5)",position:"relative"}}>→</span>
@@ -2986,34 +3140,29 @@ function App(){
         {/* ── DAILY RESULT ── */}
         {isDaily&&(
           <>
-            {/* 1. SCORE CARD — top priority */}
-            <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(0,0,0,0.06)",position:"relative"}}>
-              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.012) 16px,rgba(0,0,0,0.012) 17px)",pointerEvents:"none"}}/>
-              <div style={{position:"absolute",top:0,left:0,right:0,height:"40%",background:`radial-gradient(ellipse at 50% 0%, ${accentCol}12 0%, transparent 80%)`,pointerEvents:"none"}}/>
-              <div style={{height:4,background:`linear-gradient(90deg,${accentCol},${accentCol}55)`,position:"relative"}}/>
+            {/* 1. SCORE CARD */}
+            <div style={{background:"linear-gradient(160deg,#1a2535 0%,#0f1923 100%)",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.35)",border:`1px solid ${accentCol}25`,position:"relative"}}>
+              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.012) 16px,rgba(255,255,255,0.012) 17px)",pointerEvents:"none"}}/>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:"50%",background:`radial-gradient(ellipse at 50% 0%, ${accentCol}15 0%, transparent 80%)`,pointerEvents:"none"}}/>
+              <div style={{height:3,background:`linear-gradient(90deg,${accentCol},${accentCol}44)`,position:"relative"}}/>
               <div style={{padding:"18px 18px 16px",position:"relative"}}>
 
-                {/* Score message */}
-                {latestScore>0&&(()=>{
-                  const msg=getScoreMessage(latestScore);
-                  return msg?<div style={{background:accentBg,border:`1px solid ${accentBorder}`,borderRadius:10,padding:"10px 14px",marginBottom:14,textAlign:"center"}}>
-                    <div style={{color:accentCol,fontWeight:800,fontSize:15,lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>{msg}</div>
-                  </div>:null;
-                })()}
-
-                {/* Big score */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
-                  <div>
-                    <div style={{fontSize:9,color:"#94a3b8",letterSpacing:2,fontWeight:600,marginBottom:3,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Match Score</div>
-                    <div style={{display:"flex",alignItems:"baseline",gap:4}}>
-                      <span style={{fontSize:56,fontWeight:900,color:accentCol,lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{latestScore}</span>
-                      <span style={{fontSize:20,color:"#94a3b8",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>/10</span>
+                {/* Score row — big number left, roast message right */}
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14,gap:12}}>
+                  <div style={{flexShrink:0}}>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:2,fontWeight:600,marginBottom:2,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Match Score</div>
+                    <div style={{display:"flex",alignItems:"baseline",gap:3}}>
+                      <span style={{fontSize:64,fontWeight:900,color:accentCol,lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1,textShadow:`0 0 30px ${accentCol}44`}}>{latestScore}</span>
+                      <span style={{fontSize:18,color:"rgba(255,255,255,0.2)",fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:4}}>/10</span>
                     </div>
+                    <div style={{fontSize:11,color:(latestScore||0)>4.2?"#06b6d4":"rgba(255,255,255,0.3)",fontWeight:600,marginTop:3,fontFamily:"'Inter',sans-serif"}}>{(latestScore||0)>4.2?"↑ Above avg":"↓ Below avg"} · avg 4.2</div>
                   </div>
-                  <div style={{textAlign:"right"}}>
-                    <div style={{fontSize:12,color:(latestScore||0)>4.2?"#16a34a":"#dc2626",fontWeight:700,marginBottom:2,fontFamily:"'Inter',sans-serif"}}>{(latestScore||0)>4.2?"↑ Above avg":"↓ Below avg"}</div>
-                    <div style={{fontSize:10,color:"#94a3b8",fontFamily:"'Inter',sans-serif"}}>Global avg: 4.2</div>
-                  </div>
+                  {latestScore>0&&(()=>{
+                    const msg=getScoreMessage(latestScore);
+                    return msg?<div style={{flex:1,paddingTop:4,textAlign:"right"}}>
+                      <div style={{color:"rgba(255,255,255,0.45)",fontWeight:600,fontSize:12,lineHeight:1.45,fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>{msg}</div>
+                    </div>:null;
+                  })()}
                 </div>
 
                 {/* Answer dots */}
@@ -3023,31 +3172,30 @@ function App(){
                   </div>
                 )}
 
-                {/* Share button */}
+                {/* Share button — cyan, full width */}
                 <button onClick={()=>{
                   const s=latestScore||0;
                   const emojiGrid=answerLog.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
                   const t=`StatStreaks #${effectiveDayIdx+1} ⚽\n${emojiGrid}\n${s}/10 🧢 ${streak}`;
                   try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
-                }} style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:10,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
-                  ↗ Share your score
+                }} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8,boxShadow:"0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
+                  ↗ Share Your Score
                 </button>
 
-                {/* Training Pitch CTA with tomorrow's fixture — dynamic */}
+                {/* Training Pitch CTA — full width, same border-radius */}
                 <button onClick={()=>{SFX.click();setScreen("rush");}} style={{
-                  width:"100%",padding:"14px 16px",
-                  background:"linear-gradient(135deg,#be185d,#db2777,#ec4899)",
+                  width:"100%",padding:"13px 16px",
+                  background:"linear-gradient(135deg,#9d174d,#be185d,#db2777,#ec4899)",
                   border:"none",borderRadius:12,cursor:"pointer",
                   fontFamily:"'Inter',sans-serif",
-                  boxShadow:"0 4px 16px rgba(219,39,119,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",
-                  textAlign:"left",
+                  boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
+                  textAlign:"left",display:"block",
                   transition:"transform 0.15s, box-shadow 0.15s",
-                  display:"block",
                 }}
-                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(219,39,119,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(219,39,119,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
-                  <div style={{fontSize:15,fontWeight:800,color:"#ffffff",marginBottom:3}}>Get some training in ⚡</div>
-                  <div style={{fontSize:10,color:"rgba(255,255,255,0.7)",fontWeight:500}}>Tomorrow's fixture: {tomorrowTheme}</div>
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(190,24,93,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Get Some Training In</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>Tomorrow's fixture: {tomorrowTheme}</div>
                 </button>
               </div>
             </div>
@@ -3097,70 +3245,72 @@ function App(){
           const isPerfect = timeout && continueCount===0;
           const displayScore = latestScore||score;
           const leaderboardScore = continueCount>0 ? cleanScore : displayScore;
+          const isNewBest = displayScore > prevCatBest;
+          const shownBest = isNewBest ? displayScore : prevCatBest;
+          const msg = getRushMessage(displayScore, prevCatBest);
           return(
           <>
-            {isPerfect&&(
-              <div style={{background:"linear-gradient(135deg,#d97706,#f59e0b)",borderRadius:14,padding:"14px 18px",marginBottom:12,boxShadow:"0 4px 20px rgba(217,119,6,0.5)",textAlign:"center"}}>
-                <div style={{fontSize:22,marginBottom:4}}>🔥</div>
-                <div style={{color:"#ffffff",fontWeight:900,fontSize:18,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:2,lineHeight:1}}>PERFECT RUN — 2× APPLIED!</div>
-                <div style={{color:"rgba(255,255,255,0.85)",fontSize:12,marginTop:4,fontFamily:"'Inter',sans-serif"}}>Zero mistakes · all 30 seconds · score doubled</div>
-              </div>
-            )}
-            <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(0,0,0,0.06)",position:"relative"}}>
-              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.012) 16px,rgba(0,0,0,0.012) 17px)",pointerEvents:"none"}}/>
-              <div style={{position:"absolute",top:0,left:0,right:0,height:"40%",background:"radial-gradient(ellipse at 50% 0%, rgba(217,119,6,0.10) 0%, transparent 80%)",pointerEvents:"none"}}/>
-              <div style={{height:4,background:isPerfect?"linear-gradient(90deg,#d97706,#f59e0b)":"linear-gradient(90deg,#d97706,#d9770666)",position:"relative"}}/>
-              <div style={{padding:"18px",position:"relative"}}>
-                {/* Score + personal best side by side */}
-                <div style={{display:"flex",gap:12,marginBottom:10}}>
-                  <div style={{flex:1,textAlign:"center"}}>
-                    <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,marginBottom:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isPerfect?"Final Score ×2":"Score"}</div>
-                    <div style={{fontSize:52,fontWeight:900,color:isPerfect?"#d97706":"#0f172a",lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{displayScore}</div>
-                    {isPerfect&&(
-                      <div style={{fontSize:10,color:"#94a3b8",marginTop:2,fontFamily:"'Inter',sans-serif"}}>({rawCorrect} correct × 2)</div>
-                    )}
-                  </div>
-                  {(()=>{
-                    // prevCatBest is stored in state before this run's score was saved
-                    // so comparison is always against the OLD best — correct for new-PB detection
-                    const isNewBest = displayScore > prevCatBest;
-                    const shownBest = isNewBest ? displayScore : prevCatBest;
-                    return(
-                      <div style={{flex:1,textAlign:"center",borderLeft:"1px solid #f1f5f9",paddingLeft:12}}>
-                        <div style={{fontSize:8,color:"#94a3b8",letterSpacing:2,marginBottom:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Personal Best</div>
-                        <div style={{fontSize:52,fontWeight:900,color:isNewBest?"#16a34a":"#0f172a",lineHeight:1,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{shownBest||displayScore}</div>
-                        {isNewBest&&<div style={{fontSize:9,color:"#16a34a",marginTop:2,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>New best! 🏆</div>}
-                        {!isNewBest&&prevCatBest>0&&displayScore===prevCatBest&&<div style={{fontSize:9,color:"#d97706",marginTop:2,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>Matched your best</div>}
-                      </div>
-                    );
-                  })()}
+            {/* ── SCORE CARD ── */}
+            <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",borderRadius:18,overflow:"hidden",marginBottom:10,boxShadow:"0 6px 28px rgba(0,0,0,0.4)",border:`1px solid ${isPerfect?"rgba(245,158,11,0.35)":"rgba(217,119,6,0.18)"}`,position:"relative"}}>
+              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.01) 16px,rgba(255,255,255,0.01) 17px)",pointerEvents:"none"}}/>
+              <div style={{position:"absolute",top:0,left:0,right:0,height:"55%",background:`radial-gradient(ellipse at 50% 0%, ${isPerfect?"rgba(245,158,11,0.18)":"rgba(217,119,6,0.1)"} 0%, transparent 75%)`,pointerEvents:"none"}}/>
+              <div style={{height:3,background:isPerfect?"linear-gradient(90deg,#d97706,#f59e0b,#fbbf24)":"linear-gradient(90deg,#d97706,#d9770633)",position:"relative"}}/>
+
+              {/* ── SCORES ROW ── */}
+              <div style={{display:"flex",padding:"20px 18px 0",gap:0,position:"relative"}}>
+                {/* Score */}
+                <div style={{flex:1,textAlign:"center",paddingRight:12}}>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>{isPerfect?"Score ×2":"Score"}</div>
+                  <div style={{fontSize:72,fontWeight:900,color:isPerfect?"#fbbf24":"#ffffff",lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:-1,textShadow:isPerfect?"0 0 40px rgba(251,191,36,0.5)":"0 2px 0 rgba(0,0,0,0.3)"}}>{displayScore}</div>
+                  {isPerfect&&<div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>({rawCorrect} × 2)</div>}
                 </div>
-                {/* Funny football message — compare against pre-run best so new PB is detected correctly */}
-                {(()=>{
-                  const msg = getRushMessage(displayScore, prevCatBest);
-                  return(
-                    <div style={{borderTop:"1px solid #f1f5f9",paddingTop:10,marginBottom:12}}>
-                      <div style={{color:"#475569",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.5}}>{msg}</div>
-                      {activeCatData&&<div style={{color:"#94a3b8",fontSize:10,marginTop:6,fontFamily:"'Inter',sans-serif"}}>Category avg: {activeCatData.globalAvg}</div>}
-                    </div>
-                  );
-                })()}
-                <button onClick={()=>{
-                  const perfTag=isPerfect?" 🔥 PERFECT RUN (2×)":"";
-                  const t=`StatStreaks Training Pitch\n${theme}\nScore: ${displayScore}${perfTag} — can you beat me?`;
-                  try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
-                }} style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:9,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
-                  ↗ Share score
-                </button>
-                <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 12px rgba(219,39,119,0.4)",marginBottom:8}}>Train Again ⚡</button>
-                <button onClick={()=>{SFX.click();setPrevScreen("rush");setScreen("leaderboard");}} style={{
-                  width:"100%",padding:"11px",borderRadius:10,border:"none",cursor:"pointer",
-                  background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",
-                  color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,
-                  boxShadow:"0 4px 14px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:8,
-                }}>🏆 View Leaderboards</button>
+                {/* Divider */}
+                <div style={{width:1,background:"rgba(255,255,255,0.07)",margin:"4px 0 0",alignSelf:"stretch"}}/>
+                {/* Personal Best */}
+                <div style={{flex:1,textAlign:"center",paddingLeft:12}}>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>Personal Best</div>
+                  <div style={{fontSize:72,fontWeight:900,color:isNewBest?"#06b6d4":"rgba(255,255,255,0.45)",lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:-1,textShadow:isNewBest?"0 0 40px rgba(6,182,212,0.4)":"none"}}>{shownBest||displayScore}</div>
+                  {isNewBest
+                    ? <div style={{fontSize:10,color:"#06b6d4",marginTop:4,fontWeight:700,fontFamily:"'Inter',sans-serif",letterSpacing:0.3}}>✦ New best!</div>
+                    : prevCatBest>0&&displayScore===prevCatBest
+                      ? <div style={{fontSize:10,color:"#d97706",marginTop:4,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>Matched</div>
+                      : prevCatBest>0
+                        ? <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>{prevCatBest-displayScore} off best</div>
+                        : <div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>First run!</div>
+                  }
+                </div>
               </div>
+
+              {/* ── MESSAGE + AVG BAND ── */}
+              <div style={{margin:"16px 18px 18px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"11px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                <div style={{color:"rgba(255,255,255,0.65)",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.4,flex:1}}>{msg}</div>
+                {activeCatData&&(
+                  <div style={{flexShrink:0,textAlign:"center",borderLeft:"1px solid rgba(255,255,255,0.07)",paddingLeft:12}}>
+                    <div style={{fontSize:7.5,color:"rgba(255,255,255,0.3)",letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:2}}>Cat. avg</div>
+                    <div style={{fontSize:20,fontWeight:900,color:displayScore>activeCatData.globalAvg?"#06b6d4":"rgba(255,255,255,0.4)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>{activeCatData.globalAvg}</div>
+                    <div style={{fontSize:8,color:displayScore>activeCatData.globalAvg?"#06b6d4":"rgba(255,255,255,0.25)",fontWeight:700,fontFamily:"'Inter',sans-serif",marginTop:1}}>{displayScore>activeCatData.globalAvg?"↑ above":"↓ below"}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── BUTTONS — outside card ── */}
+            <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8,letterSpacing:0.3}}>⚡ Train Again</button>
+            <div style={{display:"flex",gap:8,marginBottom:0}}>
+              <button onClick={()=>{
+                const perfTag=isPerfect?" 🔥 PERFECT RUN (2×)":"";
+                const t=`StatStreaks Training Pitch\n${theme}\nScore: ${displayScore}${perfTag} — can you beat me?`;
+                try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
+              }} style={{flex:1,padding:"12px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
+                ↗ Share
+              </button>
+              <button onClick={()=>{SFX.click();setPrevScreen("rush");setScreen("leaderboard");}} style={{
+                flex:1,padding:"12px",borderRadius:12,border:"none",cursor:"pointer",
+                background:"linear-gradient(135deg,#92400e,#b45309,#d97706)",
+                color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,
+                boxShadow:"0 4px 14px rgba(217,119,6,0.4), inset 0 1px 0 rgba(255,255,255,0.15)",
+                display:"flex",alignItems:"center",justifyContent:"center",gap:6,
+              }}>🏆 Leaderboards</button>
             </div>
           </>
           );
@@ -3196,7 +3346,7 @@ function App(){
       <div style={{width:"100%"}}>
 
         {/* ── GAME HEADER ── */}
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
           <button onClick={()=>{SFX.click();setTimerActive(false);setCountdown(null);setScreen(isRush?"rush":"home");}}
             style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:11,cursor:"pointer",padding:"7px 11px",fontFamily:"'Inter',sans-serif",fontWeight:600}}>
             ← {isRush?"Pitch":"Home"}
@@ -3205,15 +3355,20 @@ function App(){
             <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Training Pitch"):theme}</div>
             <div style={{fontSize:9,color:isRush?"#fbbf24":"rgba(255,255,255,0)",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isRush?"Training Pitch":""}</div>
           </div>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
-            <div style={{background:"#ffffff",borderRadius:7,padding:"4px 10px",color:"#16a34a",fontWeight:900,fontSize:13,fontFamily:"'Oswald',sans-serif",letterSpacing:1,boxShadow:"0 2px 6px rgba(0,0,0,0.15)"}}>{score} ✓</div>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+            {/* Score badge */}
+            <div style={{background:"rgba(255,255,255,0.95)",borderRadius:8,padding:"4px 11px",display:"flex",alignItems:"center",gap:5,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
+              <span style={{color:"#0891b2",fontWeight:900,fontSize:14,fontFamily:"'Oswald',sans-serif",letterSpacing:1,lineHeight:1}}>{score}</span>
+              <span style={{color:"#06b6d4",fontSize:11,lineHeight:1}}>✓</span>
+            </div>
+            {/* Timer or save indicator */}
             {isRush
-              ? <div style={{color:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"rgba(255,255,255,0.7)",fontWeight:900,fontSize:20,fontFamily:"'Oswald',sans-serif",animation:timeLeft<=8?"timerPulse 0.6s infinite":"none"}}>{timeLeft}s</div>
-              : <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",letterSpacing:0.5}}>{yellowUsed?"🟥 last save gone":"🟨 save ready"}</div>
+              ? <div style={{color:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"rgba(255,255,255,0.7)",fontWeight:900,fontSize:20,fontFamily:"'Oswald',sans-serif",animation:timeLeft<=8?"timerPulse 0.6s infinite":"none",lineHeight:1}}>{timeLeft}s</div>
+              : <div style={{fontSize:9,color:yellowUsed?"rgba(220,38,38,0.6)":"rgba(255,255,255,0.3)",letterSpacing:0.5,fontFamily:"'Inter',sans-serif"}}>{yellowUsed?"🟥 no saves left":"🟨 save ready"}</div>
             }
             {isRush&&(()=>{
               const catBest=lsGet(`rush_best_${rushCat}`,0);
-              if(catBest>0) return <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Best: {catBest}</div>;
+              if(catBest>0) return <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Best: {catBest}</div>;
               return null;
             })()}
           </div>
@@ -3222,27 +3377,31 @@ function App(){
         {/* ── TIMER BAR (rush) / PROGRESS DOTS (daily) ── */}
         {isRush
           ? <div style={{width:"100%",height:5,background:"rgba(255,255,255,0.1)",borderRadius:99,overflow:"hidden",marginBottom:14}}>
-              <div style={{height:"100%",width:`${(timeLeft/TOTAL_TIME)*100}%`,background:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"#16a34a",borderRadius:99,transition:"width 0.9s linear,background 0.5s"}}/>
+              <div style={{height:"100%",width:`${(timeLeft/TOTAL_TIME)*100}%`,background:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"#06b6d4",borderRadius:99,transition:"width 0.9s linear,background 0.5s"}}/>
             </div>
           : <ProgressDots current={currentIdx} result={result} yellowCardIdx={yellowCardIdx} declinedYellow={declinedYellow}/>
         }
 
         {/* ── QUESTION CARD ── */}
         {currentCard&&nextCard&&(
-          <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:14,padding:"12px 16px",marginBottom:14,textAlign:"center",boxShadow:"0 4px 16px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9)",border:"1px solid rgba(0,0,0,0.06)",position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(0,0,0,0.012) 14px,rgba(0,0,0,0.012) 15px)",pointerEvents:"none"}}/>
-            <div style={{fontSize:8,color:"#94a3b8",letterSpacing:3,fontWeight:700,marginBottom:6,textTransform:"uppercase",position:"relative"}}>Compare the {nextCard.statType}</div>
-            <div style={{fontSize:14,lineHeight:1.8,color:"#475569",position:"relative"}}>
-              Will <strong style={{color:"#0f172a",fontFamily:"'Oswald',sans-serif",fontSize:16,fontWeight:700}}>{nextCard.player}</strong> be <strong style={{color:"#16a34a"}}>HIGHER</strong> or <strong style={{color:"#dc2626"}}>LOWER</strong> than <strong style={{color:"#d97706",fontFamily:"'Oswald',sans-serif",fontSize:18}}>{currentCard.stat}</strong>?
+          <div style={{background:"linear-gradient(160deg,rgba(255,255,255,0.09),rgba(255,255,255,0.05))",borderRadius:12,padding:"10px 14px",marginBottom:12,textAlign:"center",border:"1px solid rgba(255,255,255,0.1)",position:"relative",overflow:"hidden",backdropFilter:"blur(4px)"}}>
+            <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(255,255,255,0.015) 14px,rgba(255,255,255,0.015) 15px)",pointerEvents:"none"}}/>
+            <div style={{fontSize:8,color:"rgba(255,255,255,0.35)",letterSpacing:3,fontWeight:700,marginBottom:5,textTransform:"uppercase",position:"relative"}}>Compare the {nextCard.statType}</div>
+            <div style={{fontSize:13,lineHeight:1.7,color:"rgba(255,255,255,0.75)",position:"relative"}}>
+              Will <strong style={{color:"#ffffff",fontFamily:"'Oswald',sans-serif",fontSize:15,fontWeight:700}}>{nextCard.player}</strong> be <strong style={{color:"#06b6d4"}}>HIGHER</strong> or <strong style={{color:"#ec4899"}}>LOWER</strong> than <strong style={{color:"#fbbf24",fontFamily:"'Oswald',sans-serif",fontSize:17}}>{currentCard.stat}</strong>?
             </div>
           </div>
         )}
 
         {/* ── STAT PANELS ── */}
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14,justifyContent:"center"}}>
-          {currentCard&&<StatPanel card={currentCard} revealed={true} flashResult={null}/>}
-          <div style={{width:30,height:30,borderRadius:8,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"rgba(255,255,255,0.5)",fontWeight:800,flexShrink:0,fontFamily:"'Inter',sans-serif",letterSpacing:1}}>VS</div>
-          {nextCard&&<StatPanel card={nextCard} revealed={revealedNext} flashResult={revealedNext?flashResult:null}/>}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,justifyContent:"center"}}>
+          {currentCard&&<StatPanel card={currentCard} revealed={true} flashResult={null} catId={isRush?rushCat:theme}/>}
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0}}>
+            <div style={{width:1,height:20,background:"rgba(255,255,255,0.1)"}}/>
+            <div style={{width:34,height:34,borderRadius:10,background:"linear-gradient(135deg,rgba(255,255,255,0.12),rgba(255,255,255,0.06))",border:"1px solid rgba(255,255,255,0.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"rgba(255,255,255,0.7)",fontWeight:900,fontFamily:"'Oswald',sans-serif",letterSpacing:1,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>VS</div>
+            <div style={{width:1,height:20,background:"rgba(255,255,255,0.1)"}}/>
+          </div>
+          {nextCard&&<StatPanel card={nextCard} revealed={revealedNext} flashResult={revealedNext?flashResult:null} catId={isRush?rushCat:theme}/>}
         </div>
 
         {/* ── BUTTONS / FEEDBACK ── */}
@@ -3256,16 +3415,16 @@ function App(){
           ):(
             <div style={{display:"flex",gap:10,width:"100%"}}>
               <button onClick={()=>handleGuess("higher")}
-                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
-                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(22,163,74,0.55)";}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(22,163,74,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 16px rgba(6,182,212,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(6,182,212,0.55)";}}
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(6,182,212,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
                 <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.05) 12px,rgba(255,255,255,0.05) 13px)",pointerEvents:"none"}}/>
                 <span style={{position:"relative"}}>⬆ Higher</span>
               </button>
               <button onClick={()=>handleGuess("lower")}
-                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#b91c1c,#dc2626,#ef4444)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 16px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
-                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(220,38,38,0.55)";}}
-                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(220,38,38,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+                style={{flex:1,padding:"16px 8px",background:"linear-gradient(135deg,#9d174d,#be185d,#ec4899)",border:"none",borderRadius:12,color:"#ffffff",fontSize:18,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",transition:"transform 0.12s,box-shadow 0.12s",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 16px rgba(236,72,153,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",position:"relative",overflow:"hidden"}}
+                onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(236,72,153,0.55)";}}
+                onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(236,72,153,0.4), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
                 <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.05) 12px,rgba(255,255,255,0.05) 13px)",pointerEvents:"none"}}/>
                 <span style={{position:"relative"}}>⬇ Lower</span>
               </button>
@@ -3273,22 +3432,26 @@ function App(){
           )
         ):(
           result==="correct"?(
-            <div style={{background:"linear-gradient(135deg,#f0fdf4,#dcfce7)",border:"1px solid #86efac",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 4px 16px rgba(22,163,74,0.15), inset 0 1px 0 rgba(255,255,255,0.8)",position:"relative",overflow:"hidden"}}>
-              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(22,163,74,0.04) 12px,rgba(22,163,74,0.04) 13px)",pointerEvents:"none"}}/>
-              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:22,fontWeight:700,color:"#16a34a",letterSpacing:1,position:"relative"}}>✓ Correct!</div>
+            <div style={{background:"linear-gradient(135deg,#ecfeff,#cffafe)",border:"1px solid #67e8f9",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 4px 16px rgba(6,182,212,0.15), inset 0 1px 0 rgba(255,255,255,0.8)",position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(6,182,212,0.04) 12px,rgba(6,182,212,0.04) 13px)",pointerEvents:"none"}}/>
+              <div style={{fontFamily:"'Oswald',sans-serif",fontSize:22,fontWeight:700,color:"#0891b2",letterSpacing:1,position:"relative"}}>✓ Correct!</div>
               <div style={{color:"#64748b",fontSize:12,marginTop:3,position:"relative"}}>Keep going!</div>
             </div>
           ):(
             !isRush?(
-            <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50,padding:"0 20px",backdropFilter:"blur(6px)"}}>
-              <div style={{background:"#ffffff",borderRadius:20,padding:"28px 24px",maxWidth:300,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.4)"}}>
+            <div style={{position:"fixed",inset:0,background:"rgba(10,18,28,0.94)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50,padding:"0 20px",backdropFilter:"blur(8px)"}}>
+              <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:"1px solid rgba(220,38,38,0.2)",borderRadius:20,padding:"28px 24px",maxWidth:300,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(220,38,38,0.06)"}}>
                 {/* Red card graphic */}
-                <div style={{width:52,height:68,background:"linear-gradient(160deg,#ef4444,#dc2626)",borderRadius:8,margin:"0 auto 16px",boxShadow:"0 4px 20px rgba(220,38,38,0.5)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                  <div style={{width:38,height:50,background:"linear-gradient(160deg,#fca5a5,#ef4444)",borderRadius:5}}/>
+                <div style={{position:"relative",width:56,height:72,margin:"0 auto 18px"}}>
+                  <div style={{width:56,height:72,background:"linear-gradient(150deg,#fca5a5,#ef4444,#dc2626)",borderRadius:9,boxShadow:"0 8px 32px rgba(220,38,38,0.55), 0 2px 0 rgba(255,255,255,0.2) inset",position:"relative"}}>
+                    <div style={{position:"absolute",inset:0,background:"repeating-linear-gradient(135deg,transparent,transparent 8px,rgba(255,255,255,0.05) 8px,rgba(255,255,255,0.05) 9px)",borderRadius:9}}/>
+                    <div style={{position:"absolute",top:6,left:6,right:6,bottom:6,border:"1.5px solid rgba(255,255,255,0.2)",borderRadius:5}}/>
+                  </div>
+                  <div style={{position:"absolute",inset:"-8px",background:"radial-gradient(ellipse at 50% 60%,rgba(220,38,38,0.3) 0%,transparent 70%)",borderRadius:20,pointerEvents:"none"}}/>
                 </div>
-                <div style={{color:"#7f1d1d",fontWeight:900,fontSize:22,letterSpacing:1,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase"}}>Red Card</div>
-                <div style={{color:"#64748b",fontSize:13,marginBottom:6,lineHeight:1.5}}>{yellowUsed?"Two wrong answers — match over.":"Wrong answer — match over."}</div>
-                <div style={{color:"#94a3b8",fontSize:11}}>Taking you to results...</div>
+                <div style={{color:"#f87171",fontWeight:900,fontSize:22,letterSpacing:2,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",textShadow:"0 0 20px rgba(248,113,113,0.4)"}}>Red Card</div>
+                <div style={{color:"rgba(255,255,255,0.5)",fontSize:13,marginBottom:6,lineHeight:1.5}}>{yellowUsed?"Two wrong answers — match over.":"Wrong answer — match over."}</div>
+                <div style={{color:"rgba(255,255,255,0.25)",fontSize:11,fontFamily:"'Inter',sans-serif"}}>Taking you to results...</div>
               </div>
             </div>
             ):null
