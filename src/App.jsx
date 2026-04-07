@@ -1347,9 +1347,9 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   const youEntry = board.find(e=>e.isYou);
 
   const TABS = [
-    {id:"weekly",  label:"Top Scorer",        icon:"⚽", accent:"#60a5fa", desc:"Best Training Pitch score · this week"},
-    {id:"alltime", label:"Golden Boot",       icon:"🥾", accent:"#ec4899", desc:"Best single Training Pitch score · all-time"},
-    {id:"caps",    label:"Caps",              icon:"🧢", accent:"#fbbf24", desc:"Longest active streak · all-time"},
+    {id:"weekly",  label:"Top Scorer",  sub:"this week",  icon:"⚽", accent:"#60a5fa", desc:"Best Training Pitch score · this week"},
+    {id:"alltime", label:"Golden Boot", sub:"all time",    icon:"🥾", accent:"#ec4899", desc:"Best single Training Pitch score · all-time"},
+    {id:"caps",    label:"Caps",        sub:"all time",    icon:"🧢", accent:"#fbbf24", desc:"Longest active streak · all-time"},
   ];
   const activeTab = TABS.find(t=>t.id===tab);
 
@@ -1403,7 +1403,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
               color: tab===t.id ? t.accent : "rgba(255,255,255,0.4)",
               boxShadow: tab===t.id ? `0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.8)` : "none",
               borderBottom: tab===t.id ? `2px solid ${t.accent}` : "2px solid transparent",
-            }}>{t.icon} {t.label}</button>
+            }}><div style={{lineHeight:1.2}}>{t.icon} {t.label}</div><div style={{fontSize:8,opacity:0.7,marginTop:2,textTransform:"lowercase",letterSpacing:0.3,fontWeight:500}}>{t.sub}</div></button>
           ))}
         </div>
 
@@ -1947,6 +1947,96 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
 }
 
 // ── LEADERBOARD PAGE ──────────────────────────────────────────────────────────
+// ── TERMS & CONTACT SCREEN ────────────────────────────────────────────────────
+function TermsScreen({onBack}){
+  return(
+    <PageWrap>
+      <div style={{width:"100%"}}>
+        {/* Header */}
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
+          <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,flexShrink:0}}>← Back</button>
+          <div>
+            <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
+            <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Terms & Contact</div>
+          </div>
+        </div>
+
+        {/* Terms card */}
+        <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:16,padding:"18px 18px",marginBottom:12,boxShadow:"0 4px 20px rgba(0,0,0,0.12)",border:"1px solid rgba(0,0,0,0.06)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.01) 16px,rgba(0,0,0,0.01) 17px)",pointerEvents:"none"}}/>
+          <div style={{position:"relative"}}>
+            <div style={{fontSize:11,fontWeight:800,color:"#0f172a",letterSpacing:1,textTransform:"uppercase",marginBottom:12,fontFamily:"'Inter',sans-serif"}}>Terms of Use</div>
+            {[
+              "StatStreaks is a free-to-play football trivia game. By using the app you agree to these terms.",
+              "Statistical data is sourced from publicly available records and is provided for entertainment purposes only. While we make every effort to ensure accuracy, we cannot guarantee that all statistics are fully correct. Please report any errors to us.",
+              "The app displays advertisements. These are provided by third-party ad networks and StatStreaks is not responsible for their content.",
+              "We collect your chosen display name and game streak in order to power the leaderboards. This data is stored securely and is not sold to third parties.",
+              "StatStreaks is not affiliated with or endorsed by any football club, governing body, or player.",
+              "We reserve the right to update these terms at any time. Continued use of the app constitutes acceptance of any changes.",
+            ].map((text,i)=>(
+              <div key={i} style={{display:"flex",gap:10,marginBottom:10,alignItems:"flex-start"}}>
+                <div style={{width:18,height:18,borderRadius:4,background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#ffffff",fontWeight:800,flexShrink:0,marginTop:1,fontFamily:"'Inter',sans-serif"}}>{i+1}</div>
+                <p style={{margin:0,fontSize:12,color:"#475569",lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Privacy card */}
+        <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:16,padding:"18px 18px",marginBottom:12,boxShadow:"0 4px 20px rgba(0,0,0,0.12)",border:"1px solid rgba(0,0,0,0.06)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.01) 16px,rgba(0,0,0,0.01) 17px)",pointerEvents:"none"}}/>
+          <div style={{position:"relative"}}>
+            <div style={{fontSize:11,fontWeight:800,color:"#0f172a",letterSpacing:1,textTransform:"uppercase",marginBottom:12,fontFamily:"'Inter',sans-serif"}}>Privacy</div>
+            {[
+              "Your display name and streak are stored locally on your device and, when leaderboards are live, on our secure servers.",
+              "A unique anonymous ID is generated for your device to identify your leaderboard entry. This is not linked to any personal account.",
+              "We do not collect email addresses, phone numbers, or any other personal information.",
+              "Third-party advertisers may use cookies or similar technologies. You can opt out through your device settings.",
+            ].map((text,i)=>(
+              <div key={i} style={{display:"flex",gap:10,marginBottom:10,alignItems:"flex-start"}}>
+                <div style={{width:18,height:18,borderRadius:4,background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#ffffff",fontWeight:800,flexShrink:0,marginTop:1,fontFamily:"'Inter',sans-serif"}}>{i+1}</div>
+                <p style={{margin:0,fontSize:12,color:"#475569",lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Contact card */}
+        <div style={{background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",borderRadius:16,padding:"18px 18px",marginBottom:12,boxShadow:"0 4px 20px rgba(6,182,212,0.35)",border:"1px solid rgba(6,182,212,0.4)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
+          <div style={{position:"relative"}}>
+            <div style={{fontSize:11,fontWeight:800,color:"#ffffff",letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontFamily:"'Inter',sans-serif"}}>Get in Touch</div>
+            <p style={{margin:"0 0 14px",fontSize:12,color:"rgba(255,255,255,0.8)",lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>
+              Found a stats error? Want to request a new category? Got a bug to report? We want to hear from you.
+            </p>
+            <a href="mailto:statstreaks@gmail.com" style={{
+              display:"inline-flex",alignItems:"center",gap:8,
+              background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",
+              borderRadius:10,padding:"10px 16px",textDecoration:"none",
+              color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,
+            }}>
+              ✉️ statstreaks@gmail.com
+            </a>
+            <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:6}}>
+              {["🐛 Bug reports","📊 Stats corrections","📂 Category requests"].map((item,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"rgba(255,255,255,0.7)",fontFamily:"'Inter',sans-serif"}}>
+                  <div style={{width:4,height:4,borderRadius:"50%",background:"rgba(255,255,255,0.5)"}}/>
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{textAlign:"center",color:"rgba(255,255,255,0.2)",fontSize:10,fontFamily:"'Inter',sans-serif",marginTop:4}}>
+          StatStreaks v0.1 beta · Last updated April 2026
+        </div>
+      </div>
+    </PageWrap>
+  );
+}
+
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 // ── PASSWORD GATE ─────────────────────────────────────────────────────────────
 const PASSWORD = "bottlers";
@@ -2310,6 +2400,7 @@ function App(){
   const nextCard=cards[currentIdx+1];
 
   if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"}/>;
+  if(screen==="terms")return <TermsScreen onBack={()=>setScreen("home")}/>;
   if(screen==="rush")return <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} username={username} streak={streak}/>;
 
   // ── RUSH CONTINUE MODAL (inline component) ────────────────────────────────
@@ -2399,22 +2490,28 @@ function App(){
     {caps:21,name:"Dennis Wise",country:"England",msg:"Mouthy, tenacious, effective. You didn't want to play against Dennis Wise."},
     {caps:22,name:"Gary Pallister",country:"England",msg:"Alongside Stam in the debate for Man United's greatest ever centre-back. Underrated England career."},
     {caps:23,name:"Tommy Lawton",country:"England",msg:"One of the finest headers of a ball England has ever produced. A true post-war great."},
+    {caps:24,name:"Martin Chivers",country:"England",msg:"Twice Football League top scorer in the early 70s. A powerful and underrated Spurs legend."},
     {caps:25,name:"Stan Mortensen",country:"England",msg:"Hat-trick in the FA Cup final, 25 England caps. Overshadowed by Matthews but equally brilliant."},
     {caps:26,name:"Robbie Fowler",country:"England",msg:"God. One of the most natural finishers the country has ever seen."},
     {caps:27,name:"Francis Lee",country:"England",msg:"Tough, direct, and loved a penalty. A key part of the great Man City side of the 70s."},
     {caps:28,name:"Nobby Stiles",country:"England",msg:"No nonsense, all heart. A World Cup winner who'd run through a wall for you."},
+    {caps:29,name:"Danny Rose",country:"England",msg:"One of the best left backs of his Premier League generation. Honest and dependable."},
     {caps:30,name:"Darren Anderton",country:"England",msg:"Sick as a parrot, but when fit — pure class. Deserved a longer career at this level."},
+    {caps:31,name:"Kalvin Phillips",country:"England",msg:"The Yorkshire Pirlo. Rose from the Championship to become an England regular."},
     {caps:32,name:"Alf Ramsey",country:"England",msg:"Better known as the manager, but a fine player too. The man who brought it home."},
     {caps:33,name:"Nat Lofthouse",country:"England",msg:"The Lion of Vienna. One of England's most courageous centre-forwards."},
     {caps:34,name:"Michael Carrick",country:"England",msg:"The most underrated midfielder of his generation. Finally getting the recognition he deserves."},
     {caps:35,name:"Jack Charlton",country:"England",msg:"Big Jack — World Cup winner, manager of Ireland, and a proper football man."},
+    {caps:36,name:"Graeme Le Saux",country:"England",msg:"One of the most cultured left backs England produced in the 90s. A Premier League title winner with Blackburn."},
     {caps:37,name:"George Cohen",country:"England",msg:"One of the unsung heroes of 1966. A reliable, tireless right back."},
     {caps:38,name:"Jamie Carragher",country:"England",msg:"Warrior. Would die for Liverpool. Did his best for England too."},
     {caps:39,name:"Nicky Butt",country:"England",msg:"The man who held it together when everyone else got the glory. Quietly brilliant."},
+    {caps:40,name:"Phil Jagielka",country:"England",msg:"A rock at centre-back for Everton and England for over a decade. Reliable and underappreciated."},
     {caps:41,name:"Paul Robinson",country:"England",msg:"One of England's most reliable keepers of his era. Remember that goal against Croatia?"},
     {caps:42,name:"Peter Crouch",country:"England",msg:"A robot, allegedly. 42 caps and a goal record for a target man that's hard to argue with."},
     {caps:43,name:"Jimmy Armfield",country:"England",msg:"Often called the best right-back England has ever had. A true gentleman of the game."},
     {caps:44,name:"César Azpilicueta",country:"Spain",msg:"Mr Chelsea. A decade of top-level consistency and a Spain career to match."},
+    {caps:45,name:"Mark Wright",country:"England",msg:"A commanding centre-back who captained England and shone at Italia 90."},
     {caps:46,name:"Mick Channon",country:"England",msg:"The windmill celebration, 46 caps, and a proper career on both sides of the white line."},
     {caps:47,name:"Trevor Brooking",country:"England",msg:"Elegant, intelligent football. One of England's finest playmakers."},
     {caps:48,name:"Colin Bell",country:"England",msg:"The King of the Kippax. Injury robbed England of so much more from him."},
@@ -2451,10 +2548,12 @@ function App(){
     {caps:80,name:"Gary Lineker",country:"England",msg:"Never booked, never sent off, never stopped scoring. A clean record — just like your streak."},
     {caps:81,name:"Franco Baresi",country:"Italy",msg:"The best sweeper who ever lived, some say. Italy and AC Milan were built around him for a decade."},
     {caps:82,name:"Youri Djorkaeff",country:"France",msg:"The Snake. Glided through the 98 World Cup and Euro 2000 like it was effortless."},
+    {caps:83,name:"Ruud Krol",country:"Netherlands",msg:"The heartbeat of Total Football's greatest era. Two World Cup finals with the Netherlands."},
     {caps:84,name:"Blaise Matuidi",country:"France",msg:"The engine room of the 2018 World Cup winning France side. Unglamorous, essential, brilliant."},
     {caps:85,name:"Gary Neville",country:"England",msg:"Fergie's trusted sergeant. The best right back of his generation and now the most opinionated man in football."},
     {caps:86,name:"Oliver Kahn",country:"Germany",msg:"The Titan. Possibly the most intense goalkeeper in football history. That 2002 World Cup was incredible."},
     {caps:87,name:"Fabien Barthez",country:"France",msg:"The bald head, the mind games, the World Cup and Euros medals. A great keeper who wore his eccentricity with pride."},
+    {caps:88,name:"Pauleta",country:"Portugal",msg:"Portugal's record scorer before Ronaldo arrived. 47 international goals and a brilliant career at PSG."},
     {caps:89,name:"Michael Owen",country:"England",msg:"That goal against Argentina. 18 years old, best player on the planet. England's most precocious talent."},
     {caps:90,name:"Rudi Völler",country:"Germany",msg:"Goals in three World Cups, a manager who famously lost it at half time. One of Germany's great characters."},
     {caps:91,name:"Diego Maradona",country:"Argentina",msg:"The Hand of God, the Goal of the Century — and now your streak. You're in Maradona territory. Keep going 🔥"},
@@ -2465,6 +2564,7 @@ function App(){
     {caps:96,name:"Arjen Robben",country:"Netherlands",msg:"The left foot was a myth. The right foot was unstoppable. He cut inside every single time and no one could stop him."},
     {caps:97,name:"Ronaldinho",country:"Brazil",msg:"The biggest smile in football, the most creative player of his era. Pure joy to watch at his peak."},
     {caps:98,name:"Ronaldo",country:"Brazil",msg:"R9. The original Ronaldo. Two World Cups, three World Cup Golden Boots. An alien in football boots."},
+    {caps:99,name:"Antonio Valencia",country:"Ecuador",msg:"Ecuador's greatest ever player and a Premier League title winner with Manchester United. Unstoppable at his peak."},
     {caps:100,name:"Carles Puyol",country:"Spain",msg:"The heart and soul of the golden generation. That header against Germany. A warrior in the truest sense."},
     {caps:101,name:"Sergio Agüero",country:"Argentina",msg:"AGUEROOOOO. The most dramatic goal in Premier League history and one of the greatest strikers of his era."},
     {caps:102,name:"Robin van Persie",country:"Netherlands",msg:"That header against Spain in 2014. That volley against Aston Villa. Simply one of the best ever to do it."},
@@ -2504,15 +2604,23 @@ function App(){
     {caps:141,name:"Pepe",country:"Portugal",msg:"Fierce, physical, and utterly relentless. One of the most intimidating defenders of the Champions League era."},
     {caps:142,name:"Cafu",country:"Brazil",msg:"The train. Never stopped running. Won two World Cups and is arguably the greatest right back ever."},
     {caps:143,name:"Javier Zanetti",country:"Argentina",msg:"Over 850 games for Inter Milan, 143 caps for Argentina. One of football's greatest servants."},
+    {caps:144,name:"Yuto Nagatomo",country:"Japan",msg:"Japan's most capped outfield player of his era. Won three J-League titles and carved out a career across Europe."},
     {caps:145,name:"Ángel Di María",country:"Argentina",msg:"The man of the match in the 2014 World Cup final before injury cut him short. A World Cup winner in 2022."},
     {caps:146,name:"Robbie Keane",country:"Ireland",msg:"Ireland's greatest ever player and joint record goalscorer in European qualifying. 146 caps — an icon."},
     {caps:147,name:"Javier Mascherano",country:"Argentina",msg:"El Jefecito. Played at centre back despite being a midfielder and somehow made it look easy. Titan."},
     {caps:148,name:"Ali Daei",country:"Iran",msg:"109 international goals, 148 caps. Iran's greatest ever player — held the record for most international goals until Ronaldo."},
     {caps:150,name:"Lothar Matthäus",country:"Germany",msg:"The most capped outfield player in World Cup history. You're at the summit now. Outstanding."},
+    {caps:152,name:"Yasuhito Endō",country:"Japan",msg:"Japan's most capped player ever. A one-club legend at Gamba Osaka for over 20 years."},
+    {caps:156,name:"Sami Al-Jaber",country:"Saudi Arabia",msg:"Four World Cups for Saudi Arabia. The most prolific striker in their history."},
     {caps:157,name:"Jan Vertonghen",country:"Belgium",msg:"Belgium's most capped player and one of the finest left-sided centre-backs of his era. A quiet colossus."},
+    {caps:159,name:"Essam El-Hadary",country:"Egypt",msg:"Played international football into his 40s. A legendary goalkeeper in African football history."},
     {caps:167,name:"Iker Casillas",country:"Spain",msg:"Saint Iker. Won everything there is to win — two Euros, a World Cup, three Champions Leagues. A legend."},
+    {caps:168,name:"Iván Hurtado",country:"Ecuador",msg:"Ecuador's most capped player. Played in two World Cups and was the foundation of their defence for 15 years."},
     {caps:176,name:"Gianluigi Buffon",country:"Italy",msg:"Twenty years of international football. The most dedicated goalkeeper of the modern era. Exceptional commitment."},
+    {caps:177,name:"Hossam Hassan",country:"Egypt",msg:"Africa's all-time record scorer and one of the most prolific international forwards the continent has seen."},
     {caps:180,name:"Sergio Ramos",country:"Spain",msg:"The most decorated defender in football history. 180 caps, every honour the game offers. You've reached the very top."},
+    {caps:182,name:"Andrés Guardado",country:"Mexico",msg:"Mexico's most decorated captain. Five World Cups and a career spanning two decades at the highest level."},
+    {caps:184,name:"Ahmed Hassan",country:"Egypt",msg:"Africa's record cap holder. Four Africa Cup of Nations titles. A true giant of the continent's football history."},
   ];
   const EARLY_MESSAGES = [
     "Play today's match to get on the board 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
@@ -2537,15 +2645,46 @@ function App(){
     }
     return best;
   }
+  function getGapMessage(streak) {
+    if(streak<20)  return "Double figures. You're earning your place in the squad 🔥";
+    if(streak<30)  return "Over 20 days. You're not a one-week wonder — this is becoming a habit 🔥";
+    if(streak<40)  return "30+ caps in. You'd be a regular international at most nations. Keep going 🔥";
+    if(streak<50)  return "Pushing 40. You're in the conversation for the greatest at your position 🔥";
+    if(streak<60)  return "Past 50. Half a century of caps — very few players ever get here. Remarkable 🔥";
+    if(streak<70)  return "60 caps deep. You're writing your own chapter now. Don't stop 🔥";
+    if(streak<80)  return "70+ days. A legend of the game would be proud of this run 🔥";
+    if(streak<90)  return "Closing in on 80. The dedication required to get here is elite 🔥";
+    if(streak<100) return "Nearly a century of caps. You're in the all-time conversation now 🔥";
+    if(streak<110) return "Past 100. An exclusive club. Fewer players have done this than you think 🔥";
+    if(streak<120) return "110 days in. This is generational commitment. Keep going 🔥";
+    if(streak<130) return "Closing in on 120. You are the definition of a serial winner 🔥";
+    if(streak<140) return "130 caps. At this point you're a national institution 🔥";
+    if(streak<150) return "140 days in. The stats don't lie — you are elite 🔥";
+    if(streak<160) return "150 caps. The rarest of the rare. Keep going 🔥";
+    if(streak<170) return "Past 160. Almost no one reaches these heights. Extraordinary 🔥";
+    if(streak<180) return "170 days in. You are one of the most dedicated players this game has ever seen 🔥";
+    if(streak<190) return "Past 180. You've surpassed Sergio Ramos — the most decorated defender of all time. Breathtaking 🏆";
+    if(streak<200) return "190 caps. You are in completely uncharted territory now. The stuff of legend 🏆";
+    if(streak<215) return "200 days. Two hundred. There are no comparisons left. You are StatStreaks 🏆";
+    if(streak<225) return "Past 200. If football had a Hall of Fame for dedication, you'd be first in 🏆";
+    if(streak<240) return "225 caps. Every day you come back is another chapter of something extraordinary 🏆";
+    if(streak<250) return "Pushing 250. The greatest run in StatStreaks history. Don't stop now 🏆";
+    if(streak<265) return "250 days. A quarter of a thousand. Utterly, completely unstoppable 🏆";
+    if(streak<275) return "Past 250. At this point we need to build a statue 🏆";
+    if(streak<290) return "275 caps. This streak has taken on a life of its own. Phenomenal 🏆";
+    if(streak<300) return "Almost 300. If you reach it, the game is yours — forever 🏆";
+    return `${streak} caps. You've reached 300. StatStreaks has never seen anything like this. You are immortal 🐐`;
+  }
   function getStreakSubtext(){
     if(streak<=0) return EARLY_MESSAGES[0];
     if(streak<10) return EARLY_MESSAGES[streak];
     const p=getStreakPlayer(streak);
-    if(!p) return `${streak} caps in. Keep going 🔥`;
-    const diff=streak-p.caps; // always >= 0 now
+    if(!p) return getGapMessage(streak);
+    const diff=streak-p.caps; // always >= 0
     if(diff===0) return `${p.name} — ${p.caps} caps for ${p.country}. ${p.msg} Come back tomorrow 🔥`;
-    if(diff<=3) return `Beyond ${p.name}'s ${p.caps} caps for ${p.country}. ${p.msg.split('.')[0]}. Keep going 🔥`;
-    return `${streak} caps in. You've surpassed ${p.name} (${p.caps} caps for ${p.country}). ${p.msg.split('.')[0]}. Keep going 🔥`;
+    if(diff<=3)  return `Beyond ${p.name}'s ${p.caps} caps for ${p.country}. ${p.msg.split('.')[0]}. Keep going 🔥`;
+    // In a gap between two players — motivational, no player reveal
+    return getGapMessage(streak);
   }
 
   // Career status — shared between home + result screens
@@ -2807,6 +2946,15 @@ function App(){
           ].map((b,i)=>(
             <button key={i} onClick={b.fn} style={{flex:1,padding:"6px",background:"transparent",border:`1px dashed ${b.danger?"rgba(220,38,38,0.25)":"rgba(255,255,255,0.08)"}`,borderRadius:7,color:b.danger?"rgba(220,38,38,0.4)":"rgba(255,255,255,0.2)",fontSize:9,letterSpacing:1,cursor:"pointer",fontFamily:"'Inter',sans-serif",textTransform:"uppercase"}}>{b.label}</button>
           ))}
+        </div>
+
+        {/* ── FOOTER ── */}
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginTop:16,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+          <button onClick={()=>setScreen("terms")} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Terms & Privacy</button>
+          <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
+          <a href="mailto:statstreaks@gmail.com" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",textDecoration:"none",letterSpacing:0.5}}>Contact Us</a>
+          <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
+          <span style={{color:"rgba(255,255,255,0.15)",fontSize:10,fontFamily:"'Inter',sans-serif"}}>v0.1 beta</span>
         </div>
 
       </div>
