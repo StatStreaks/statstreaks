@@ -3041,14 +3041,15 @@ function App(){
                     </div>
                   ))}
                 </div>
-                {/* Share button — blue */}
+                {/* Share button — green WhatsApp */}
                 <button onClick={()=>{
                   const s=todayResult.filter(r=>r==="correct").length;
                   const emojiGrid=todayResult.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
-                  const t=`StatStreaks #${effectiveDayIdx+1} ⚽\n${emojiGrid}\n${s}/10 🧢 ${streak}`;
-                  try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
-                }} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:10,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
-                  ↗ Share your score
+                  const t=`StatStreaks #${effectiveDayIdx+1} ⚽\n🏆 ${todayChallenge.theme}\n\n${emojiGrid}\n${s}/10 · ${streak} career caps 🧢\n\nCan you beat it? statstreaks.com`;
+                  if(navigator.share){navigator.share({text:t}).catch(()=>{});}
+                  else{window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank");}
+                }} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:10,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(22,163,74,0.35)"}}>
+                  <span style={{fontSize:15}}>💬</span> Share on WhatsApp
                 </button>
                 {/* Tomorrow's fixture — light cyan */}
                 <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(6,182,212,0.08)",borderRadius:10,border:"1px solid rgba(6,182,212,0.2)"}}>
@@ -3223,14 +3224,15 @@ function App(){
                   </div>
                 )}
 
-                {/* Share button — cyan, full width */}
+                {/* Share button — green WhatsApp, full width */}
                 <button onClick={()=>{
                   const s=latestScore||0;
                   const emojiGrid=answerLog.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
-                  const t=`StatStreaks #${effectiveDayIdx+1} ⚽\n${emojiGrid}\n${s}/10 🧢 ${streak}`;
-                  try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
-                }} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8,boxShadow:"0 4px 16px rgba(6,182,212,0.35), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
-                  ↗ Share Your Score
+                  const t=`StatStreaks #${effectiveDayIdx+1} ⚽\n🏆 ${todayChallenge.theme}\n\n${emojiGrid}\n${s}/10 · ${streak} career caps 🧢\n\nCan you beat it? statstreaks.com`;
+                  if(navigator.share){navigator.share({text:t}).catch(()=>{});}
+                  else{window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank");}
+                }} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.35), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
+                  <span style={{fontSize:16}}>💬</span> Share on WhatsApp
                 </button>
 
                 {/* Training Pitch CTA — full width, same border-radius */}
@@ -3356,23 +3358,17 @@ function App(){
                 </div>
               </div>
 
-              {/* ── MESSAGE + AVG BAND ── */}
+              {/* ── MESSAGE + CAREER CAPS BAND ── */}
               {(()=>{
-                const beatAvg = activeCatData && displayScore > activeCatData.globalAvg;
-                const avgCol = beatAvg ? "#06b6d4" : "#f97316";
-                const avgGlow = beatAvg ? "rgba(6,182,212,0.3)" : "rgba(249,115,22,0.25)";
-                const bandBg = beatAvg ? "rgba(6,182,212,0.06)" : "rgba(249,115,22,0.06)";
-                const bandBorder = beatAvg ? "rgba(6,182,212,0.15)" : "rgba(249,115,22,0.15)";
+                const rStatus = getCareerStatus(streak);
                 return(
-                  <div style={{margin:"14px 18px 18px",background:bandBg,border:`1px solid ${bandBorder}`,borderRadius:10,padding:"11px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
+                  <div style={{margin:"14px 18px 18px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"11px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
                     <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.4,flex:1,fontWeight:500}}>{msg}</div>
-                    {activeCatData&&(
-                      <div style={{flexShrink:0,textAlign:"center",borderLeft:`1px solid ${bandBorder}`,paddingLeft:12}}>
-                        <div style={{fontSize:7.5,color:avgCol,opacity:0.7,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:1}}>Cat. avg</div>
-                        <div style={{fontSize:24,fontWeight:900,color:avgCol,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:`0 0 16px ${avgGlow}`}}>{activeCatData.globalAvg}</div>
-                        <div style={{fontSize:8,color:avgCol,fontWeight:700,fontFamily:"'Inter',sans-serif",marginTop:1,opacity:0.8}}>{beatAvg?"↑ above":"↓ below"}</div>
-                      </div>
-                    )}
+                    <div style={{flexShrink:0,textAlign:"center",borderLeft:"1px solid rgba(255,255,255,0.08)",paddingLeft:12}}>
+                      <div style={{fontSize:7.5,color:rStatus.col,opacity:0.7,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:1}}>Career Caps</div>
+                      <div style={{fontSize:24,fontWeight:900,color:rStatus.col,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:`0 0 16px ${rStatus.glow}`}}>{streak}</div>
+                      <div style={{fontSize:8,color:rStatus.col,fontWeight:700,fontFamily:"'Inter',sans-serif",marginTop:1,opacity:0.8}}>{rStatus.icon}</div>
+                    </div>
                   </div>
                 );
               })()}
@@ -3384,10 +3380,12 @@ function App(){
             <div style={{display:"flex",gap:8,marginBottom:0}}>
               <button onClick={()=>{
                 const perfTag=isPerfect?" 🔥 PERFECT RUN (2×)":"";
-                const t=`StatStreaks Training Pitch\n${theme}\nScore: ${displayScore}${perfTag} — can you beat me?`;
-                try{navigator.clipboard.writeText(t);}catch{}alert("Copied!");
-              }} style={{flex:1,padding:"12px",background:"linear-gradient(135deg,#2563eb,#3b82f6)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 12px rgba(37,99,235,0.35)"}}>
-                ↗ Share
+                const catLabel=activeCatData?.label||"Training Pitch";
+                const t=`StatStreaks ⚡ Training Pitch\n${catLabel}\n${displayScore} correct${perfTag} · ${streak} career caps 🧢\n\nThink you can beat me? statstreaks.com`;
+                if(navigator.share){navigator.share({text:t}).catch(()=>{});}
+                else{window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank");}
+              }} style={{flex:1,padding:"12px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 12px rgba(22,163,74,0.35)"}}>
+                <span style={{fontSize:14}}>💬</span> Share
               </button>
               <button onClick={()=>{SFX.click();setPrevScreen("rush");setScreen("leaderboard");}} style={{
                 flex:1,padding:"12px",borderRadius:12,border:"none",cursor:"pointer",
