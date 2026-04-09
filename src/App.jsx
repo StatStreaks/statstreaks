@@ -29,9 +29,12 @@ function createSoundEngine() {
     correct(){ tone(440,"sine",0.12,0.3); tone(554,"sine",0.12,0.3,0.1); tone(659,"sine",0.2,0.3,0.2); },
     wrong()  { tone(300,"sawtooth",0.15,0.3); tone(220,"sawtooth",0.25,0.3,0.12); },
     yellow() { tone(440,"sawtooth",0.1,0.3); tone(380,"sawtooth",0.2,0.2,0.1); },
+    red()    { tone(300,"sawtooth",0.2,0.15); tone(200,"sawtooth",0.25,0.2,0.12); tone(150,"sawtooth",0.3,0.3,0.26); },
     timeout(){ tone(220,"sawtooth",0.12,0.3); tone(180,"sawtooth",0.2,0.3,0.1); tone(150,"sawtooth",0.3,0.3,0.22); },
     tick()   { tone(880,"sine",0.04,0.08); },
     win()    { [523,659,784,1047,784,1047].forEach((n,i)=>tone(n,"sine",0.18,0.25,i*0.1)); },
+    newBest(){ [523,659,784,1047,1319].forEach((n,i)=>tone(n,"sine",0.2,0.28,i*0.09)); },
+    noBest() { tone(330,"sine",0.15,0.2); tone(294,"sine",0.18,0.25,0.18); tone(262,"sine",0.2,0.35,0.34); },
     click()  { tone(600,"sine",0.06,0.15); },
     card()   { tone(880,"sine",0.08,0.12); tone(1100,"sine",0.06,0.1,0.05); },
   };
@@ -2391,7 +2394,7 @@ function App(){
       setTimeLeft(t=>{
         const next=t-1;
         if(next<=8&&next>0)SFX.tick();
-        if(next<=0){clearInterval(id);setTimerActive(false);SFX.timeout();endRushRun("timeout");}
+        if(next<=0){clearInterval(id);setTimerActive(false);endRushRun("timeout");}
         return next;
       });
     },1000);
@@ -2449,6 +2452,8 @@ function App(){
       setRawCorrect(liveScore);  // store pre-multiplier count for result display
       setCleanScore(finalClean);
       setGameOutcome("timeout");
+      // New best or not — play appropriate sound
+      if(finalScore > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest(); else SFX.timeout();
       // Interstitial only if no continue (rewarded) was used this run
       if(liveIsPerfect){
         setShowInterstitial(true);
@@ -2487,13 +2492,12 @@ function App(){
   // User dismisses modal — go to result (always a non-clean run since they got a wrong answer)
   function rushDismiss(){
     setShowRushModal(false);
-    // Capture best BEFORE saving for new-PB detection on result screen
     const preBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
     setPrevCatBest(preBest);
     saveRushScore(score, false);
     setLatestScore(score);
     setGameOutcome("lose");
-    // Interstitial only if no continue (rewarded) was used this run
+    if(score > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest();
     if(continueCount===0){
       setShowInterstitial(true);
     } else {
@@ -2566,7 +2570,7 @@ function App(){
   }
 
   function onWatchAd(){setYellowUsed(true);setShowYellow(false);setCurrentIdx(i=>i+1);setRevealedNext(false);setResult(null);setFlashResult(null);}
-  function onDeclineAd(){setShowYellow(false);setDeclinedYellow(true);setResult("wrong");setFlashResult("wrong");const nl=[...answerLog];if(nl[nl.length-1]==="yellow")nl[nl.length-1]="red";else nl.push("red");setAnswerLog(nl);finishGame("lose",score,nl);}
+  function onDeclineAd(){SFX.red();setShowYellow(false);setDeclinedYellow(true);setResult("wrong");setFlashResult("wrong");const nl=[...answerLog];if(nl[nl.length-1]==="yellow")nl[nl.length-1]="red";else nl.push("red");setAnswerLog(nl);finishGame("lose",score,nl);}
   function markDailyPlayed(log){
     lsSet("daily_done",todayKey);setDailyDone(todayKey);
     const ns=streak+1;lsSet("streak",ns);setStreak(ns);
