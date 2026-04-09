@@ -3596,7 +3596,7 @@ function App(){
           </div>
         </div>
       )}
-      <div style={{width:"100%",display:"flex",flexDirection:"column",minHeight:"calc(100vh - 48px)"}}>
+      <div style={{width:"100%",display:"flex",flexDirection:"column",minHeight:"calc(100vh - 48px)",gap:0}}>
 
         {/* ── TOP SECTION ── */}
         <div>
@@ -3669,7 +3669,7 @@ function App(){
         )}
 
         {/* ── STAT PANELS ── */}
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,justifyContent:"center"}}>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,justifyContent:"center",flex:1}}>
           {currentCard&&<StatPanel card={currentCard} revealed={true} flashResult={null} catId={isRush?rushCat:theme}/>}
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,flexShrink:0}}>
             <div style={{width:1,height:20,background:"rgba(255,255,255,0.1)"}}/>
@@ -3682,7 +3682,7 @@ function App(){
         </div>{/* end top section */}
 
         {/* ── BUTTONS / FEEDBACK — anchored to bottom ── */}
-        <div style={{marginTop:"auto",paddingTop:12}}>
+        <div style={{paddingTop:12}}>
         {result===null||result==="yellow"?(
           result==="yellow"?(
             <div style={{background:"linear-gradient(135deg,#fffbeb,#fef3c7)",border:"1px solid #fde68a",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 4px 16px rgba(217,119,6,0.2), inset 0 1px 0 rgba(255,255,255,0.8)",position:"relative",overflow:"hidden"}}>
