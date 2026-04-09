@@ -1041,6 +1041,8 @@ function seededVal(name, salt, min, max) {
   return min+Math.floor((h%(max-min+1)));
 }
 
+const RUSH_CAT_LABELS = ["PL Goals","PL Assists","Clean Sheets","Appearances","England Caps","England Goals","Man Utd vs LFC","Real vs Barça"];
+
 function buildCapsBoard(streak, username) {
   const name = username||"You";
   const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,7,1,180), isYou:false}));
@@ -1048,39 +1050,38 @@ function buildCapsBoard(streak, username) {
   return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
 }
 
-function buildRushAllTimeBoard(rushScores, username) {
+function buildRushAllTimeBoard(rushScores, username, rushBestCat) {
   const name = username||"You";
-  const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,13,4,28), isYou:false}));
+  const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,13,4,28), isYou:false, cat:RUSH_CAT_LABELS[seededVal(n,42,0,RUSH_CAT_LABELS.length-1)]}));
   const best = rushScores.length?Math.max(...rushScores):null;
-  const you = best!==null?[{name,score:best,isYou:true}]:[];
+  const you = best!==null?[{name,score:best,isYou:true,cat:rushBestCat||null}]:[];
   return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
 }
 
-function buildRushWeeklyBoard(rushScores, username) {
+function buildRushWeeklyBoard(rushScores, username, rushBestCat) {
   const name = username||"You";
-  // Weekly sim scores are lower — fresh slate each Monday
-  const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,97,1,16), isYou:false}));
+  const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,97,1,16), isYou:false, cat:RUSH_CAT_LABELS[seededVal(n,17,0,RUSH_CAT_LABELS.length-1)]}));
   const best = rushScores.length?Math.max(...rushScores):null;
-  const you = best!==null?[{name,score:best,isYou:true}]:[];
+  const you = best!==null?[{name,score:best,isYou:true,cat:rushBestCat||null}]:[];
   return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
 }
 
 // Keep old function so nothing else breaks
 function buildLeaderboard(scores,username){return buildRushAllTimeBoard(scores,username);}
 
-function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="weekly"}){
+function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="weekly", rushBestCat}){
   const [tab, setTab] = useState(defaultTab);
 
   const capsBoard    = buildCapsBoard(streak, username);
-  const allTimeBoard = buildRushAllTimeBoard(rushScores, username);
-  const weeklyBoard  = buildRushWeeklyBoard(rushScores, username);
+  const allTimeBoard = buildRushAllTimeBoard(rushScores, username, rushBestCat);
+  const weeklyBoard  = buildRushWeeklyBoard(rushScores, username, rushBestCat);
 
   const board = tab==="caps" ? capsBoard : tab==="alltime" ? allTimeBoard : weeklyBoard;
   const youEntry = board.find(e=>e.isYou);
 
   const TABS = [
     {id:"weekly",  label:"Top Scorer",  sub:"this week",  icon:"⚽", accent:"#06b6d4", desc:"Best Training Pitch score · this week"},
-    {id:"alltime", label:"Golden Boot", sub:"all time",    icon:"🥾", accent:"#ec4899", desc:"Best single Training Pitch score · all-time"},
+    {id:"alltime", label:"Golden Boot", sub:"all time",    icon:"🥾", accent:"#ec4899", desc:"Best Training Pitch score · all-time"},
     {id:"caps",    label:"Caps",        sub:"all time",    icon:"🧢", accent:"#d97706", desc:"Longest active streak · all-time"},
   ];
   const activeTab = TABS.find(t=>t.id===tab);
@@ -1219,11 +1220,15 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
                     </span>
                     {e.isYou&&<span style={{fontSize:8,color:activeTab.accent,background:`${activeTab.accent}25`,padding:"2px 5px",borderRadius:4,fontWeight:800,fontFamily:"'Inter',sans-serif",flexShrink:0}}>YOU</span>}
                   </div>
-                  {tab==="caps"&&(
+                  {tab==="caps"?(
                     <div style={{fontSize:9,color:entryStatus.col,fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1,opacity:0.8}}>
                       {entryStatus.icon} {entryStatus.label}
                     </div>
-                  )}
+                  ):e.cat?(
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1,letterSpacing:0.2}}>
+                      {e.cat}
+                    </div>
+                  ):null}
                 </div>
                 <div style={{width:50,textAlign:"right",fontFamily:"'Bebas Neue',sans-serif",fontWeight:700,fontSize:20,
                   color:e.isYou?activeTab.accent:i<3?"#ffffff":"rgba(255,255,255,0.3)"}}>
@@ -1809,7 +1814,7 @@ function getCareerStatus(caps){
   return           {label:"Hall of Fame",               icon:"🏆",col:"#ffffff",glow:"#ffffff",next:null, nextLabel:null};
 }
 
-function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
+function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak}) {
   const status = getCareerStatus(streak||0);
   return (
     <PageWrap glow="gold">
@@ -1821,48 +1826,49 @@ function RushPage({onBack, onPlay, onLeaderboard, username, streak}) {
             <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
             <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Training Pitch</div>
           </div>
-          {/* Player name + status — top right */}
-          <div style={{textAlign:"right",flexShrink:0}}>
+          {/* How to play + player status stacked right */}
+          <div style={{textAlign:"right",flexShrink:0,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+            <button onClick={onHowToPlay} style={{background:"transparent",border:"none",color:"rgba(6,182,212,0.6)",fontSize:11,fontWeight:600,cursor:"pointer",letterSpacing:0.3,display:"inline-flex",alignItems:"center",gap:4,fontFamily:"'Inter',sans-serif",padding:0}}>
+              <span style={{width:14,height:14,borderRadius:99,border:"1.5px solid rgba(6,182,212,0.45)",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900,color:"rgba(6,182,212,0.65)"}}>?</span>
+              How to play
+            </button>
             <div style={{fontSize:12,fontWeight:800,color:status.col,fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>{username||"—"}</div>
-            <div style={{fontSize:9,color:status.col,opacity:0.75,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginTop:2}}>{status.icon} {status.label}</div>
+            <div style={{fontSize:9,color:status.col,opacity:0.75,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{status.icon} {status.label}</div>
           </div>
         </div>
 
-        {/* Leaderboard link */}
-        <button onClick={onLeaderboard} style={{
-          width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
-          background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
-          border:"1px solid rgba(217,119,6,0.4)",
-          borderRadius:10,padding:"10px 14px",cursor:"pointer",marginBottom:14,
-          fontFamily:"'Inter',sans-serif",textAlign:"left",
-          boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-          position:"relative",overflow:"hidden",
-          transition:"transform 0.12s,box-shadow 0.12s",
-        }}
-        onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5)";}}
-        onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
-          <div style={{display:"flex",alignItems:"center",gap:8,position:"relative"}}>
-            <span style={{fontSize:16}}>🏆</span>
-            <div>
-              <div style={{fontSize:13,fontWeight:700,color:"#ffffff",lineHeight:1.2}}>Leaderboards</div>
-              <div style={{fontSize:10,color:"rgba(255,255,255,0.65)",marginTop:2}}>Top Scorer · Golden Boot · Caps</div>
+        {/* How it works + Leaderboard — side by side */}
+        <div style={{display:"flex",gap:10,marginBottom:16}}>
+          {/* Mode explainer */}
+          <div style={{flex:1,background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 50%,#db2777 100%)",borderRadius:14,padding:"12px 14px",boxShadow:"0 4px 20px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(255,255,255,0.025) 20px,rgba(255,255,255,0.025) 21px)",pointerEvents:"none"}}/>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
+            <div style={{position:"relative"}}>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>How it works</div>
+              <div style={{color:"#ffffff",fontWeight:800,fontSize:13,marginBottom:4,fontFamily:"'Inter',sans-serif"}}>30s · go perfect ⚡</div>
+              <div style={{color:"rgba(255,255,255,0.7)",fontSize:11,lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>Zero mistakes = <strong style={{color:"#fde047"}}>2× score</strong></div>
             </div>
           </div>
-          <span style={{fontSize:11,color:"rgba(255,255,255,0.5)",position:"relative",flexShrink:0}}>→</span>
-        </button>
 
-        {/* Mode explainer — magenta gradient */}
-        <div style={{background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 50%,#db2777 100%)",borderRadius:14,padding:"16px",marginBottom:16,boxShadow:"0 4px 20px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(255,255,255,0.025) 20px,rgba(255,255,255,0.025) 21px)",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",top:"-50%",right:"-10%",width:"50%",height:"200%",background:"radial-gradient(ellipse at 80% 30%, rgba(255,255,255,0.1) 0%, transparent 65%)",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
-          <div style={{position:"relative"}}>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>How it works</div>
-            <div style={{color:"#ffffff",fontWeight:800,fontSize:15,marginBottom:4,fontFamily:"'Inter',sans-serif"}}>30 seconds — go for perfect ⚡</div>
-            <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>Score as many as you can. Zero mistakes = <strong style={{color:"#fde047"}}>2× score</strong>. Pick a category below.</div>
-          </div>
+          {/* Leaderboard link */}
+          <button onClick={onLeaderboard} style={{
+            flex:1,
+            background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
+            border:"1px solid rgba(217,119,6,0.4)",
+            borderRadius:14,cursor:"pointer",overflow:"hidden",
+            boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+            transition:"transform 0.12s,box-shadow 0.12s",textAlign:"left",padding:"12px 14px",
+          }}
+          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5)";}}
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
+            <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
+            <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
+            <div style={{position:"relative"}}>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
+              <div style={{fontSize:13,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",marginBottom:4,lineHeight:1.2}}>Top Scorer · Golden Boot · Caps</div>
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif"}}>See where you rank →</div>
+            </div>
+          </button>
         </div>
 
         {/* Category grid */}
@@ -2170,7 +2176,79 @@ function AppWithAuth() {
   return <App />;
 }
 
-export default AppWithAuth;
+function PhoneShell() {
+  return (
+    <>
+      <style>{`
+        @media (min-width: 700px) {
+          html, body { background: #080e18 !important; margin: 0; padding: 0; }
+          .ss-shell-outer {
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 48px 0 64px;
+          }
+          .ss-shell-frame {
+            width: 390px;
+            min-height: 760px;
+            border-radius: 50px;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+              0 0 0 1px rgba(255,255,255,0.1),
+              0 0 0 12px #181d2a,
+              0 0 0 13px rgba(255,255,255,0.07),
+              0 0 0 14px #0d1016,
+              0 48px 96px rgba(0,0,0,0.8),
+              0 0 140px rgba(6,182,212,0.07);
+          }
+          /* Notch */
+          .ss-shell-frame::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 126px; height: 30px;
+            background: #181d2a;
+            border-radius: 0 0 22px 22px;
+            z-index: 100;
+          }
+          /* Side buttons */
+          .ss-shell-frame::after {
+            content: '';
+            position: absolute;
+            top: 120px; right: -14px;
+            width: 4px; height: 64px;
+            background: #181d2a;
+            border-radius: 0 3px 3px 0;
+            box-shadow: 0 80px 0 #181d2a;
+          }
+          .ss-shell-inner {
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 100%;
+            min-height: 760px;
+          }
+          .ss-shell-inner::-webkit-scrollbar { display: none; }
+          .ss-shell-inner { -ms-overflow-style: none; scrollbar-width: none; }
+        }
+        @media (max-width: 699px) {
+          .ss-shell-outer, .ss-shell-frame, .ss-shell-inner { display: contents; }
+        }
+      `}</style>
+      <div className="ss-shell-outer">
+        <div className="ss-shell-frame">
+          <div className="ss-shell-inner">
+            <AppWithAuth />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default PhoneShell;
 
 function App(){
   const [screen,setScreen]               = useState("home");
@@ -2223,6 +2301,7 @@ function App(){
   const [frozenIdx,setFrozenIdx]         = useState(0);
   const [countdown,setCountdown]         = useState(null); // 3,2,1 pre-game countdown
   const [showInterstitial,setShowInterstitial] = useState(false); // interstitial before results
+  const [showHowToPlay,setShowHowToPlay]       = useState(()=>!lsGet("htp_seen",false));
   const timeoutRef = useRef();
   // Refs to hold live values for use inside timer/interval callbacks (avoids stale closures)
   const scoreRef   = useRef(0);
@@ -2274,6 +2353,15 @@ function App(){
   rushCatRef.current = rushCat;
   continueCountRef.current = continueCount;
   const rushBest=rushScores.length?Math.max(...rushScores):0;
+  // Find which category produced the all-time best score (for leaderboard category label)
+  const rushBestCat=(()=>{
+    let bestScore=0,bestLabel=null;
+    RUSH_CATEGORIES.forEach(c=>{
+      const s=lsGet(`rush_best_${c.id}`,0);
+      if(s>bestScore){bestScore=s;bestLabel=c.label;}
+    });
+    return bestLabel;
+  })();
   const todayKey=getTodayKey();
   const todayPlayed=dailyDone===todayKey;
   const todayResult=dailyResult&&dailyResult.key===todayKey?dailyResult.dots:null;
@@ -2322,11 +2410,12 @@ function App(){
     SFX.click();
     setCards(smartOrder([...todayChallenge.cards]));
     setTheme(todayChallenge.theme);setMode("daily");resetState();setScreen("game");
-    // 3-2-1 countdown
-    setCountdown(3);
-    setTimeout(()=>setCountdown(2),1000);
-    setTimeout(()=>setCountdown(1),2000);
-    setTimeout(()=>setCountdown(null),3000);
+    // pre-beat shows question for 2s, then 3-2-1
+    setCountdown(0);
+    setTimeout(()=>setCountdown(3),2000);
+    setTimeout(()=>setCountdown(2),3000);
+    setTimeout(()=>setCountdown(1),4000);
+    setTimeout(()=>setCountdown(null),5000);
   }
 
   function launchRush(cat){
@@ -2337,10 +2426,11 @@ function App(){
     setCards(rushShuffle([...category.cards]));
     setTheme(category.label);setMode("rush");setRushCat(cat);
     resetState();setTimerActive(true);setScreen("game");
-    setCountdown(3);
-    setTimeout(()=>setCountdown(2),1000);
-    setTimeout(()=>setCountdown(1),2000);
-    setTimeout(()=>setCountdown(null),3000);
+    setCountdown(0);
+    setTimeout(()=>setCountdown(3),2000);
+    setTimeout(()=>setCountdown(2),3000);
+    setTimeout(()=>setCountdown(1),4000);
+    setTimeout(()=>setCountdown(null),5000);
   }
 
   function endRushRun(reason){
@@ -2515,9 +2605,9 @@ function App(){
   const currentCard=cards[currentIdx];
   const nextCard=cards[currentIdx+1];
 
-  if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"}/>;
+  if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"} rushBestCat={rushBestCat}/>;
   if(screen==="terms")return <TermsScreen onBack={()=>setScreen("home")}/>;
-  if(screen==="rush")return <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} username={username} streak={streak}/>;
+  if(screen==="rush")return <>{showHowToPlay&&<HowToPlayOverlay/>}<RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak}/></>;
 
   // ── RUSH CONTINUE MODAL (inline component) ────────────────────────────────
   const RushModal = ()=>{
@@ -2757,15 +2847,15 @@ function App(){
   ];
   const EARLY_MESSAGES = [
     "Play today's match to get on the board 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-    "Day 1 down. The journey starts here. Come back tomorrow 🔥",
-    "2 caps in. Every legend started somewhere. Keep going 🔥",
-    "3 days straight. You're forming a habit. Don't break it 🔥",
-    "4 caps. Early doors but you're showing up. Keep going 🔥",
-    "5 caps in. One week nearly done. Stay consistent 🔥",
-    "6 caps. You're proving you mean business. Don't stop now 🔥",
-    "7 days — a full week. Plenty more where that came from 🔥",
-    "8 caps. You're past the casual phase now. Keep pushing 🔥",
-    "9 caps in. One more and you're into proper company 🔥",
+    "1 cap — same as Joey Barton for England. Probably remembers it more fondly than anyone else does. Come back tomorrow 🔥",
+    "2 caps — level with Bobby Zamora. West Ham, Fulham, QPR — a proper lower-league-to-Premier-League story. Keep going 🔥",
+    "3 caps — matching Stan Collymore. Breathtaking talent, complicated career. Those Aston Villa goals were something else. Keep going 🔥",
+    "4 caps — same as Dion Dublin. Scored on his England debut then barely got another look. Went on to present Homes Under the Hammer. Keep going 🔥",
+    "5 caps — level with James Beattie. One brilliant season at Southampton, five caps, then nothing. Story of many an England striker. Keep going 🔥",
+    "6 caps — matching Don Revie as a player. Better remembered as a manager — built one of England's most feared club sides at Leeds. Keep going 🔥",
+    "7 caps — same as David Bentley. Hailed as the new Beckham. Retired at 29. One of football's great what-ifs. Keep going 🔥",
+    "8 caps — level with Matt Le Tissier. Eight caps for one of the most gifted players England has produced. Still baffles people. Keep going 🔥",
+    "9 caps — matching Danny Murphy for England. Three times he scored the winner at Old Trafford for Liverpool. Deserved more than nine. Keep going 🔥",
   ];
   function getStreakPlayer(days){
     // Always find the highest player whose caps <= days (never reveal ahead)
@@ -2820,6 +2910,60 @@ function App(){
     return getGapMessage(streak);
   }
 
+  // ── HOW TO PLAY OVERLAY ───────────────────────────────────────────────────
+  function HowToPlayOverlay(){
+    const [step,setStep]=useState(0);
+    const steps=[
+      {
+        icon:"⚽",
+        title:"See a player's stat",
+        body:"You're shown a footballer and one of their career stats — goals, caps, appearances and more.",
+      },
+      {
+        icon:"↕",
+        title:"Higher or Lower?",
+        body:"The next player is revealed — guess whether their stat is higher or lower than the one before.",
+        preview:(
+          <div style={{marginTop:14,display:"flex",gap:10}}>
+            <div style={{flex:1,padding:"12px 8px",background:"linear-gradient(135deg,#0e7490,#06b6d4)",borderRadius:10,textAlign:"center",color:"#fff",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,boxShadow:"0 4px 14px rgba(6,182,212,0.4)"}}>⬆ HIGHER</div>
+            <div style={{flex:1,padding:"12px 8px",background:"linear-gradient(135deg,#9d174d,#ec4899)",borderRadius:10,textAlign:"center",color:"#fff",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,boxShadow:"0 4px 14px rgba(236,72,153,0.4)"}}>⬇ LOWER</div>
+          </div>
+        ),
+      },
+      {
+        icon:"🔥",
+        title:"Build your streak",
+        body:"Play every day to build your Career Caps. It doesn't matter how you score — just show up and play to keep your streak alive.",
+      },
+    ];
+    const cur=steps[step];
+    const isLast=step===steps.length-1;
+    function dismiss(){lsSet("htp_seen",true);setShowHowToPlay(false);}
+    return(
+      <div style={{position:"fixed",inset:0,background:"rgba(3,13,13,0.88)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"20px 16px"}}>
+        <div style={{background:"linear-gradient(160deg,#0d1f2d,#061212)",border:"1px solid rgba(6,182,212,0.2)",borderRadius:24,padding:"28px 24px 28px",width:"100%",maxWidth:380}}>
+          {/* Step dots */}
+          <div style={{display:"flex",justifyContent:"center",gap:6,marginBottom:24}}>
+            {steps.map((_,i)=>(
+              <div key={i} style={{width:i===step?20:6,height:6,borderRadius:99,background:i<=step?"#06b6d4":"rgba(255,255,255,0.15)",transition:"all 0.3s ease"}}/>
+            ))}
+          </div>
+          {/* Icon */}
+          <div style={{width:52,height:52,borderRadius:14,background:"linear-gradient(135deg,#0e7490,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,marginBottom:14,boxShadow:"0 6px 20px rgba(0,0,0,0.3)"}}>{cur.icon}</div>
+          {/* Text */}
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:26,letterSpacing:1.5,color:"#ffffff",marginBottom:8,lineHeight:1.1}}>{cur.title}</div>
+          <div style={{fontSize:14,color:"rgba(255,255,255,0.6)",lineHeight:1.6,fontFamily:"'Inter',sans-serif",fontWeight:500}}>{cur.body}</div>
+          {cur.preview||null}
+          {/* CTA */}
+          <button onClick={()=>isLast?dismiss():setStep(s=>s+1)} style={{marginTop:22,width:"100%",padding:"15px",background:isLast?"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)":"rgba(255,255,255,0.08)",border:isLast?"none":"1px solid rgba(255,255,255,0.12)",borderRadius:12,color:"#ffffff",fontSize:15,fontWeight:800,cursor:"pointer",fontFamily:"'Inter',sans-serif",letterSpacing:0.3,boxShadow:isLast?"0 6px 20px rgba(6,182,212,0.4)":"none"}}>
+            {isLast?"Let's go ⚽":"Next →"}
+          </button>
+          {!isLast&&<button onClick={dismiss} style={{marginTop:8,width:"100%",padding:"10px",background:"transparent",border:"none",color:"rgba(255,255,255,0.25)",fontSize:12,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:600}}>Skip</button>}
+        </div>
+      </div>
+    );
+  }
+
   // Career status — shared between home + result screens
   if(screen==="home") {
 
@@ -2846,6 +2990,7 @@ function App(){
 
     return(
     <PageWrap>
+      {showHowToPlay&&<HowToPlayOverlay/>}
       {/* ── CAREER RESTORE / DECAY OVERLAY ── */}
       {(careerMode==="restore"||careerMode==="decay")&&(
         <StreakRestoreOverlay
@@ -2885,88 +3030,10 @@ function App(){
         <div style={{textAlign:"center",marginBottom:20}}>
           <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>Higher · Lower · Football</div>
           <h1 style={{fontSize:32,fontWeight:900,letterSpacing:2,margin:0,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>StatStreaks</h1>
-        </div>
-
-        {/* ══ CAREER CAPS HERO ══ */}
-        <div style={{
-          background:"linear-gradient(145deg,#1a2535 0%,#0f1923 60%,#1a1f10 100%)",
-          border:`1px solid ${status.col}30`,
-          borderRadius:20,
-          padding:"22px 20px 18px",
-          marginBottom:16,
-          position:"relative",
-          overflow:"hidden",
-          boxShadow:`0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 60px ${status.glow}18`,
-        }}>
-          {/* Radial glow behind number */}
-          <div style={{position:"absolute",top:"-20%",left:"0%",width:"60%",height:"160%",background:`radial-gradient(ellipse at 30% 50%, ${status.col}18 0%, transparent 70%)`,pointerEvents:"none"}}/>
-          {/* Top shimmer line */}
-          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${status.col}50,transparent)`}}/>
-
-          <div style={{position:"relative"}}>
-            {/* Top row: Career Caps label left, name right — same line */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-              <div style={{fontSize:9,color:"rgba(255,255,255,0.55)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Career Caps</div>
-              {nameEditing?(
-                <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                  <input
-                    value={nameDraft}
-                    onChange={e=>setNameDraft(e.target.value.slice(0,20))}
-                    onKeyDown={e=>{
-                      if(e.key==="Enter"){const t=nameDraft.trim();if(t)setUsername(t);setNameEditing(false);}
-                      if(e.key==="Escape"){setNameEditing(false);}
-                    }}
-                    maxLength={20} placeholder="Your player name…" autoFocus
-                    style={{width:130,background:"rgba(255,255,255,0.1)",border:`1px solid ${status.col}60`,borderRadius:7,padding:"4px 8px",color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,outline:"none",caretColor:status.col}}
-                  />
-                  <button onClick={()=>{const t=nameDraft.trim();if(t)setUsername(t);setNameEditing(false);}}
-                    style={{padding:"4px 9px",background:status.col,border:"none",borderRadius:7,color:"#000",fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:800,letterSpacing:1,cursor:"pointer",textTransform:"uppercase",flexShrink:0}}>Save</button>
-                  <button onClick={()=>setNameEditing(false)}
-                    style={{padding:"4px 7px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:7,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",fontSize:10,cursor:"pointer",flexShrink:0}}>✕</button>
-                </div>
-              ):(
-                <button onClick={()=>{setNameDraft(username||"");setNameEditing(true);SFX.click();}}
-                  style={{display:"flex",alignItems:"center",gap:5,background:"transparent",border:"none",cursor:"pointer",padding:0}}>
-                  <span style={{fontSize:12,fontWeight:700,color:status.col,fontFamily:"'Inter',sans-serif",letterSpacing:0.3}}>
-                    {username||"Add name…"}
-                  </span>
-                  <span style={{fontSize:9,color:status.col,opacity:0.7}}>✏️</span>
-                </button>
-              )}
-            </div>
-
-            {/* Big number row — badge inline on the right */}
-            <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between"}}>
-              <div style={{lineHeight:1}}>
-                <span style={{fontSize:80,fontWeight:900,color:status.col,lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",textShadow:`0 0 40px ${status.col}55, 0 2px 0 rgba(0,0,0,0.3)`,letterSpacing:1,display:"block"}}>{streak}</span>
-                <span style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:3,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>CAPS</span>
-              </div>
-              <div style={{textAlign:"right",paddingBottom:6,flexShrink:0,paddingLeft:12}}>
-                <div style={{fontSize:22,marginBottom:6}}>{status.icon}</div>
-                <div style={{background:`${status.col}20`,border:`1px solid ${status.col}40`,borderRadius:20,padding:"5px 12px",display:"inline-block"}}>
-                  <span style={{fontSize:10,color:status.col,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",whiteSpace:"nowrap",fontFamily:"'Inter',sans-serif"}}>{status.label}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Subtext — above progress bar */}
-          <div style={{marginTop:12,fontSize:11,color:"rgba(255,255,255,0.65)",lineHeight:1.5,fontStyle:"italic",fontFamily:"'Inter',sans-serif",textAlign:"center"}}>
-            {getStreakSubtext()}
-          </div>
-
-          {/* Progress bar to next milestone */}
-          {status.next&&(
-            <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
-                <span style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:1,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{streak} / {status.next} caps</span>
-                <span style={{fontSize:9,color:status.col,fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Next: {status.nextLabel}</span>
-              </div>
-              <div style={{height:5,background:"rgba(255,255,255,0.08)",borderRadius:99,overflow:"hidden"}}>
-                <div style={{height:"100%",width:`${progressPct}%`,background:`linear-gradient(90deg,${status.col}99,${status.col})`,borderRadius:99,transition:"width 0.6s ease",boxShadow:`0 0 8px ${status.col}66`}}/>
-              </div>
-            </div>
-          )}
+          <button onClick={()=>setShowHowToPlay(true)} style={{marginTop:8,background:"transparent",border:"none",color:"rgba(6,182,212,0.6)",fontSize:11,fontWeight:600,cursor:"pointer",letterSpacing:0.3,display:"inline-flex",alignItems:"center",gap:4,fontFamily:"'Inter',sans-serif"}}>
+            <span style={{width:14,height:14,borderRadius:99,border:"1.5px solid rgba(6,182,212,0.45)",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:8,fontWeight:900,color:"rgba(6,182,212,0.65)"}}>?</span>
+            How to play
+          </button>
         </div>
 
         {/* ══ TODAY'S MATCH ══ */}
@@ -2997,6 +3064,7 @@ function App(){
             <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(255,255,255,0.05) 14px,rgba(255,255,255,0.05) 15px)",pointerEvents:"none"}}/>
             <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif",position:"relative"}}>Today's Match</div>
             <div style={{fontSize:15,color:"#ffffff",fontWeight:800,fontFamily:"'Inter',sans-serif",lineHeight:1.2,position:"relative"}}>{todayChallenge.theme}</div>
+            {!todayPlayed&&<div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,fontFamily:"'Inter',sans-serif",marginTop:3,position:"relative"}}>Higher or lower? · 10 questions</div>}
           </div>
 
           <div style={{padding:"16px 18px",position:"relative"}}>
@@ -3064,58 +3132,137 @@ function App(){
           </div>
         </div>
 
-        {/* ══ TRAINING PITCH ══ */}
-        <button onClick={()=>{SFX.click();setScreen("rush");}}
-          style={{
-            width:"100%",
-            background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 40%,#db2777 70%,#ec4899 100%)",
-            border:"1px solid rgba(236,72,153,0.3)",
-            borderRadius:18,cursor:"pointer",overflow:"hidden",marginBottom:16,
-            boxShadow:"0 6px 24px rgba(219,39,119,0.55), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2), 0 0 60px rgba(219,39,119,0.12)",
-            transition:"transform 0.12s,box-shadow 0.12s",display:"block",textAlign:"left",padding:"0",
-            position:"relative",
-          }}
-          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 32px rgba(219,39,119,0.7), inset 0 1px 0 rgba(255,255,255,0.25)";}}
-          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 6px 24px rgba(219,39,119,0.55), 0 2px 8px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2), 0 0 60px rgba(219,39,119,0.12)";}}>
-          {/* noise texture overlay */}
-          <div style={{position:"absolute",inset:0,background:"url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",pointerEvents:"none",borderRadius:18}}/>
-          {/* diagonal stripes */}
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 24px,rgba(255,255,255,0.018) 24px,rgba(255,255,255,0.018) 25px)",pointerEvents:"none",borderRadius:18}}/>
-          {/* radial spotlight top-right */}
-          <div style={{position:"absolute",top:"-40%",right:"-10%",width:"60%",height:"200%",background:"radial-gradient(ellipse at 80% 30%, rgba(255,255,255,0.08) 0%, transparent 65%)",pointerEvents:"none"}}/>
-          {/* shimmer line */}
-          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.35),transparent)",pointerEvents:"none"}}/>
-          <div style={{padding:"12px 18px",position:"relative"}}>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Training Pitch</div>
-            <div style={{fontSize:15,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>30s High Score Mode ⚡</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontFamily:"'Inter',sans-serif",marginTop:2}}>Go for a perfect run · 2× multiplier</div>
-          </div>
-        </button>
+        {/* ══ CAREER CAPS HERO ══ */}
+        <div style={{
+          background:"linear-gradient(145deg,#1a2535 0%,#0f1923 60%,#1a1f10 100%)",
+          border:`1px solid ${status.col}30`,
+          borderRadius:20,
+          padding:"22px 20px 18px",
+          marginBottom:16,
+          position:"relative",
+          overflow:"hidden",
+          boxShadow:`0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 60px ${status.glow}18`,
+        }}>
+          {/* Radial glow behind number */}
+          <div style={{position:"absolute",top:"-20%",left:"0%",width:"60%",height:"160%",background:`radial-gradient(ellipse at 30% 50%, ${status.col}18 0%, transparent 70%)`,pointerEvents:"none"}}/>
+          {/* Top shimmer line */}
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${status.col}50,transparent)`}}/>
 
-        {/* ── LEADERBOARD LINK ── */}
-        <button onClick={()=>{SFX.click();setPrevScreen("home");setScreen("leaderboard");}}
-          style={{
-            width:"100%",display:"flex",alignItems:"center",justifyContent:"space-between",
-            background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
-            border:"1px solid rgba(217,119,6,0.4)",
-            borderRadius:12,padding:"11px 16px",cursor:"pointer",marginBottom:12,
-            fontFamily:"'Inter',sans-serif",transition:"transform 0.12s,box-shadow 0.12s",
-            boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-            position:"relative",overflow:"hidden",
-          }}
-          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5), inset 0 1px 0 rgba(255,255,255,0.15)";}}
-          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
-          <div style={{display:"flex",alignItems:"center",gap:10,position:"relative"}}>
-            <span style={{fontSize:16}}>🏆</span>
-            <div style={{textAlign:"left"}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#ffffff",fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
-              <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontFamily:"'Inter',sans-serif",marginTop:1}}>Top Scorer · Golden Boot · Caps</div>
+          {streak===0?(
+            /* ── New user: compact welcoming state ── */
+            <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
+              <div style={{width:44,height:44,borderRadius:12,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>🎖</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,color:"rgba(255,255,255,0.85)",fontSize:13,marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Play your first match to earn a Cap</div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.35)",fontWeight:500,lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>Caps = your career progress · play daily to build your streak</div>
+              </div>
+              <div style={{background:"rgba(100,116,139,0.15)",border:"1px solid rgba(100,116,139,0.25)",borderRadius:20,padding:"4px 10px",flexShrink:0}}>
+                <span style={{fontSize:9,color:"#94a3b8",fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Uncapped</span>
+              </div>
             </div>
-          </div>
-          <span style={{fontSize:13,color:"rgba(255,255,255,0.5)",position:"relative"}}>→</span>
-        </button>
+          ):(
+            /* ── Returning user: full caps display — unchanged ── */
+            <div style={{position:"relative"}}>
+              {/* Top row: Career Caps label left, name right — same line */}
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.55)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Career Caps</div>
+                {nameEditing?(
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    <input
+                      value={nameDraft}
+                      onChange={e=>setNameDraft(e.target.value.slice(0,20))}
+                      onKeyDown={e=>{
+                        if(e.key==="Enter"){const t=nameDraft.trim();if(t)setUsername(t);setNameEditing(false);}
+                        if(e.key==="Escape"){setNameEditing(false);}
+                      }}
+                      maxLength={20} placeholder="Your player name…" autoFocus
+                      style={{width:130,background:"rgba(255,255,255,0.1)",border:`1px solid ${status.col}60`,borderRadius:7,padding:"4px 8px",color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,outline:"none",caretColor:status.col}}
+                    />
+                    <button onClick={()=>{const t=nameDraft.trim();if(t)setUsername(t);setNameEditing(false);}}
+                      style={{padding:"4px 9px",background:status.col,border:"none",borderRadius:7,color:"#000",fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:800,letterSpacing:1,cursor:"pointer",textTransform:"uppercase",flexShrink:0}}>Save</button>
+                    <button onClick={()=>setNameEditing(false)}
+                      style={{padding:"4px 7px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:7,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",fontSize:10,cursor:"pointer",flexShrink:0}}>✕</button>
+                  </div>
+                ):(
+                  <button onClick={()=>{setNameDraft(username||"");setNameEditing(true);SFX.click();}}
+                    style={{display:"flex",alignItems:"center",gap:5,background:"transparent",border:"none",cursor:"pointer",padding:0}}>
+                    <span style={{fontSize:12,fontWeight:700,color:status.col,fontFamily:"'Inter',sans-serif",letterSpacing:0.3}}>
+                      {username||"Add name…"}
+                    </span>
+                    <span style={{fontSize:9,color:status.col,opacity:0.7}}>✏️</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Big number row — badge inline on the right */}
+              <div style={{display:"flex",alignItems:"flex-end",justifyContent:"space-between"}}>
+                <div style={{lineHeight:1}}>
+                  <span style={{fontSize:80,fontWeight:900,color:status.col,lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",textShadow:`0 0 40px ${status.col}55, 0 2px 0 rgba(0,0,0,0.3)`,letterSpacing:1,display:"block"}}>{streak}</span>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:600,letterSpacing:3,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>CAPS</span>
+                </div>
+                <div style={{textAlign:"right",paddingBottom:6,flexShrink:0,paddingLeft:12}}>
+                  <div style={{fontSize:22,marginBottom:6}}>{status.icon}</div>
+                  <div style={{background:`${status.col}20`,border:`1px solid ${status.col}40`,borderRadius:20,padding:"5px 12px",display:"inline-block"}}>
+                    <span style={{fontSize:10,color:status.col,fontWeight:700,letterSpacing:0.5,textTransform:"uppercase",whiteSpace:"nowrap",fontFamily:"'Inter',sans-serif"}}>{status.label}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Subtext — above progress bar */}
+              <div style={{marginTop:12,fontSize:11,color:"rgba(255,255,255,0.65)",lineHeight:1.5,fontStyle:"italic",fontFamily:"'Inter',sans-serif",textAlign:"center"}}>
+                {getStreakSubtext()}
+              </div>
+
+              {/* Progress bar to next milestone */}
+              {status.next&&(
+                <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid rgba(255,255,255,0.08)"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}>
+                    <span style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:1,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{streak} / {status.next} caps</span>
+                    <span style={{fontSize:9,color:status.col,fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Next: {status.nextLabel}</span>
+                  </div>
+                  <div style={{height:5,background:"rgba(255,255,255,0.08)",borderRadius:99,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${progressPct}%`,background:`linear-gradient(90deg,${status.col}99,${status.col})`,borderRadius:99,transition:"width 0.6s ease",boxShadow:`0 0 8px ${status.col}66`}}/>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ══ TRAINING PITCH + LEADERBOARD — side by side ══ */}
+        <div style={{display:"flex",gap:10,marginBottom:16}}>
+          <button onClick={()=>{SFX.click();setScreen("rush");}}
+            style={{
+              flex:1,
+              background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 40%,#db2777 70%,#ec4899 100%)",
+              border:"1px solid rgba(236,72,153,0.3)",
+              borderRadius:14,cursor:"pointer",overflow:"hidden",
+              boxShadow:"0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
+              transition:"transform 0.12s,box-shadow 0.12s",textAlign:"left",padding:"12px 14px",
+            }}
+            onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(219,39,119,0.65), inset 0 1px 0 rgba(255,255,255,0.25)";}}
+            onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+            <div style={{fontSize:18,marginBottom:5}}>⚡</div>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Training Pitch</div>
+            <div style={{fontSize:11,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>30s High Score Mode</div>
+          </button>
+
+          <button onClick={()=>{SFX.click();setPrevScreen("home");setScreen("leaderboard");}}
+            style={{
+              flex:1,
+              background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
+              border:"1px solid rgba(217,119,6,0.4)",
+              borderRadius:14,cursor:"pointer",overflow:"hidden",
+              boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+              transition:"transform 0.12s,box-shadow 0.12s",textAlign:"left",padding:"12px 14px",
+            }}
+            onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5), inset 0 1px 0 rgba(255,255,255,0.15)";}}
+            onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
+            <div style={{fontSize:18,marginBottom:5}}>🏆</div>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
+            <div style={{fontSize:11,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>Top Scorer · Golden Boot · Caps</div>
+          </button>
+        </div>
 
         {/* ── DEMO CONTROLS ── */}
         <div style={{display:"flex",gap:6}}>
@@ -3415,21 +3562,44 @@ function App(){
       {/* 3-2-1 countdown overlay */}
       {countdown!==null&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,backdropFilter:"blur(4px)"}}>
-          {isRush&&<div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:4,fontWeight:600,textTransform:"uppercase",marginBottom:16,fontFamily:"'Inter',sans-serif"}}>Training Pitch</div>}
-          <div style={{
-            fontSize:120,fontWeight:900,color:countdown===3?"#60a5fa":countdown===2?"#fbbf24":"#4ade80",
-            fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,
-            textShadow:`0 0 60px ${countdown===3?"#60a5fa":countdown===2?"#fbbf24":"#4ade80"}88`,
-            animation:"popIn 0.3s ease",
-          }}>{countdown}</div>
-          <div style={{fontSize:14,color:"rgba(255,255,255,0.4)",marginTop:16,fontFamily:"'Inter',sans-serif",fontWeight:500}}>
-            {countdown===3?"Get ready…":countdown===2?"Higher or lower…":"Go!"}
+
+          {/* ── QUESTION REMINDER — always in same position ── */}
+          <div style={{textAlign:"center",marginBottom:28,padding:"0 32px"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:8,fontFamily:"'Inter',sans-serif"}}>
+              {isRush?activeCat?.label:theme}
+            </div>
+            <div style={{fontSize:15,color:"rgba(255,255,255,0.85)",fontFamily:"'Inter',sans-serif",fontWeight:600,lineHeight:1.5}}>
+              Will the next player's{" "}
+              <strong style={{color:"#fbbf24"}}>{cards[0]?.statType||"stat"}</strong>
+              {" "}be{" "}
+              <strong style={{color:"#06b6d4"}}>HIGHER</strong>
+              {" "}or{" "}
+              <strong style={{color:"#ec4899"}}>LOWER</strong>?
+            </div>
+          </div>
+
+          {/* Number block — always takes up same space, invisible on beat 0 */}
+          <div style={{height:160,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"flex-start"}}>
+            {countdown>0&&(
+              <>
+                <div style={{
+                  fontSize:120,fontWeight:900,color:countdown===3?"#60a5fa":countdown===2?"#fbbf24":"#4ade80",
+                  fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,
+                  textShadow:`0 0 60px ${countdown===3?"#60a5fa":countdown===2?"#fbbf24":"#4ade80"}88`,
+                  animation:"popIn 0.3s ease",
+                }}>{countdown}</div>
+                <div style={{fontSize:14,color:"rgba(255,255,255,0.4)",marginTop:16,fontFamily:"'Inter',sans-serif",fontWeight:500}}>
+                  {countdown===3?"Get ready…":countdown===2?"Higher or lower…":"Go!"}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
-      <div style={{width:"100%"}}>
+      <div style={{width:"100%",display:"flex",flexDirection:"column",minHeight:"calc(100vh - 48px)"}}>
 
-        {/* ── GAME HEADER ── */}
+        {/* ── TOP SECTION ── */}
+        <div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
           <button onClick={()=>{SFX.click();setTimerActive(false);setCountdown(null);setScreen(isRush?"rush":"home");}}
             style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:11,cursor:"pointer",padding:"7px 11px",fontFamily:"'Inter',sans-serif",fontWeight:600}}>
@@ -3439,32 +3609,53 @@ function App(){
             <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Training Pitch"):theme}</div>
             <div style={{fontSize:9,color:isRush?"#fbbf24":"rgba(255,255,255,0)",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isRush?"Training Pitch":""}</div>
           </div>
-          <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
-            {/* Score badge */}
-            <div style={{background:"rgba(255,255,255,0.95)",borderRadius:8,padding:"4px 11px",display:"flex",alignItems:"center",gap:5,boxShadow:"0 2px 8px rgba(0,0,0,0.2)"}}>
-              <span style={{color:"#0891b2",fontWeight:900,fontSize:14,fontFamily:"'Oswald',sans-serif",letterSpacing:1,lineHeight:1}}>{score}</span>
-              <span style={{color:"#06b6d4",fontSize:11,lineHeight:1}}>✓</span>
-            </div>
-            {/* Timer or save indicator */}
-            {isRush
-              ? <div style={{color:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"rgba(255,255,255,0.7)",fontWeight:900,fontSize:20,fontFamily:"'Oswald',sans-serif",animation:timeLeft<=8?"timerPulse 0.6s infinite":"none",lineHeight:1}}>{timeLeft}s</div>
-              : <div style={{fontSize:9,color:yellowUsed?"rgba(220,38,38,0.6)":"rgba(255,255,255,0.3)",letterSpacing:0.5,fontFamily:"'Inter',sans-serif"}}>{yellowUsed?"🟥 no reprieve left":"🟨 one chance saved"}</div>
-            }
-            {isRush&&(()=>{
-              const catBest=lsGet(`rush_best_${rushCat}`,0);
-              if(catBest>0) return <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Best: {catBest}</div>;
-              return null;
-            })()}
-          </div>
+          {/* Best score — rush only, top right */}
+          {isRush?(()=>{
+            const catBest=lsGet(`rush_best_${rushCat}`,0);
+            return catBest>0
+              ? <div style={{textAlign:"right"}}><div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Best</div><div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.4)",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{catBest}</div></div>
+              : <div style={{width:40}}/>;
+          })()
+          : <div style={{width:40}}/>}
         </div>
 
-        {/* ── TIMER BAR (rush) / PROGRESS DOTS (daily) ── */}
-        {isRush
-          ? <div style={{width:"100%",height:5,background:"rgba(255,255,255,0.1)",borderRadius:99,overflow:"hidden",marginBottom:14}}>
+        {/* ── SCORE / TIMER BAR ── */}
+        {isRush?(
+          /* Rush: score left · timer right · bar below */
+          <div style={{marginBottom:12}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+              {/* Score */}
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <div style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"6px 14px",display:"flex",alignItems:"baseline",gap:5}}>
+                  <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:"#ffffff",lineHeight:1,letterSpacing:1}}>{score}</span>
+                  <span style={{fontSize:11,color:"rgba(255,255,255,0.4)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>correct</span>
+                </div>
+              </div>
+              {/* Timer */}
+              <div style={{
+                background: timeLeft<=8?"rgba(239,68,68,0.15)":timeLeft<=15?"rgba(245,158,11,0.15)":"rgba(6,182,212,0.12)",
+                border:`1px solid ${timeLeft<=8?"rgba(239,68,68,0.4)":timeLeft<=15?"rgba(245,158,11,0.4)":"rgba(6,182,212,0.3)"}`,
+                borderRadius:10,padding:"6px 14px",display:"flex",alignItems:"baseline",gap:4,
+              }}>
+                <span style={{
+                  fontFamily:"'Bebas Neue',sans-serif",fontSize:28,lineHeight:1,letterSpacing:1,
+                  color:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"#06b6d4",
+                  animation:timeLeft<=8?"timerPulse 0.6s infinite":"none",
+                }}>{timeLeft}</span>
+                <span style={{fontSize:11,color:"rgba(255,255,255,0.4)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>sec</span>
+              </div>
+            </div>
+            {/* Timer bar — thicker */}
+            <div style={{width:"100%",height:8,background:"rgba(255,255,255,0.08)",borderRadius:99,overflow:"hidden"}}>
               <div style={{height:"100%",width:`${(timeLeft/TOTAL_TIME)*100}%`,background:timeLeft<=8?"#ef4444":timeLeft<=15?"#f59e0b":"#06b6d4",borderRadius:99,transition:"width 0.9s linear,background 0.5s"}}/>
             </div>
-          : <ProgressDots current={currentIdx} result={result} yellowCardIdx={yellowCardIdx} declinedYellow={declinedYellow}/>
-        }
+          </div>
+        ):(
+          /* Daily: just the progress dots */
+          <div style={{marginBottom:10}}>
+            <ProgressDots current={currentIdx} result={result} yellowCardIdx={yellowCardIdx} declinedYellow={declinedYellow}/>
+          </div>
+        )}
 
         {/* ── QUESTION CARD ── */}
         {currentCard&&nextCard&&(
@@ -3488,7 +3679,10 @@ function App(){
           {nextCard&&<StatPanel card={nextCard} revealed={revealedNext} flashResult={revealedNext?flashResult:null} catId={isRush?rushCat:theme}/>}
         </div>
 
-        {/* ── BUTTONS / FEEDBACK ── */}
+        </div>{/* end top section */}
+
+        {/* ── BUTTONS / FEEDBACK — anchored to bottom ── */}
+        <div style={{marginTop:"auto",paddingTop:12}}>
         {result===null||result==="yellow"?(
           result==="yellow"?(
             <div style={{background:"linear-gradient(135deg,#fffbeb,#fef3c7)",border:"1px solid #fde68a",borderRadius:12,padding:"14px",textAlign:"center",boxShadow:"0 4px 16px rgba(217,119,6,0.2), inset 0 1px 0 rgba(255,255,255,0.8)",position:"relative",overflow:"hidden"}}>
@@ -3546,6 +3740,7 @@ function App(){
             ):null)
           )
         )}
+        </div>{/* end bottom section */}
       </div>
     </PageWrap>
   );
