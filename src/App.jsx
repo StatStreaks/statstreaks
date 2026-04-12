@@ -1569,11 +1569,10 @@ function TermsScreen({onBack}){
             <div style={{fontSize:11,fontWeight:800,color:"#0f172a",letterSpacing:1,textTransform:"uppercase",marginBottom:12,fontFamily:"'Inter',sans-serif"}}>Terms of Use</div>
             {[
               "StatStreaks is a free-to-play football trivia game. By using the app you agree to these terms.",
-              "Statistical data is sourced from publicly available records and is provided for entertainment purposes only. While we make every effort to ensure accuracy, we cannot guarantee that all statistics are fully correct. Please report any errors to us.",
-              "The app displays advertisements. These are provided by third-party ad networks and StatStreaks is not responsible for their content.",
-              "We collect your chosen display name and game streak in order to power the leaderboards. This data is stored securely and is not sold to third parties.",
-              "StatStreaks is not affiliated with or endorsed by any football club, governing body, or player.",
-              "We reserve the right to update these terms at any time. Continued use of the app constitutes acceptance of any changes.",
+              "All statistics are sourced from publicly available records and are provided for entertainment purposes only. We do our best to keep them accurate but cannot guarantee every figure is correct. If you spot an error, please let us know.",
+              "StatStreaks is not affiliated with, endorsed by, or connected to any football club, league, governing body, or player.",
+              "The app contains advertisements served by Google AdMob. These may be personalised based on your device settings and Google's own policies. StatStreaks is not responsible for the content of third-party ads.",
+              "We reserve the right to update these terms at any time. Continued use of the app after changes are posted means you accept the updated terms.",
             ].map((text,i)=>(
               <div key={i} style={{display:"flex",gap:10,marginBottom:10,alignItems:"flex-start"}}>
                 <div style={{width:18,height:18,borderRadius:4,background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#ffffff",fontWeight:800,flexShrink:0,marginTop:1,fontFamily:"'Inter',sans-serif"}}>{i+1}</div>
@@ -1587,12 +1586,14 @@ function TermsScreen({onBack}){
         <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:16,padding:"18px 18px",marginBottom:12,boxShadow:"0 4px 20px rgba(0,0,0,0.12)",border:"1px solid rgba(0,0,0,0.06)",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.01) 16px,rgba(0,0,0,0.01) 17px)",pointerEvents:"none"}}/>
           <div style={{position:"relative"}}>
-            <div style={{fontSize:11,fontWeight:800,color:"#0f172a",letterSpacing:1,textTransform:"uppercase",marginBottom:12,fontFamily:"'Inter',sans-serif"}}>Privacy</div>
+            <div style={{fontSize:11,fontWeight:800,color:"#0f172a",letterSpacing:1,textTransform:"uppercase",marginBottom:12,fontFamily:"'Inter',sans-serif"}}>Privacy & Your Data</div>
             {[
-              "Your display name and streak are stored locally on your device and, when leaderboards are live, on our secure servers.",
-              "A unique anonymous ID is generated for your device to identify your leaderboard entry. This is not linked to any personal account.",
-              "We do not collect email addresses, phone numbers, or any other personal information.",
-              "Third-party advertisers may use cookies or similar technologies. You can opt out through your device settings.",
+              "The only information we store is your chosen display name, your game scores, and an anonymous device ID generated on your device. None of this is linked to your real identity.",
+              "This data is stored on secure servers (Supabase) and is used solely to power the leaderboards. It is never sold or shared with third parties for marketing purposes.",
+              "We do not collect your email address, phone number, location, or any other personal information.",
+              "Google AdMob, our ad provider, may collect data about your device and ad interactions in accordance with Google's Privacy Policy (policies.google.com). You can manage ad personalisation in your device settings.",
+              "You have the right to request deletion of your data at any time. Email us at statstreaks@gmail.com and we will remove your records within 30 days.",
+              "By using StatStreaks you acknowledge that your display name and scores may be visible to other players on the leaderboard.",
             ].map((text,i)=>(
               <div key={i} style={{display:"flex",gap:10,marginBottom:10,alignItems:"flex-start"}}>
                 <div style={{width:18,height:18,borderRadius:4,background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#ffffff",fontWeight:800,flexShrink:0,marginTop:1,fontFamily:"'Inter',sans-serif"}}>{i+1}</div>
@@ -3176,14 +3177,7 @@ function App(){
         {/* ── DAILY RESULT ── */}
         {isDaily&&(
           <>
-            {/* FULL TIME header */}
-            <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,padding:"10px 14px",background:"rgba(255,255,255,0.04)",borderRadius:10,border:"1px solid rgba(255,255,255,0.08)"}}>
-              <div style={{fontSize:18,lineHeight:1}}>⚽</div>
-              <div>
-                <div style={{fontSize:11,fontWeight:900,color:"rgba(255,255,255,0.9)",fontFamily:"'Oswald',sans-serif",letterSpacing:2,textTransform:"uppercase",lineHeight:1}}>{win?"Full Time — Cap Secured":"Full Time"}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:2}}>{win?"Your international career rolls on.":"Back tomorrow for the next fixture."}</div>
-              </div>
-            </div>
+
 
             {/* 1. SCORE CARD */}
             <div style={{background:"linear-gradient(160deg,#1a2535 0%,#0f1923 100%)",borderRadius:18,overflow:"hidden",marginBottom:12,boxShadow:"0 6px 28px rgba(0,0,0,0.35)",border:`1px solid ${accentCol}25`,position:"relative"}}>
@@ -3210,10 +3204,10 @@ function App(){
                   </div>
                 </div>
 
-                {/* Roast message — one line above dots */}
+                {/* Roast message — centred above dots */}
                 {latestScore>0&&(()=>{
                   const msg=getScoreMessage(latestScore);
-                  return msg?<div style={{fontSize:12,color:"rgba(255,255,255,0.55)",fontWeight:600,fontFamily:"'Inter',sans-serif",fontStyle:"italic",marginBottom:10,lineHeight:1.4}}>{msg}</div>:null;
+                  return msg?<div style={{fontSize:12,color:"rgba(255,255,255,0.55)",fontWeight:600,fontFamily:"'Inter',sans-serif",fontStyle:"italic",marginBottom:10,lineHeight:1.4,textAlign:"center"}}>{msg}</div>:null;
                 })()}
 
                 {/* Answer dots */}
@@ -3241,7 +3235,7 @@ function App(){
                   border:"none",borderRadius:12,cursor:"pointer",
                   fontFamily:"'Inter',sans-serif",
                   boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
-                  textAlign:"left",display:"block",
+                  textAlign:"center",display:"block",
                   transition:"transform 0.15s, box-shadow 0.15s",
                 }}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(190,24,93,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
