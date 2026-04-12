@@ -174,6 +174,19 @@ async function dbFetchDailyCards(day){
 }
 
 // Fetch rush cards for a category
+// Fetch your rush ranks for all categories in one RPC call
+async function dbFetchRushRanks(deviceId, weekKey){
+  try{
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/get_rush_ranks`, {
+      method: "POST",
+      headers: SB_HEADERS,
+      body: JSON.stringify({p_device_id: deviceId, p_week_key: weekKey}),
+    });
+    if(!r.ok) return null;
+    return await r.json(); // [{category, alltime_best, weekly_best, week_key, alltime_rank, weekly_rank}]
+  }catch{return null;}
+}
+
 async function dbFetchRushCards(category){
   try{
     const r=await fetch(
@@ -1257,7 +1270,7 @@ function getCareerStatus(caps){
   return           {label:"Hall of Fame",               icon:"🏆",col:"#ffffff",glow:"#ffffff",next:null, nextLabel:null};
 }
 
-function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak, onSetUsername}) {
+function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak, onSetUsername, rushRanks=null}) {
   const status = getCareerStatus(streak||0);
   const [nameEditing, setNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -1409,27 +1422,47 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                     <span style={{fontSize:11,fontWeight:800,color:hasPlayed?"#ffffff":"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",lineHeight:1.2,letterSpacing:0.1}}>{cat.label}</span>
                   </div>
 
-                  {hasPlayed?(
+                  {hasPlayed?(()=>{
+                    const rankRow = (rushRanks||[]).find(r=>r.category===cat.label);
+                    const wkRank = rankRow?.weekly_rank;
+                    const atRank = rankRow?.alltime_rank;
+                    return(
                     /* Played — show This Week first, Golden Boot 2026 second */
-                    <div style={{display:"flex",gap:6}}>
-                      {/* Weekly — Top Scorer (first) */}
-                      <div style={{flex:1,background:catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
-                        <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
-                          <span style={{fontSize:8}}>⚽</span>
-                          <span style={{fontSize:7,color:catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>This Week</span>
+                    <div>
+                      <div style={{display:"flex",gap:6,marginBottom:rankRow?6:0}}>
+                        {/* Weekly — Top Scorer (first) */}
+                        <div style={{flex:1,background:catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
+                            <span style={{fontSize:8}}>⚽</span>
+                            <span style={{fontSize:7,color:catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>This Week</span>
+                          </div>
+                          <div style={{fontSize:26,fontWeight:900,color:catWeekly>0?"#06b6d4":"rgba(255,255,255,0.15)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:catWeekly>0?"0 0 16px rgba(6,182,212,0.4)":"none"}}>{catWeekly||"—"}</div>
                         </div>
-                        <div style={{fontSize:26,fontWeight:900,color:catWeekly>0?"#06b6d4":"rgba(255,255,255,0.15)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:catWeekly>0?"0 0 16px rgba(6,182,212,0.4)":"none"}}>{catWeekly||"—"}</div>
-                      </div>
-                      {/* Golden Boot 2026 (second) */}
-                      <div style={{flex:1,background:"rgba(236,72,153,0.08)",border:"1px solid rgba(236,72,153,0.18)",borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
-                        <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
-                          <span style={{fontSize:8}}>🥾</span>
-                          <span style={{fontSize:7,color:"rgba(236,72,153,0.7)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>2026</span>
+                        {/* Golden Boot 2026 (second) */}
+                        <div style={{flex:1,background:"rgba(236,72,153,0.08)",border:"1px solid rgba(236,72,153,0.18)",borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+                          <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
+                            <span style={{fontSize:8}}>🥾</span>
+                            <span style={{fontSize:7,color:"rgba(236,72,153,0.7)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>2026</span>
+                          </div>
+                          <div style={{fontSize:26,fontWeight:900,color:"#ec4899",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(236,72,153,0.45)"}}>{catBest}</div>
                         </div>
-                        <div style={{fontSize:26,fontWeight:900,color:"#ec4899",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(236,72,153,0.45)"}}>{catBest}</div>
                       </div>
+                      {/* Global rank strip — only shows if ranks loaded */}
+                      {rankRow&&(
+                        <div style={{display:"flex",gap:4}}>
+                          <div style={{flex:1,background:"rgba(6,182,212,0.06)",border:"1px solid rgba(6,182,212,0.12)",borderRadius:6,padding:"4px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                            <span style={{fontSize:8,color:"rgba(6,182,212,0.6)",fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Global</span>
+                            <span style={{fontSize:13,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5}}>#{wkRank}</span>
+                          </div>
+                          <div style={{flex:1,background:"rgba(236,72,153,0.06)",border:"1px solid rgba(236,72,153,0.12)",borderRadius:6,padding:"4px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                            <span style={{fontSize:8,color:"rgba(236,72,153,0.6)",fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Global</span>
+                            <span style={{fontSize:13,fontWeight:900,color:"#ec4899",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5}}>#{atRank}</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  ):(
+                    );
+                  })():(
                     /* Unplayed */
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:2}}>
                       <span style={{fontSize:10,color:"rgba(255,255,255,0.18)",fontWeight:600,fontFamily:"'Inter',sans-serif",fontStyle:"italic"}}>Not played yet</span>
@@ -1776,6 +1809,7 @@ function App(){
   const [showHowToPlay,setShowHowToPlay]       = useState(()=>!lsGet("htp_seen",false));
   const [showNamePrompt,setShowNamePrompt]     = useState(false); // shows after HTP on first visit if no name set
   const [cardError,setCardError]               = useState(null); // shown when card fetch fails offline
+  const [rushRanks,setRushRanks]               = useState(()=>lsGet("rush_ranks_"+getWeekKey(),null)); // [{category,alltime_best,weekly_best,alltime_rank,weekly_rank}]
   const timeoutRef = useRef();
   // Refs to hold live values for use inside timer/interval callbacks (avoids stale closures)
   const scoreRef   = useRef(0);
@@ -2187,6 +2221,19 @@ function App(){
   }
   useEffect(()=>()=>clearTimeout(timeoutRef.current),[]);
 
+  // Fetch rush ranks whenever Rush screen opens — fire-and-forget, cached per week
+  useEffect(()=>{
+    if(screen!=="rush") return;
+    const wk = getWeekKey();
+    const cacheKey = "rush_ranks_"+wk;
+    dbFetchRushRanks(userId, wk).then(rows=>{
+      if(!rows||!rows.length) return;
+      lsSet(cacheKey, rows);
+      setRushRanks(rows);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[screen]);
+
   const currentCard=cards[currentIdx];
   const nextCard=cards[currentIdx+1];
 
@@ -2207,7 +2254,7 @@ function App(){
   if(screen==="terms")return <TermsScreen onBack={()=>setScreen("home")}/>;
   if(screen==="rush")return <>
     {showHowToPlay&&<HowToPlayOverlay/>}
-    <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={setUsername}/>
+    <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={setUsername} rushRanks={rushRanks}/>
     {cardError&&<div style={{position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",background:"#dc2626",color:"#ffffff",padding:"12px 20px",borderRadius:12,fontSize:13,fontWeight:600,fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",zIndex:999,maxWidth:300,textAlign:"center"}}>📴 {cardError}</div>}
   </>;
 
