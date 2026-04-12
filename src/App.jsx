@@ -51,6 +51,9 @@ function lsSet(k,v){try{localStorage.setItem(LS(k),JSON.stringify(v));}catch{}}
 function getTodayKey(){const d=new Date();return`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
 function getDayIndex(){const s=new Date("2026-01-01");return Math.floor((new Date()-s)/86400000);} // raw index, mod by total challenges from DB
 // Returns YYYY-Www string using true ISO 8601 week number (week containing Thursday)
+// Strip I/II/III suffix from theme for cleaner display
+function cleanTheme(t){ return t ? t.replace(/\s+(I{1,3})$/, "").trim() : t; }
+
 function getWeekKey(){const d=new Date();const thu=new Date(d);thu.setDate(d.getDate()-(d.getDay()||7)+4);const yearStart=new Date(thu.getFullYear(),0,1);const week=Math.ceil(((thu-yearStart)/86400000+1)/7);return`${thu.getFullYear()}-W${String(week).padStart(2,"0")}`;}
 // Returns a stable anonymous device UUID — generated once, persisted in localStorage
 function getDeviceId(){const key=LS("device_id");let id=null;try{id=localStorage.getItem(key);}catch{}if(!id){// Fall back to legacy ss_user_id if it exists, so returning players keep their identity
@@ -841,10 +844,11 @@ function getCardContext(card, catId) {
     teamLine = season || "Season";
     compLine = "Premier League";
   } else if (isGroundCap) {
-    // Player field is "Team (Stadium)" — show stadium name + club name
-    const match = card.player ? card.player.match(/\(([^)]+)\)/) : null;
-    teamLine = match ? match[1] : card.player;
-    compLine = "2024/25";
+    // Player field is "Team (Stadium)" — stadium in pill, team name in compLine
+    const matchStad = card.player ? card.player.match(/\(([^)]+)\)/) : null;
+    const teamName  = card.player ? card.player.replace(/\s*\([^)]+\)\s*$/, "").trim() : "";
+    teamLine = matchStad ? matchStad[1] : card.player;
+    compLine = teamName || "2024/25";
   } else if (isFACup) {
     teamLine = "All-Time";
     compLine = "FA Cup";
@@ -855,19 +859,17 @@ function getCardContext(card, catId) {
     teamLine = "All-Time";
     compLine = "World Cup";
   } else if (isMostCapped) {
-    // International appearances — show country
     teamLine = card.nationality || "International";
-    compLine = "Career Caps";
+    compLine = "All-Time";
   } else if (isTopScorers) {
-    // International goals — show country
     teamLine = card.nationality || "International";
-    compLine = "Career Goals";
+    compLine = "All-Time";
   } else if (catId === "intl_caps") {
     teamLine = card.nationality || "International";
-    compLine = "International Caps";
+    compLine = "All-Time";
   } else if (catId === "intl_goals") {
     teamLine = card.nationality || "International";
-    compLine = "International Goals";
+    compLine = "All-Time";
   } else if (statType === "Caps" || isEnglandTheme) {
     teamLine = "England";
     compLine = "International";
@@ -977,7 +979,7 @@ function StatPanel({card, revealed, flashResult=null, catId=""}) {
       {/* ── STAT NUMBER / UNREVEALED ── */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"center",width:"100%",padding:"0 10px",position:"relative",minHeight:62}}>
         {revealed
-          ? <div style={{fontSize:card.stat>=1000?46:58,fontWeight:900,color:numCol,lineHeight:1,fontFamily:"'Oswald',sans-serif",transition:"color 0.25s",letterSpacing:-1}}>{card.stat}</div>
+          ? <div style={{fontSize:card.stat>=10000?36:card.stat>=1000?42:card.stat>=100?52:58,fontWeight:900,color:numCol,lineHeight:1,fontFamily:"'Oswald',sans-serif",transition:"color 0.25s",letterSpacing:-1}}>{card.stat>=1000?card.stat.toLocaleString():card.stat}</div>
           : (
             <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6}}>
               <div style={{display:"flex",gap:5,alignItems:"center"}}>
@@ -2879,7 +2881,7 @@ function App(){
           }}>
             <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(255,255,255,0.05) 14px,rgba(255,255,255,0.05) 15px)",pointerEvents:"none"}}/>
             <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif",position:"relative"}}>Today's Match</div>
-            <div style={{fontSize:15,color:"#ffffff",fontWeight:800,fontFamily:"'Inter',sans-serif",lineHeight:1.2,position:"relative"}}>{todayChallenge.theme}</div>
+            <div style={{fontSize:15,color:"#ffffff",fontWeight:800,fontFamily:"'Inter',sans-serif",lineHeight:1.2,position:"relative"}}>{cleanTheme(todayChallenge.theme)}</div>
             {!todayPlayed&&<div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,fontFamily:"'Inter',sans-serif",marginTop:3,position:"relative"}}>Higher or lower? · 10 questions</div>}
           </div>
 
@@ -2941,7 +2943,7 @@ function App(){
                   <span style={{fontSize:14}}>🔭</span>
                   <div>
                     <div style={{fontSize:8,color:"rgba(6,182,212,0.6)",letterSpacing:2,fontWeight:600,marginBottom:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Tomorrow's Fixture</div>
-                    <div style={{fontSize:12,color:"#67e8f9",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{tomorrowChallenge.theme}</div>
+                    <div style={{fontSize:12,color:"#67e8f9",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{cleanTheme(tomorrowChallenge.theme)}</div>
                   </div>
                 </div>
               </>
@@ -3408,7 +3410,7 @@ function App(){
           {/* ── QUESTION REMINDER — always in same position ── */}
           <div style={{textAlign:"center",marginBottom:28,padding:"0 32px"}}>
             <div style={{fontSize:9,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:8,fontFamily:"'Inter',sans-serif"}}>
-              {isRush?activeCat?.label:theme}
+              {isRush?activeCat?.label:cleanTheme(theme)}
             </div>
             <div style={{fontSize:15,color:"rgba(255,255,255,0.85)",fontFamily:"'Inter',sans-serif",fontWeight:600,lineHeight:1.5}}>
               Will the next player's{" "}
@@ -3452,7 +3454,7 @@ function App(){
             ← {isRush?"Pitch":"Home"}
           </button>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Training Pitch"):theme}</div>
+            <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Training Pitch"):cleanTheme(theme)}</div>
             <div style={{fontSize:9,color:isRush?"#fbbf24":"rgba(255,255,255,0)",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isRush?"Training Pitch":""}</div>
           </div>
           {/* Best score — rush only, top right */}
@@ -3509,7 +3511,13 @@ function App(){
             <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(255,255,255,0.015) 14px,rgba(255,255,255,0.015) 15px)",pointerEvents:"none"}}/>
             <div style={{fontSize:8,color:"rgba(255,255,255,0.35)",letterSpacing:3,fontWeight:700,marginBottom:5,textTransform:"uppercase",position:"relative"}}>Compare the {nextCard.statType}</div>
             <div style={{fontSize:13,lineHeight:1.7,color:"rgba(255,255,255,0.75)",position:"relative"}}>
-              Will <strong style={{color:"#ffffff",fontFamily:"'Oswald',sans-serif",fontSize:15,fontWeight:700}}>{nextCard.player}</strong> be <strong style={{color:"#06b6d4"}}>HIGHER</strong> or <strong style={{color:"#ec4899"}}>LOWER</strong> than <strong style={{color:"#fbbf24",fontFamily:"'Oswald',sans-serif",fontSize:17}}>{currentCard.stat}</strong>?
+              Will <strong style={{color:"#ffffff",fontFamily:"'Oswald',sans-serif",fontSize:15,fontWeight:700}}>{(()=>{
+                const isGC = theme.toLowerCase().includes("ground capacity") || (rushCat&&rushCat.toLowerCase().includes("ground_capacity"));
+                const isGB = theme.toLowerCase().includes("golden boot");
+                if(isGC){ const m=nextCard.player.match(/\(([^)]+)\)/); return m?m[1]:nextCard.player; }
+                if(isGB){ return nextCard.player.replace(/\s*-\s*\d{4}\/\d{2,4}\s*$/,"").trim(); }
+                return nextCard.player;
+              })()}</strong> be <strong style={{color:"#06b6d4"}}>HIGHER</strong> or <strong style={{color:"#ec4899"}}>LOWER</strong> than <strong style={{color:"#fbbf24",fontFamily:"'Oswald',sans-serif",fontSize:17}}>{currentCard.stat>=1000?currentCard.stat.toLocaleString():currentCard.stat}</strong>?
             </div>
           </div>
         )}
