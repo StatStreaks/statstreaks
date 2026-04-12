@@ -1413,7 +1413,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                 {/* Diagonal texture */}
                 <div style={{position:"absolute",inset:0,backgroundImage:`repeating-linear-gradient(135deg,transparent,transparent 12px,${cat.color}06 12px,${cat.color}06 13px)`,pointerEvents:"none"}}/>
 
-                <div style={{padding:"11px 12px 12px",position:"relative"}}>
+                <div style={{padding:"11px 12px 12px",position:"relative",minHeight:90}}>
                   {/* Icon + label row */}
                   <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:hasPlayed?9:8}}>
                     <div style={{width:30,height:30,borderRadius:8,background:`${cat.color}18`,border:`1px solid ${cat.color}30`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>
@@ -1434,7 +1434,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                         <div style={{flex:1,background:catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
                           <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
                             <span style={{fontSize:8}}>⚽</span>
-                            <span style={{fontSize:7,color:catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>This Week</span>
+                            <span style={{fontSize:7,color:catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>Week</span>
                           </div>
                           <div style={{fontSize:26,fontWeight:900,color:catWeekly>0?"#06b6d4":"rgba(255,255,255,0.15)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:catWeekly>0?"0 0 16px rgba(6,182,212,0.4)":"none"}}>{catWeekly||"—"}</div>
                         </div>
