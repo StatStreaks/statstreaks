@@ -389,7 +389,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   const [nameEditing, setNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   // Initialise from daily cache — so offline users see last real data
-  const todayCacheKey = "lb_cache_"+getTodayKey();
+  const todayCacheKey = "lb_cache_v2_"+getTodayKey(); // v2: uses rush_bests views
   const cachedLb = lsGet(todayCacheKey, null);
   const [dbAllTime,  setDbAllTime]  = useState(cachedLb?.allTime  || null);
   const [dbWeekly,   setDbWeekly]   = useState(cachedLb?.weekly   || null);
@@ -498,10 +498,12 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   ];
   const activeTab = TABS.find(t=>t.id===tab);
 
-  // Your stat for the active tab
+  // Your stat for the active tab — prefer DB row over localStorage max
+  const myDbAtRow  = (dbAllTime||[]).find(r=>r.device_id===getDeviceId());
+  const myDbWkRow  = (dbWeekly||[]).find(r=>r.device_id===getDeviceId());
   const yourStat = tab==="caps" ? (streak||0) :
-                   tab==="alltime" ? (rushScores.length?Math.max(...rushScores):null) :
-                   (rushScores.length?Math.max(...rushScores):null);
+                   tab==="alltime" ? (myDbAtRow?.score ?? (rushScores.length?Math.max(...rushScores):null)) :
+                   (myDbWkRow?.score ?? (rushScores.length?Math.max(...rushScores):null));
 
   const yourStatus = getCareerStatus(streak||0);
 
@@ -1773,6 +1775,7 @@ function App(){
   const [showInterstitial,setShowInterstitial] = useState(false); // interstitial before results
   const [showHowToPlay,setShowHowToPlay]       = useState(()=>!lsGet("htp_seen",false));
   const [showNamePrompt,setShowNamePrompt]     = useState(false); // shows after HTP on first visit if no name set
+  const [cardError,setCardError]               = useState(null); // shown when card fetch fails offline
   const timeoutRef = useRef();
   // Refs to hold live values for use inside timer/interval callbacks (avoids stale closures)
   const scoreRef   = useRef(0);
@@ -1967,6 +1970,11 @@ function App(){
         nationality: c.nationality||undefined,
       }));
       setCards(rushShuffle(mapped));
+    } else {
+      // No cards available — offline with no cache. Go back with error message.
+      setScreen("rush");
+      setCardError("Couldn't load cards. Check your connection and try again.");
+      setTimeout(()=>setCardError(null), 4000);
     }
   }
 
@@ -2015,19 +2023,28 @@ function App(){
     setTimerActive(true);
   }
 
-  function rushRetry(){
+  async function rushRetry(){
     setShowRushModal(false);
     const category=RUSH_CATEGORIES.find(c=>c.id===rushCat);
     if(!category)return;
     rushScoreSavedRef.current = false;
-    // Re-shuffle from cached localStorage cards — no re-fetch needed
-    const cached = lsGet("rc_cards_"+rushCat, null);
+    setTheme(category.label);
+    resetState();setTimerActive(true);setScreen("game");
+    // Use cache first, re-fetch from DB if cache somehow empty
+    let cached = lsGet("rc_cards_"+rushCat, null);
+    if(!cached || !cached.length){
+      const fetched = await dbFetchRushCards(rushCat);
+      if(fetched && fetched.length){ cached = fetched; lsSet("rc_cards_"+rushCat, cached); }
+    }
     if(cached && cached.length){
       const mapped = cached.map(c=>({player:c.player,stat:c.stat,statType:c.stat_type,club:c.club||undefined,nationality:c.nationality||undefined}));
       setCards(rushShuffle(mapped));
+    } else {
+      // Still nothing — offline with no cache
+      setScreen("rush");
+      setCardError("Couldn't load cards. Check your connection and try again.");
+      setTimeout(()=>setCardError(null), 4000);
     }
-    setTheme(category.label);
-    resetState();setTimerActive(true);setScreen("game");
   }
 
   // User dismisses modal — go to result (always a non-clean run since they got a wrong answer)
@@ -2188,7 +2205,11 @@ function App(){
 
   if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"} rushBestCat={rushBestCat} onSetUsername={setUsername}/>;
   if(screen==="terms")return <TermsScreen onBack={()=>setScreen("home")}/>;
-  if(screen==="rush")return <>{showHowToPlay&&<HowToPlayOverlay/>}<RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={setUsername}/></>;
+  if(screen==="rush")return <>
+    {showHowToPlay&&<HowToPlayOverlay/>}
+    <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={setUsername}/>
+    {cardError&&<div style={{position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",background:"#dc2626",color:"#ffffff",padding:"12px 20px",borderRadius:12,fontSize:13,fontWeight:600,fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",zIndex:999,maxWidth:300,textAlign:"center"}}>📴 {cardError}</div>}
+  </>;
 
   // ── RUSH CONTINUE MODAL (inline component) ────────────────────────────────
   const RushModal = ()=>{
