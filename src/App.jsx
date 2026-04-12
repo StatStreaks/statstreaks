@@ -53,7 +53,9 @@ function getDayIndex(){const s=new Date("2026-01-01");return Math.floor((new Dat
 // Returns YYYY-Www string using true ISO 8601 week number (week containing Thursday)
 function getWeekKey(){const d=new Date();const thu=new Date(d);thu.setDate(d.getDate()-(d.getDay()||7)+4);const yearStart=new Date(thu.getFullYear(),0,1);const week=Math.ceil(((thu-yearStart)/86400000+1)/7);return`${thu.getFullYear()}-W${String(week).padStart(2,"0")}`;}
 // Returns a stable anonymous device UUID — generated once, persisted in localStorage
-function getDeviceId(){const key=LS("device_id");let id=null;try{id=localStorage.getItem(key);}catch{}if(!id){id="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&0x3|0x8)).toString(16);});try{localStorage.setItem(key,id);}catch{}}return id;}
+function getDeviceId(){const key=LS("device_id");let id=null;try{id=localStorage.getItem(key);}catch{}if(!id){// Fall back to legacy ss_user_id if it exists, so returning players keep their identity
+try{id=localStorage.getItem(LS("user_id"));}catch{}if(!id){id="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&0x3|0x8)).toString(16)});}
+try{localStorage.setItem(key,id);}catch{}}return id;}
 // ── SUPABASE ──────────────────────────────────────────────────────────────────
 const SB_URL  = "https://lqxcrzpqsdqonvrifpei.supabase.co";
 const SB_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxeGNyenBxc2Rxb252cmlmcGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NDIzMzIsImV4cCI6MjA5MTUxODMzMn0.rbR4HSkT2JhXMQpscIV8edEK4cyZin619QwbeeeTA6o";
@@ -199,12 +201,12 @@ async function dbFetchRushCards(category){
 }
 
 // Insert or update player's daily score
-async function dbInsertDailyScore(deviceId, dayKey, score){
+async function dbInsertDailyScore(deviceId, dayKey, score, username){
   try{
     await fetch(`${SB_URL}/rest/v1/daily_scores`,{
       method:"POST",
       headers:{...SB_HEADERS,"Prefer":"resolution=merge-duplicates"},
-      body:JSON.stringify({device_id:deviceId, day_key:dayKey, score}),
+      body:JSON.stringify({device_id:deviceId, day_key:dayKey, score, username:username||"Anonymous"}),
     });
   }catch(e){/* offline */}
 }
@@ -1817,7 +1819,24 @@ function App(){
   const continueCountRef = useRef(0);
   const rushScoreSavedRef = useRef(false); // guard against double-save across rush end paths
 
-  function setUsername(n){lsSet("username",n);setUsernameState(n);dbSyncUser(userId,n,streak,peakStreak);}
+  function setUsername(n){
+    lsSet("username",n);
+    setUsernameState(n);
+    dbSyncUser(userId,n,streak,peakStreak);
+    // Also update username on all rush_bests rows for this device
+    // so leaderboard reflects the new name immediately
+    fetch(`${SB_URL}/rest/v1/rush_bests?device_id=eq.${encodeURIComponent(userId)}`,{
+      method:"PATCH",
+      headers:{...SB_HEADERS,"Prefer":"return=minimal"},
+      body:JSON.stringify({username:n||"Anonymous"}),
+    }).catch(()=>{});
+    // And daily_scores for today
+    fetch(`${SB_URL}/rest/v1/daily_scores?device_id=eq.${encodeURIComponent(userId)}`,{
+      method:"PATCH",
+      headers:{...SB_HEADERS,"Prefer":"return=minimal"},
+      body:JSON.stringify({username:n||"Anonymous"}),
+    }).catch(()=>{});
+  }
 
   // ── INITIAL DB SYNC — runs once on mount ─────────────────────────────────
   useEffect(()=>{
@@ -2184,7 +2203,7 @@ function App(){
     // Insert daily score then fetch real avg + percentile
     const dk = todayKey;
     const myScore = (log||answerLog).filter(r=>r==="correct").length;
-    dbInsertDailyScore(userId, dk, myScore).then(()=>{
+    dbInsertDailyScore(userId, dk, myScore, username).then(()=>{
       dbFetchDailyStats(dk, myScore).then(stats=>{
         if(!stats) return;
         lsSet("daily_stats_"+dk, stats); // cache for today
