@@ -824,54 +824,7 @@ function getCardContext(card, catId) {
   const isCLTheme = catId.toLowerCase().includes("champions league");
   const isPLTheme = catId.toLowerCase().includes("premier league");
 
-  // ── DAILY CHALLENGE THEMES ───────────────────────────────────────────────
-  const isGoldenBoot    = catId.toLowerCase().includes("golden boot");
-  const isGroundCap     = catId.toLowerCase().includes("ground capacity");
-  const isTrophies      = catId.toLowerCase().includes("winners");
-  const isFACup         = catId.toLowerCase().includes("fa cup");
-  const isMostCapped    = catId.toLowerCase().includes("most capped");
-  const isTopScorers    = catId.toLowerCase().includes("top scorers");
-  const isPLAssists     = catId.toLowerCase().includes("pl assists") || catId.toLowerCase().includes("premier league assists");
-  const isPLAppearances = catId.toLowerCase().includes("pl appearances") || catId.toLowerCase().includes("premier league appearances");
-
-  if (isGoldenBoot) {
-    // Player field is "Name - Season" e.g. "Robin van Persie - 2011/12"
-    const parts = card.player ? card.player.split(" - ") : [];
-    const season = parts.length > 1 ? parts[parts.length - 1].trim() : (card.season || "");
-    teamLine = season || "Season";
-    compLine = "Premier League";
-  } else if (isGroundCap) {
-    // Player field is "Team (Stadium)" — show stadium name + club name
-    const match = card.player ? card.player.match(/\(([^)]+)\)/) : null;
-    teamLine = match ? match[1] : card.player;
-    compLine = "2024/25";
-  } else if (isFACup) {
-    teamLine = "All-Time";
-    compLine = "FA Cup";
-  } else if (isTrophies && isCLTheme) {
-    teamLine = "All-Time";
-    compLine = "Champions League";
-  } else if (isTrophies && isWorldCupTheme) {
-    teamLine = "All-Time";
-    compLine = "World Cup";
-  } else if (isMostCapped) {
-    // International appearances — show country
-    teamLine = card.nationality || "International";
-    compLine = "Career Caps";
-  } else if (isTopScorers) {
-    // International goals — show country
-    teamLine = card.nationality || "International";
-    compLine = "Career Goals";
-  } else if (catId === "intl_caps") {
-    teamLine = card.nationality || "International";
-    compLine = "International Caps";
-  } else if (catId === "intl_goals") {
-    teamLine = card.nationality || "International";
-    compLine = "International Goals";
-  } else if (statType === "Caps" || isEnglandTheme) {
-    teamLine = "England";
-    compLine = "International";
-  } else if (club === "PL All-Time") {
+  if (club === "PL All-Time") {
     teamLine = "All-Time";
     compLine = "Premier League";
   } else if (club) {
@@ -881,7 +834,16 @@ function getCardContext(card, catId) {
     } else {
       compLine = "Club Career";
     }
-  } else if (catId === "pl_goals" || catId === "pl_assists" || catId === "pl_appearances" || isPLTheme || isPLAssists || isPLAppearances) {
+  } else if (catId === "intl_caps") {
+    teamLine = card.nationality || "International";
+    compLine = "International Caps";
+  } else if (catId === "intl_goals") {
+    teamLine = card.nationality || "International";
+    compLine = "International Goals";
+  } else if (statType === "Caps" || isEnglandTheme) {
+    teamLine = "England";
+    compLine = "International";
+  } else if (catId === "pl_goals" || catId === "pl_assists" || catId === "pl_appearances" || isPLTheme) {
     teamLine = "All-Time";
     compLine = "Premier League";
   } else if (isWorldCupTheme) {
@@ -936,20 +898,8 @@ function StatPanel({card, revealed, flashResult=null, catId=""}) {
 
   const { teamLine, compLine, season } = getCardContext(card, catId);
 
-  // For Golden Boot cards, strip the season suffix from player name display
-  const isGoldenBootCard = catId.toLowerCase().includes("golden boot");
-  const isGroundCapCard  = catId.toLowerCase().includes("ground capacity");
-  let displayPlayer = card.player;
-  if(isGoldenBootCard){
-    // "Robin van Persie - 2011/12" → "Robin van Persie"
-    displayPlayer = card.player.replace(/\s*-\s*\d{4}\/\d{2,4}\s*$/, "").trim();
-  } else if(isGroundCapCard){
-    // "Manchester United (Old Trafford)" → "Manchester United"
-    displayPlayer = card.player.replace(/\s*\([^)]+\)\s*$/, "").trim();
-  }
-
   // Auto-scale player name font based on length
-  const nameLen = displayPlayer.length;
+  const nameLen = card.player.length;
   const nameFontSize = nameLen > 18 ? 10 : nameLen > 14 ? 11 : nameLen > 10 ? 12 : 13;
 
   return (
@@ -962,7 +912,7 @@ function StatPanel({card, revealed, flashResult=null, catId=""}) {
       <div style={{width:"100%",height:4,background:`linear-gradient(90deg,${topAccent},${topAccent}55)`,transition:"background 0.25s",marginBottom:8,flexShrink:0,position:"relative"}}/>
 
       {/* ── PLAYER NAME — auto-shrinks for long names, max 2 lines ── */}
-      <div style={{fontSize:nameFontSize,fontWeight:800,color:"#0f172a",letterSpacing:0.2,lineHeight:1.2,textAlign:"center",width:"100%",padding:"0 7px",marginBottom:5,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",position:"relative",minHeight:nameFontSize*2.4,display:"flex",alignItems:"center",justifyContent:"center"}}>{displayPlayer}</div>
+      <div style={{fontSize:nameFontSize,fontWeight:800,color:"#0f172a",letterSpacing:0.2,lineHeight:1.2,textAlign:"center",width:"100%",padding:"0 7px",marginBottom:5,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",position:"relative",minHeight:nameFontSize*2.4,display:"flex",alignItems:"center",justifyContent:"center"}}>{card.player}</div>
 
       {/* ── TEAM / ALL-TIME pill ── */}
       <div style={{background:pillBg,border:`1px solid ${pillBorder}`,borderRadius:20,padding:"2px 8px",marginBottom:2,maxWidth:"92%",position:"relative"}}>
@@ -2004,6 +1954,10 @@ function App(){
     SFX.click();
     setDbCardsLoading(true);
     setTheme(todayChallenge.theme);setMode("daily");resetState();setScreen("game");
+    setCountdown(0);
+    setTimeout(()=>setCountdown(3),2000);
+    setTimeout(()=>setCountdown(2),3000);
+    setTimeout(()=>setCountdown(1),4000);
 
     const dayNum = todayChallenge.day;
     const cacheKey = "dc_cards_"+dayNum;
@@ -2018,6 +1972,7 @@ function App(){
     }
 
     if(rawCards && rawCards.length){
+      // Use DB position order exactly — no smartOrder resorting
       const mapped = rawCards.map(c=>({
         player: c.player,
         stat: c.stat,
@@ -2027,15 +1982,11 @@ function App(){
       }));
       setCards(mapped);
     } else {
+      // Fallback: hardcoded cards if DB unreachable (offline first launch)
       const fallback = DAILY_CHALLENGES.find(d=>d.day===dayNum);
       if(fallback?.cards) setCards([...fallback.cards]);
     }
     setDbCardsLoading(false);
-    // Start countdown only after cards are loaded so preview beat shows cards
-    setCountdown(0);
-    setTimeout(()=>setCountdown(3),2000);
-    setTimeout(()=>setCountdown(2),3000);
-    setTimeout(()=>setCountdown(1),4000);
     setTimeout(()=>setCountdown(null),5000);
   }
 
@@ -2046,9 +1997,14 @@ function App(){
     GA.rushStarted(cat);
     rushScoreSavedRef.current = false;
     setTheme(category.label);setMode("rush");setRushCat(cat);
-    resetState();setScreen("game");
+    resetState();setTimerActive(true);setScreen("game");
+    setCountdown(0);
+    setTimeout(()=>setCountdown(3),2000);
+    setTimeout(()=>setCountdown(2),3000);
+    setTimeout(()=>setCountdown(1),4000);
+    setTimeout(()=>setCountdown(null),5000);
 
-    // Fetch cards first, then start countdown so preview beat always has cards
+    // Fetch rush cards from DB with localStorage cache
     const cacheKey = "rc_cards_"+cat;
     let rawCards = lsGet(cacheKey, null);
     if(!rawCards){
@@ -2067,12 +2023,6 @@ function App(){
         nationality: c.nationality||undefined,
       }));
       setCards(rushShuffle(mapped));
-      setTimerActive(true);
-      setCountdown(0);
-      setTimeout(()=>setCountdown(3),2000);
-      setTimeout(()=>setCountdown(2),3000);
-      setTimeout(()=>setCountdown(1),4000);
-      setTimeout(()=>setCountdown(null),5000);
     } else {
       // No cards available — offline with no cache. Go back with error message.
       setScreen("rush");
