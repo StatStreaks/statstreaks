@@ -255,36 +255,36 @@ const RUSH_CATEGORIES = [
 // Daily challenge metadata — cards are fetched from DB
 // Kept as lightweight fallback so app renders even before DB loads
 const DAILY_CHALLENGES = [
-  {day:1,  theme:"English Legends – PL Goals"},
-  {day:2,  theme:"French Legends – PL Goals"},
-  {day:3,  theme:"Belgian Legends – PL Goals"},
-  {day:4,  theme:"German Legends – PL Goals"},
-  {day:5,  theme:"Spanish Legends – PL Goals"},
-  {day:6,  theme:"Dutch Legends – PL Goals"},
-  {day:7,  theme:"Portuguese Legends – PL Goals"},
-  {day:8,  theme:"Argentinian Legends – PL Goals"},
-  {day:9,  theme:"Brazilian Legends – PL Goals"},
-  {day:10, theme:"African Legends – PL Goals"},
-  {day:11, theme:"Italian Legends – PL Goals"},
-  {day:12, theme:"Ireland Legends – PL Goals"},
-  {day:13, theme:"Welsh Legends – PL Goals"},
-  {day:14, theme:"FA Cups"},
-  {day:15, theme:"Champions League Trophies"},
-  {day:16, theme:"World Cup Finals"},
-  {day:17, theme:"UK Legends – PL Assists"},
-  {day:18, theme:"Foreign Legends – PL Assists"},
-  {day:19, theme:"UK Legends – PL Appearances"},
-  {day:20, theme:"Foreign Legends – PL Appearances"},
-  {day:21, theme:"International Appearances I"},
-  {day:22, theme:"International Appearances II"},
-  {day:23, theme:"International Appearances III"},
-  {day:24, theme:"International Goals I"},
-  {day:25, theme:"International Goals II"},
-  {day:26, theme:"International Goals III"},
-  {day:27, theme:"PL Golden Boot – Recent"},
-  {day:28, theme:"PL Golden Boot – Classic"},
-  {day:29, theme:"Stadium Capacity – PL"},
-  {day:30, theme:"Stadium Capacity – Europe"},
+  {day:1,  theme:"English Icons · Premier League Goals"},
+  {day:2,  theme:"French Icons · Premier League Goals"},
+  {day:3,  theme:"Belgian Icons · Premier League Goals"},
+  {day:4,  theme:"German Icons · Premier League Goals"},
+  {day:5,  theme:"Spanish Icons · Premier League Goals"},
+  {day:6,  theme:"Dutch Icons · Premier League Goals"},
+  {day:7,  theme:"Portuguese Icons · Premier League Goals"},
+  {day:8,  theme:"Argentinian Icons · Premier League Goals"},
+  {day:9,  theme:"Brazilian Icons · Premier League Goals"},
+  {day:10, theme:"African Icons · Premier League Goals"},
+  {day:11, theme:"Italian Icons · Premier League Goals"},
+  {day:12, theme:"Irish Icons · Premier League Goals"},
+  {day:13, theme:"Welsh Icons · Premier League Goals"},
+  {day:14, theme:"FA Cup Winners"},
+  {day:15, theme:"Champions League Winners"},
+  {day:16, theme:"World Cup Winners"},
+  {day:17, theme:"British Icons · Premier League Assists"},
+  {day:18, theme:"Global Icons · Premier League Assists"},
+  {day:19, theme:"British Icons · Premier League Appearances"},
+  {day:20, theme:"Global Icons · Premier League Appearances"},
+  {day:21, theme:"Global Icons · Most Capped I"},
+  {day:22, theme:"Global Icons · Most Capped II"},
+  {day:23, theme:"Global Icons · Most Capped III"},
+  {day:24, theme:"Global Icons · Top Scorers I"},
+  {day:25, theme:"Global Icons · Top Scorers II"},
+  {day:26, theme:"Global Icons · Top Scorers III"},
+  {day:27, theme:"Golden Boot · Modern Era"},
+  {day:28, theme:"Golden Boot · Classic Era"},
+  {day:29, theme:"Ground Capacity · Premier League"},
+  {day:30, theme:"Ground Capacity · Europe"},
 ];
 // ── ORDERING ──────────────────────────────────────────────────────────────────
 function smartOrder(rawCards) {
@@ -1411,7 +1411,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                     /* Played — show This Week first, Golden Boot 2026 second */
                     <div style={{display:"flex",gap:6}}>
                       {/* Weekly — Top Scorer (first) */}
-                      <div style={{flex:1,background:catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px"}}>
+                      <div style={{flex:1,background:catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
                         <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
                           <span style={{fontSize:8}}>⚽</span>
                           <span style={{fontSize:7,color:catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>This Week</span>
@@ -1419,7 +1419,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                         <div style={{fontSize:26,fontWeight:900,color:catWeekly>0?"#06b6d4":"rgba(255,255,255,0.15)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:catWeekly>0?"0 0 16px rgba(6,182,212,0.4)":"none"}}>{catWeekly||"—"}</div>
                       </div>
                       {/* Golden Boot 2026 (second) */}
-                      <div style={{flex:1,background:"rgba(236,72,153,0.08)",border:"1px solid rgba(236,72,153,0.18)",borderRadius:8,padding:"6px 8px"}}>
+                      <div style={{flex:1,background:"rgba(236,72,153,0.08)",border:"1px solid rgba(236,72,153,0.18)",borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
                         <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
                           <span style={{fontSize:8}}>🥾</span>
                           <span style={{fontSize:7,color:"rgba(236,72,153,0.7)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>2026</span>
@@ -1916,6 +1916,7 @@ function App(){
     }
 
     if(rawCards && rawCards.length){
+      // Use DB position order exactly — no smartOrder resorting
       const mapped = rawCards.map(c=>({
         player: c.player,
         stat: c.stat,
@@ -1923,11 +1924,11 @@ function App(){
         club: c.club||undefined,
         nationality: c.nationality||undefined,
       }));
-      setCards(smartOrder(mapped));
+      setCards(mapped);
     } else {
       // Fallback: hardcoded cards if DB unreachable (offline first launch)
       const fallback = DAILY_CHALLENGES.find(d=>d.day===dayNum);
-      if(fallback?.cards) setCards(smartOrder([...fallback.cards]));
+      if(fallback?.cards) setCards([...fallback.cards]);
     }
     setDbCardsLoading(false);
     setTimeout(()=>setCountdown(null),5000);
