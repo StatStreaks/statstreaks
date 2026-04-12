@@ -1414,7 +1414,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
                     </div>
                   ):e.cat?(
                     <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1,letterSpacing:0.2}}>
-                      {e.cat}
+                      {RUSH_CATEGORIES.find(c=>c.id===e.cat)?.label || e.cat}
                     </div>
                   ):null}
                 </div>
@@ -2847,7 +2847,9 @@ function App(){
       if(newAllTime > prev) lsSet(`rush_best_${cat}`, newAllTime);
       lsSet(`rush_plays_${cat}`,lsGet(`rush_plays_${cat}`,0)+1);
       // Fire-and-forget to DB — does not block, safe to fail
-      dbInsertRushScore(userId, username, cat, s, getWeekKey());
+      // Store human-readable label so leaderboard reads cleanly in DB and app
+      const catLabel = RUSH_CATEGORIES.find(c=>c.id===cat)?.label || cat;
+      dbInsertRushScore(userId, username, catLabel, s, getWeekKey());
     }
   }
   useEffect(()=>()=>clearTimeout(timeoutRef.current),[]);
