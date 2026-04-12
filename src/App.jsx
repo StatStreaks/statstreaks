@@ -152,6 +152,18 @@ async function dbFetchCaps(){
   }catch{return null;}
 }
 
+// Fetch all caps players from DB (cached — rarely changes)
+async function dbFetchCapsPlayers(){
+  try{
+    const r=await fetch(
+      `${SB_URL}/rest/v1/caps_players?select=id,name,country,msg&order=id.asc`,
+      {headers:SB_HEADERS}
+    );
+    if(!r.ok)return null;
+    return await r.json();
+  }catch{return null;}
+}
+
 // ── CARD DATA FETCHES ────────────────────────────────────────────────────────
 
 // Fetch all daily challenges (theme + metadata only, no cards)
@@ -1879,6 +1891,7 @@ function App(){
   const [showNamePrompt,setShowNamePrompt]     = useState(false); // shows after HTP on first visit if no name set
   const [cardError,setCardError]               = useState(null); // shown when card fetch fails offline
   const [rushRanks,setRushRanks]               = useState(()=>lsGet("rush_ranks_"+getWeekKey(),null)); // [{category,alltime_best,weekly_best,alltime_rank,weekly_rank}]
+  const [dbCapsPlayers,setDbCapsPlayers]       = useState(()=>lsGet("caps_players_v1",null)); // fetched once, cached indefinitely
   const timeoutRef = useRef();
   // Refs to hold live values for use inside timer/interval callbacks (avoids stale closures)
   const scoreRef   = useRef(0);
@@ -1915,6 +1928,14 @@ function App(){
       lsSet("db_challenges", rows);
       setDbChallenges(rows);
     });
+    // Fetch caps players — cached indefinitely (changes rarely)
+    if(!lsGet("caps_players_v1",null)){
+      dbFetchCapsPlayers().then(rows=>{
+        if(!rows||!rows.length) return;
+        lsSet("caps_players_v1", rows);
+        setDbCapsPlayers(rows);
+      });
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
@@ -2432,174 +2453,16 @@ function App(){
       </div>
     );
   };
-  // ── SHARED: player caps lookup for subtext (used on home + result) ─────────
-  const CAPS_PLAYERS = [
-    {caps:10,name:"Ray Parlour",country:"England",msg:"The Romford Pelé. Not everyone rates him, but those who do, really do."},
-    {caps:11,name:"Rickie Lambert",country:"England",msg:"Worked his way up from non-league to the national side. A proper journeyman story."},
-    {caps:12,name:"Gerry Francis",country:"England",msg:"One of the most gifted midfielders of his generation. Never got the caps his talent deserved."},
-    {caps:13,name:"Darren Bent",country:"England",msg:"A natural finisher who scored goals at every club he played for. 13 caps is a harsh return for one of England's most reliable strikers of his era."},
-    {caps:14,name:"David Rocastle",country:"England",msg:"Rocky. Stylish, skilful, and loved by everyone who watched him. Gone too soon."},
-    {caps:15,name:"Andy Cole",country:"England",msg:"One of the deadliest strikers in Premier League history. Somehow only 15 caps."},
-    {caps:16,name:"Dixie Dean",country:"England",msg:"60 league goals in a season. 16 caps was a criminal undercount."},
-    {caps:17,name:"Les Ferdinand",country:"England",msg:"Sir Les. Power, pace, and an eye for goal. A proper No.9."},
-    {caps:18,name:"Carlton Palmer",country:"England",msg:"Marmite player — the nation was divided. But he gave everything every time he pulled on a shirt. 18 caps and no regrets."},
-    {caps:19,name:"Tommy Taylor",country:"England",msg:"A Busby Babe. Lost at Munich. 19 caps and a goals record that would have grown much further."},
-    {caps:20,name:"Bobby Robson",country:"England",msg:"Manager and player. A true servant of the game in every sense."},
-    {caps:21,name:"Dennis Wise",country:"England",msg:"Mouthy, tenacious, effective. You didn't want to play against Dennis Wise."},
-    {caps:22,name:"Gary Pallister",country:"England",msg:"Alongside Stam in the debate for Man United's greatest ever centre-back. Underrated England career."},
-    {caps:23,name:"Wes Brown",country:"England",msg:"A composed and underrated defender who won five Premier League titles with United. Only 23 England caps tells you nothing about his quality."},
-    {caps:24,name:"Martin Chivers",country:"England",msg:"Twice Football League top scorer in the early 70s. A powerful and underrated Spurs legend."},
-    {caps:25,name:"Stan Mortensen",country:"England",msg:"Hat-trick in the FA Cup final, 25 England caps. Overshadowed by Matthews but equally brilliant."},
-    {caps:26,name:"Robbie Fowler",country:"England",msg:"God. One of the most natural finishers the country has ever seen."},
-    {caps:27,name:"Francis Lee",country:"England",msg:"Tough, direct, and loved a penalty. A key part of the great Man City side of the 70s."},
-    {caps:28,name:"Nobby Stiles",country:"England",msg:"No nonsense, all heart. A World Cup winner who'd run through a wall for you."},
-    {caps:29,name:"Danny Rose",country:"England",msg:"One of the best left backs of his Premier League generation. Honest and dependable."},
-    {caps:30,name:"Darren Anderton",country:"England",msg:"Sick as a parrot, but when fit — pure class. Deserved a longer career at this level."},
-    {caps:31,name:"Kalvin Phillips",country:"England",msg:"The Yorkshire Pirlo. Rose from the Championship to become an England regular."},
-    {caps:32,name:"Alf Ramsey",country:"England",msg:"Better known as the manager, but a fine player too. The man who brought it home."},
-    {caps:33,name:"Ian Wright",country:"England",msg:"One of England's most electric strikers. 33 caps was a scandal — he didn't get his chance until he was 28."},
-    {caps:34,name:"Michael Carrick",country:"England",msg:"The most underrated midfielder of his generation. Finally getting the recognition he deserves."},
-    {caps:35,name:"Jack Charlton",country:"England",msg:"Big Jack — World Cup winner, manager of Ireland, and a proper football man."},
-    {caps:36,name:"Graeme Le Saux",country:"England",msg:"One of the most cultured left backs England produced in the 90s. A Premier League title winner with Blackburn."},
-    {caps:37,name:"George Best",country:"N. Ireland",msg:"Arguably the most gifted British footballer of his generation. 37 caps for Northern Ireland — the number feels criminal."},
-    {caps:38,name:"Jamie Carragher",country:"England",msg:"Warrior. Would die for Liverpool. Did his best for England too."},
-    {caps:39,name:"Nicky Butt",country:"England",msg:"The man who held it together when everyone else got the glory. Quietly brilliant."},
-    {caps:40,name:"Phil Jagielka",country:"England",msg:"A rock at centre-back for Everton and England for over a decade. Reliable and underappreciated."},
-    {caps:41,name:"Paul Robinson",country:"England",msg:"One of England's most reliable keepers of his era. Remember that goal against Croatia?"},
-    {caps:42,name:"Peter Crouch",country:"England",msg:"A robot, allegedly. 42 caps and a goal record for a target man that's hard to argue with."},
-    {caps:43,name:"Martin Keown",country:"England",msg:"A warrior at the back. Heart of the Invincibles defence and one of the most committed defenders England has produced."},
-    {caps:44,name:"César Azpilicueta",country:"Spain",msg:"Mr Chelsea. A decade of top-level consistency and a Spain career to match."},
-    {caps:45,name:"Eric Cantona",country:"France",msg:"The King. Transformed Manchester United. Only 45 caps for France — one of the most baffling international careers in history."},
-    {caps:46,name:"Mick Channon",country:"England",msg:"The windmill celebration, 46 caps, and a proper career on both sides of the white line."},
-    {caps:47,name:"Trevor Brooking",country:"England",msg:"Elegant, intelligent football. One of England's finest playmakers."},
-    {caps:48,name:"Marco Reus",country:"Germany",msg:"One of the most gifted German players of his era. Injuries and bad luck meant he earned far fewer caps than his talent deserved."},
-    {caps:49,name:"Geoff Hurst",country:"England",msg:"The only man to score a hat-trick in a World Cup final. You're keeping legendary company."},
-    {caps:50,name:"Garrincha",country:"Brazil",msg:"Joy of the People. Some say he was better than Pelé. 50 caps and two World Cup winners medals."},
-    {caps:51,name:"Teddy Sheringham",country:"England",msg:"Still scoring at the top level in his late 30s. A footballer's footballer."},
-    {caps:52,name:"Trevor Francis",country:"England",msg:"England's first £1m player. The fee was justified."},
-    {caps:53,name:"Glenn Hoddle",country:"England",msg:"One of the most technically gifted players England has ever produced. 53 caps wasn't enough."},
-    {caps:54,name:"Stanley Matthews",country:"England",msg:"The Wizard of the Dribble. Playing top-flight football at 50. A genuine one-off."},
-    {caps:55,name:"Benjamin Pavard",country:"France",msg:"That goal against Argentina at the 2018 World Cup alone would justify his place in history."},
-    {caps:56,name:"Roberto Baggio",country:"Italy",msg:"The Divine Ponytail. One of the most complete players Italy has ever produced. The penalty miss haunts him still."},
-    {caps:57,name:"Paul Gascoigne",country:"England",msg:"Genius, chaos, and everything in between. One of the greatest to ever pull on an England shirt."},
-    {caps:58,name:"Marco van Basten",country:"Netherlands",msg:"Three Ballon d'Or awards. That volley in the Euro 88 final. A career ended too soon by injury."},
-    {caps:59,name:"Peter Beardsley",country:"England",msg:"The most creative English forward of his generation. Lineker got the goals, Beardsley made them."},
-    {caps:60,name:"Sócrates",country:"Brazil",msg:"Doctor, philosopher, captain. Sócrates played football like he thought about life — with total freedom."},
-    {caps:61,name:"Ray Clemence",country:"England",msg:"Unlucky to share an era with Shilton. Either of them would walk into most England XIs of all time."},
-    {caps:62,name:"Gerd Müller",country:"Germany",msg:"Der Bomber. 68 international goals for West Germany. Pure, ruthless efficiency in front of goal."},
-    {caps:63,name:"Alan Shearer",country:"England",msg:"The Premier League's all-time top scorer. Turned down Real Madrid to stay at Newcastle. True icon."},
-    {caps:64,name:"Eusébio",country:"Portugal",msg:"The Black Panther. Portugal's greatest player before a certain someone came along. 64 caps, timeless legend."},
-    {caps:65,name:"Pedro",country:"Spain",msg:"Part of the greatest club and country side ever assembled. Three consecutive La Liga titles, Champions League, and World Cup winner."},
-    {caps:66,name:"Ruud Gullit",country:"Netherlands",msg:"The total footballer. Dreads, elegance, and a ballon d'Or. Euro 88 was his masterpiece."},
-    {caps:67,name:"N'Golo Kanté",country:"France",msg:"Somehow everywhere at once. Two league titles, a Champions League, and a World Cup winner."},
-    {caps:68,name:"Francesco Totti",country:"Italy",msg:"One club, one city, one legend. Roma's captain, Italy's most beloved player."},
-    {caps:69,name:"Nicolas Anelka",country:"France",msg:"Played for nine clubs in nine countries and was brilliant at most of them. One of the most gifted — and restless — strikers of his generation."},
-    {caps:70,name:"Ruud van Nistelrooy",country:"Netherlands",msg:"Cold-blooded in the box. One of the most clinical finishers European football has ever seen."},
-    {caps:71,name:"Zico",country:"Brazil",msg:"The White Pelé. The 1982 Brazil team he led may be the greatest side never to win a World Cup."},
-    {caps:72,name:"Michel Platini",country:"France",msg:"Three consecutive Ballon d'Or awards. The greatest European player of the 1980s. 72 caps for France and barely put a foot wrong in any of them."},
-    {caps:73,name:"Gordon Banks",country:"England",msg:"The greatest save in history, the best goalkeeper England has ever had. A different level."},
-    {caps:74,name:"Rivaldo",country:"Brazil",msg:"Left foot, right foot, chest, bicycle kick — it didn't matter. One of the most gifted forwards of his generation."},
-    {caps:75,name:"David Seaman",country:"England",msg:"Safe hands, great moustache. One of England's finest ever goalkeepers."},
-    {caps:76,name:"Carlos Tevez",country:"Argentina",msg:"Relentless. Tore apart Premier League defences for years. Loved at every club. Almost."},
-    {caps:77,name:"Bebeto",country:"Brazil",msg:"Baby, baby, baby. The rock-a-baby celebration and a World Cup winner with Romário. Pure class."},
-    {caps:78,name:"Gabriel Batistuta",country:"Argentina",msg:"Batigol. One of the most feared strikers of the 90s. Argentina never had a better finisher."},
-    {caps:79,name:"Dennis Bergkamp",country:"Netherlands",msg:"The Non-Flying Dutchman. Goals of breathtaking beauty. That touch against Newcastle. Immortal."},
-    {caps:80,name:"Gary Lineker",country:"England",msg:"Never booked, never sent off, never stopped scoring. A clean record — just like your streak."},
-    {caps:81,name:"Franco Baresi",country:"Italy",msg:"The best sweeper who ever lived, some say. Italy and AC Milan were built around him for a decade."},
-    {caps:82,name:"Youri Djorkaeff",country:"France",msg:"The Snake. Glided through the 98 World Cup and Euro 2000 like it was effortless."},
-    {caps:83,name:"Ruud Krol",country:"Netherlands",msg:"The heartbeat of Total Football's greatest era. Two World Cup finals with the Netherlands."},
-    {caps:84,name:"Blaise Matuidi",country:"France",msg:"The engine room of the 2018 World Cup winning France side. Unglamorous, essential, brilliant."},
-    {caps:85,name:"Gary Neville",country:"England",msg:"Fergie's trusted sergeant. The best right back of his generation and now the most opinionated man in football."},
-    {caps:86,name:"Oliver Kahn",country:"Germany",msg:"The Titan. Possibly the most intense goalkeeper in football history. That 2002 World Cup was incredible."},
-    {caps:87,name:"Fabien Barthez",country:"France",msg:"The bald head, the mind games, the World Cup and Euros medals. A great keeper who wore his eccentricity with pride."},
-    {caps:88,name:"Pauleta",country:"Portugal",msg:"Portugal's record scorer before Ronaldo arrived. 47 international goals and a brilliant career at PSG."},
-    {caps:89,name:"Michael Owen",country:"England",msg:"That goal against Argentina. 18 years old, best player on the planet. England's most precocious talent."},
-    {caps:90,name:"Rudi Völler",country:"Germany",msg:"Goals in three World Cups, a manager who famously lost it at half time. One of Germany's great characters."},
-    {caps:91,name:"Diego Maradona",country:"Argentina",msg:"The Hand of God, the Goal of the Century — and now your streak. You're in Maradona territory. Keep going 🔥"},
-    {caps:92,name:"Pelé",country:"Brazil",msg:"Arguably the greatest of all time. Three World Cups. Your streak is now in the same conversation. Remarkable 🏆"},
-    {caps:93,name:"Raphaël Varane",country:"France",msg:"Champions League four times, World Cup once. The most decorated defender of his generation."},
-    {caps:94,name:"Rui Costa",country:"Portugal",msg:"The magician who preceded Ronaldo. A sublime playmaker who lit up European football for a decade."},
-    {caps:95,name:"Karl-Heinz Rummenigge",country:"Germany",msg:"Two Ballon d'Or awards and two World Cup finals. One of the deadliest forwards of the 80s."},
-    {caps:96,name:"Arjen Robben",country:"Netherlands",msg:"The left foot was a myth. The right foot was unstoppable. He cut inside every single time and no one could stop him."},
-    {caps:97,name:"Ronaldinho",country:"Brazil",msg:"The biggest smile in football, the most creative player of his era. Pure joy to watch at his peak."},
-    {caps:98,name:"Ronaldo",country:"Brazil",msg:"R9. The original Ronaldo. Two World Cups, three World Cup Golden Boots. An alien in football boots."},
-    {caps:99,name:"Antonio Valencia",country:"Ecuador",msg:"Ecuador's greatest ever player and a Premier League title winner with Manchester United. Unstoppable at his peak."},
-    {caps:100,name:"Carles Puyol",country:"Spain",msg:"The heart and soul of the golden generation. That header against Germany. A warrior in the truest sense."},
-    {caps:101,name:"Sergio Agüero",country:"Argentina",msg:"AGUEROOOOO. The most dramatic goal in Premier League history and one of the greatest strikers of his era."},
-    {caps:102,name:"Robin van Persie",country:"Netherlands",msg:"That header against Spain in 2014. That volley against Aston Villa. Simply one of the best ever to do it."},
-    {caps:103,name:"Franz Beckenbauer",country:"Germany",msg:"Der Kaiser. Won the World Cup as captain and manager. Redefined what a sweeper could be."},
-    {caps:105,name:"Billy Wright",country:"England",msg:"England's first 100-cap man. A true pioneer — and now you've matched him. Legendary 🏆"},
-    {caps:106,name:"Bobby Charlton",country:"England",msg:"Survived Munich, won the World Cup, won the European Cup. One of England's greatest ever players."},
-    {caps:107,name:"Patrick Vieira",country:"France",msg:"Dominant, powerful, and the engine of Arsenal's Invincibles. A colossus of the Premier League era."},
-    {caps:108,name:"Zinedine Zidane",country:"France",msg:"The greatest player of his generation. That World Cup final headbutt aside. A genius with a football."},
-    {caps:109,name:"Dries Mertens",country:"Belgium",msg:"Belgium's all-time top scorer. A cult hero at Napoli. Small in stature, enormous in quality."},
-    {caps:110,name:"Fernando Torres",country:"Spain",msg:"El Niño at his peak was unplayable. That Euro 2008 final goal defined a golden generation."},
-    {caps:111,name:"Gareth Bale",country:"Wales",msg:"Five Champions League medals. Wales' greatest ever player. The Golf, Wales, Madrid memes aside — an absolute superstar."},
-    {caps:112,name:"Dino Zoff",country:"Italy",msg:"Won the World Cup at 40. Possibly the greatest goalkeeper Italy has ever produced."},
-    {caps:113,name:"Philipp Lahm",country:"Germany",msg:"The perfect footballer. Could play anywhere, never had a bad game. World Cup winner in his final year."},
-    {caps:114,name:"Xabi Alonso",country:"Spain",msg:"The passing was metronomic. That goal from his own half against Newcastle. A true great of his era."},
-    {caps:115,name:"David Beckham",country:"England",msg:"Free kicks, fame, and an era-defining career. That goal from the halfway line against Wimbledon was special."},
-    {caps:116,name:"Andrea Pirlo",country:"Italy",msg:"The Architect. Made the game look slow when he was on the ball. A maestro."},
-    {caps:117,name:"Giorgio Chiellini",country:"Italy",msg:"Possibly the most aggressive defender of his era — in the best way. You did not want to play against him."},
-    {caps:118,name:"James Rodríguez",country:"Colombia",msg:"That volley against Uruguay at the 2014 World Cup. The goal of the tournament, possibly the decade."},
-    {caps:119,name:"Pat Jennings",country:"N. Ireland",msg:"Scored in the 1967 Charity Shield with a kick from his own area. One of the all-time great keepers."},
-    {caps:120,name:"Wayne Rooney",country:"England",msg:"England's all-time top scorer. A force of nature at his peak. Your streak matches his cap count — respect."},
-    {caps:121,name:"Bastian Schweinsteiger",country:"Germany",msg:"The heart of the 2014 World Cup winning Germany side. Limping through that final on one leg was pure character."},
-    {caps:122,name:"Zlatan Ibrahimović",country:"Sweden",msg:"No one like Zlatan. That bicycle kick against England. Played top-level football into his 40s. Ridiculous career."},
-    {caps:123,name:"Thierry Henry",country:"France",msg:"The greatest Premier League player? Many would say yes. That run and finish was on repeat for a decade."},
-    {caps:124,name:"Manuel Neuer",country:"Germany",msg:"Reinvented goalkeeping. The sweeper-keeper. His 2014 World Cup was one of the best individual tournament performances ever."},
-    {caps:125,name:"Roberto Carlos",country:"Brazil",msg:"That free kick against France in 1997 defied physics. One of the greatest left backs in football history."},
-    {caps:126,name:"Paolo Maldini",country:"Italy",msg:"The greatest defender who ever lived, many say. Your streak is built like his defending — immovable."},
-    {caps:127,name:"Luís Figo",country:"Portugal",msg:"Ballon d'Or, World Player of the Year, and the transfer that broke Barcelona's heart. A true great."},
-    {caps:128,name:"Neymar",country:"Brazil",msg:"The most skilful player of his generation. The weight of carrying Brazil is heavy — your streak carries its own."},
-    {caps:129,name:"Peter Schmeichel",country:"Denmark",msg:"The Great Dane. Won everything at United, then led Denmark to Euro 92. A genuine colossus."},
-    {caps:130,name:"Edwin van der Sar",country:"Netherlands",msg:"Kept a Premier League record 1,311 minutes without conceding. Unflappable. Like your streak."},
-    {caps:131,name:"Andrés Iniesta",country:"Spain",msg:"The quietest genius in football history. That goal in the 2010 World Cup final. Perfection."},
-    {caps:132,name:"Simon Kjær",country:"Denmark",msg:"A fine defender, but remembered forever for saving Christian Eriksen's life at Euro 2020. A true hero."},
-    {caps:133,name:"Xavi",country:"Spain",msg:"The metronome. 767 passes in the 2010 World Cup, 0 lost. Football as chess. Your streak has the same discipline."},
-    {caps:134,name:"Wesley Sneijder",country:"Netherlands",msg:"Should have won the Ballon d'Or in 2010. Led the Netherlands to a World Cup final. Criminally underrated."},
-    {caps:136,name:"Fabio Cannavaro",country:"Italy",msg:"Won the World Cup and the Ballon d'Or as a defender. The captain who lifted the trophy in Berlin."},
-    {caps:137,name:"Miroslav Klose",country:"Germany",msg:"The World Cup's all-time top scorer with 16 goals. Clinical, reliable, extraordinary. Just like your streak."},
-    {caps:141,name:"Pepe",country:"Portugal",msg:"Fierce, physical, and utterly relentless. One of the most intimidating defenders of the Champions League era."},
-    {caps:142,name:"Cafu",country:"Brazil",msg:"The train. Never stopped running. Won two World Cups and is arguably the greatest right back ever."},
-    {caps:143,name:"Javier Zanetti",country:"Argentina",msg:"Over 850 games for Inter Milan, 143 caps for Argentina. One of football's greatest servants."},
-    {caps:144,name:"Yuto Nagatomo",country:"Japan",msg:"Japan's most capped outfield player of his era. Won three J-League titles and carved out a career across Europe."},
-    {caps:145,name:"Ángel Di María",country:"Argentina",msg:"The man of the match in the 2014 World Cup final before injury cut him short. A World Cup winner in 2022."},
-    {caps:146,name:"Robbie Keane",country:"Ireland",msg:"Ireland's greatest ever player and joint record goalscorer in European qualifying. 146 caps — an icon."},
-    {caps:147,name:"Javier Mascherano",country:"Argentina",msg:"El Jefecito. Played at centre back despite being a midfielder and somehow made it look easy. Titan."},
-    {caps:148,name:"Ali Daei",country:"Iran",msg:"109 international goals, 148 caps. Iran's greatest ever player — held the record for most international goals until Ronaldo."},
-    {caps:150,name:"Lothar Matthäus",country:"Germany",msg:"The most capped outfield player in World Cup history. You're at the summit now. Outstanding."},
-    {caps:152,name:"Yasuhito Endō",country:"Japan",msg:"Japan's most capped player ever. A one-club legend at Gamba Osaka for over 20 years."},
-    {caps:156,name:"Sami Al-Jaber",country:"Saudi Arabia",msg:"Four World Cups for Saudi Arabia. The most prolific striker in their history."},
-    {caps:157,name:"Jan Vertonghen",country:"Belgium",msg:"Belgium's most capped player and one of the finest left-sided centre-backs of his era. A quiet colossus."},
-    {caps:159,name:"Essam El-Hadary",country:"Egypt",msg:"Played international football into his 40s. A legendary goalkeeper in African football history."},
-    {caps:167,name:"Iker Casillas",country:"Spain",msg:"Saint Iker. Won everything there is to win — two Euros, a World Cup, three Champions Leagues. A legend."},
-    {caps:168,name:"Iván Hurtado",country:"Ecuador",msg:"Ecuador's most capped player. Played in two World Cups and was the foundation of their defence for 15 years."},
-    {caps:176,name:"Gianluigi Buffon",country:"Italy",msg:"Twenty years of international football. The most dedicated goalkeeper of the modern era. Exceptional commitment."},
-    {caps:177,name:"Hossam Hassan",country:"Egypt",msg:"Africa's all-time record scorer and one of the most prolific international forwards the continent has seen."},
-    {caps:180,name:"Sergio Ramos",country:"Spain",msg:"The most decorated defender in football history. 180 caps, every honour the game offers. You've reached the very top."},
-    {caps:182,name:"Andrés Guardado",country:"Mexico",msg:"Mexico's most decorated captain. Five World Cups and a career spanning two decades at the highest level."},
-    {caps:184,name:"Ahmed Hassan",country:"Egypt",msg:"Africa's record cap holder. Four Africa Cup of Nations titles. A true giant of the continent's football history."},
-  ];
-  const EARLY_MESSAGES = [
-    "Play today's match to get on the board 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
-    "You've reached Joey Barton\nOne cap for England — probably remembers it more fondly than anyone else does.\nGet beyond Barton. Next cap tomorrow 🔥",
-    "You've reached Bobby Zamora\nWest Ham, Fulham, QPR — a proper lower-league-to-Premier-League story.\nGo beyond Zamora. Next cap tomorrow 🔥",
-    "You've reached Stan Collymore\nBreathtaking talent, complicated career. Those Aston Villa goals were something else.\nGo beyond Collymore. Next cap tomorrow 🔥",
-    "You've reached Dion Dublin\nScored on his England debut then barely got another look. Went on to present Homes Under the Hammer.\nGo beyond Dublin. Next cap tomorrow 🔥",
-    "You've reached James Beattie\nOne brilliant season at Southampton, five caps, then nothing. Story of many an England striker.\nGo beyond Beattie. Next cap tomorrow 🔥",
-    "You've reached Don Revie\nBetter remembered as a manager — built one of England's most feared club sides at Leeds.\nGo beyond Revie. Next cap tomorrow 🔥",
-    "You've reached David Bentley\nHailed as the new Beckham. Retired at 29. One of football's great what-ifs.\nGo beyond Bentley. Next cap tomorrow 🔥",
-    "You've reached Matt Le Tissier\nEight caps for one of the most gifted players England has produced. Still baffles people.\nGo beyond Le Tissier. Next cap tomorrow 🔥",
-    "You've reached Danny Murphy\nThree times he scored the winner at Old Trafford for Liverpool. Deserved far more than nine caps.\nGo beyond Murphy. Next cap tomorrow 🔥",
-  ];
+
   function getStreakPlayer(days){
-    // Always find the highest player whose caps <= days (never reveal ahead)
-    const cap=Math.min(days,180);
+    // Use DB data
+    const source = dbCapsPlayers || []; // DB data or empty while loading
+    const cap=Math.min(days,184);
     let best=null;
-    for(const p of CAPS_PLAYERS){
-      if(p.caps<=cap){
-        if(!best||p.caps>best.caps) best=p;
+    for(const p of source){
+      const pcaps = p.caps||p.id;
+      if(pcaps<=cap && pcaps>=10){
+        if(!best||(p.caps||p.id)>(best.caps||best.id)) best=p;
       }
     }
     return best;
@@ -2635,13 +2498,23 @@ function App(){
     return `${streak} caps. You've reached 300. StatStreaks has never seen anything like this. You are immortal 🐐`;
   }
   function getStreakSubtext(){
-    if(streak<=0) return EARLY_MESSAGES[0];
-    if(streak<10) return EARLY_MESSAGES[streak];
-    const p=getStreakPlayer(streak);
-    const diff=p?streak-p.caps:999;
-    if(p&&diff===0) return `You've reached ${p.name}\n${p.msg}\nGo beyond ${p.name.split(' ').pop()}. Next cap tomorrow 🔥`;
-    if(p&&diff<=3)  return `You've passed ${p.name}\n${p.msg.split('.')[0]}.\nKeep going. Next cap tomorrow 🔥`;
-    return getGapMessage(streak);
+    // Use DB data if loaded
+    const source = dbCapsPlayers;
+    if(source){
+      // Find exact row for this streak value (id matches caps count)
+      const exact = source.find(r=>r.id===streak);
+      if(exact) return exact.msg; // already 3-line format from DB
+      // Find nearest player below
+      const p = getStreakPlayer(streak);
+      if(p){
+        const diff = streak-(p.caps||p.id);
+        if(diff===0) return p.msg;
+        if(diff<=3)  return `You've passed ${p.name}\n${(p.msg||"").split("\n")[1]||""}\nKeep going. Next cap tomorrow 🔥`;
+      }
+      return getGapMessage(streak);
+    }
+    // DB not loaded yet — return empty string, card will show nothing until data arrives
+    return "";
   }
 
 
