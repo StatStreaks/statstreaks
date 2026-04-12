@@ -101,7 +101,7 @@ async function dbInsertRushScore(deviceId, username, category, score, weekKey){
 async function dbFetchAllTime(){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/rush_scores?select=username,score,category&order=score.desc&limit=20`,
+      `${SB_URL}/rest/v1/rush_scores?select=device_id,username,score,category&order=score.desc&limit=20`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
@@ -113,7 +113,7 @@ async function dbFetchAllTime(){
 async function dbFetchWeekly(weekKey){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/rush_scores?select=username,score,category&week_key=eq.${encodeURIComponent(weekKey)}&order=score.desc&limit=20`,
+      `${SB_URL}/rest/v1/rush_scores?select=device_id,username,score,category&week_key=eq.${encodeURIComponent(weekKey)}&order=score.desc&limit=20`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
@@ -125,7 +125,7 @@ async function dbFetchWeekly(weekKey){
 async function dbFetchCaps(){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/users?select=username,caps&order=caps.desc&limit=20`,
+      `${SB_URL}/rest/v1/users?select=device_id,username,caps&order=caps.desc&limit=20`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
@@ -1221,8 +1221,12 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   // Build boards — use real DB data if loaded, otherwise fall back to simulation
   function mergeWithYou(rows, myScore, myName, myCat){
     if(!rows)return null;
-    const mapped = rows.map(r=>({name:r.username||"Anonymous", score:r.score, isYou:false, cat:r.category||null}));
-    const withYou = myScore>0 ? [...mapped,{name:myName||"You",score:myScore,isYou:true,cat:myCat||null}] : mapped;
+    const deviceId = getDeviceId();
+    const alreadyInDb = rows.some(r=>r.device_id===deviceId);
+    // Mark your existing DB row as isYou rather than adding a duplicate
+    const mapped = rows.map(r=>({name:r.username||"Anonymous", score:r.score, isYou:r.device_id===deviceId, cat:r.category||null}));
+    // Only add a local entry if your score isn't in the DB yet (race condition on first save)
+    const withYou = (!alreadyInDb&&myScore>0) ? [...mapped,{name:myName||"You",score:myScore,isYou:true,cat:myCat||null}] : mapped;
     return withYou.sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
   }
 
@@ -1230,7 +1234,15 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   const myBestScore = rushScores.length?Math.max(...rushScores):0;
 
   const capsBoard    = dbCaps
-    ? (()=>{ const rows=dbCaps.map(r=>({name:r.username||"Anonymous",score:r.caps,isYou:false})); const withYou=streak>0?[...rows,{name:myName,score:streak,isYou:true}]:rows; return withYou.sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1})); })()
+    ? (()=>{
+        // Mark your existing DB row as isYou — don't add a second entry
+        const deviceId = getDeviceId();
+        const alreadyInDb = dbCaps.some(r=>r.device_id===deviceId);
+        const rows = dbCaps.map(r=>({name:r.username||"Anonymous",score:r.caps,isYou:r.device_id===deviceId}));
+        // Only add a local entry if we're not in the DB yet (first sync hasn't completed)
+        const withYou = (!alreadyInDb&&streak>0) ? [...rows,{name:myName,score:streak,isYou:true}] : rows;
+        return withYou.sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+      })()
     : buildCapsBoard(streak, username);
   const allTimeBoard = mergeWithYou(dbAllTime, myBestScore, myName, rushBestCat) || buildRushAllTimeBoard(rushScores, username, rushBestCat);
   const weeklyBoard  = mergeWithYou(dbWeekly,  myBestScore, myName, rushBestCat) || buildRushWeeklyBoard(rushScores, username, rushBestCat);
