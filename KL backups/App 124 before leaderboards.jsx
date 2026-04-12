@@ -54,116 +54,6 @@ function getDayIndex(){const s=new Date("2025-01-01");return Math.floor((new Dat
 function getWeekKey(){const d=new Date();const thu=new Date(d);thu.setDate(d.getDate()-(d.getDay()||7)+4);const yearStart=new Date(thu.getFullYear(),0,1);const week=Math.ceil(((thu-yearStart)/86400000+1)/7);return`${thu.getFullYear()}-W${String(week).padStart(2,"0")}`;}
 // Returns a stable anonymous device UUID — generated once, persisted in localStorage
 function getDeviceId(){const key=LS("device_id");let id=null;try{id=localStorage.getItem(key);}catch{}if(!id){id="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&0x3|0x8)).toString(16);});try{localStorage.setItem(key,id);}catch{}}return id;}
-// ── SUPABASE ──────────────────────────────────────────────────────────────────
-const SB_URL  = "https://lqxcrzpqsdqonvrifpei.supabase.co";
-const SB_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxeGNyenBxc2Rxb252cmlmcGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5NDIzMzIsImV4cCI6MjA5MTUxODMzMn0.rbR4HSkT2JhXMQpscIV8edEK4cyZin619QwbeeeTA6o";
-const SB_HEADERS = {"Content-Type":"application/json","apikey":SB_KEY,"Authorization":`Bearer ${SB_KEY}`};
-
-// Upsert user row — called on app load and when username/caps change.
-// Fire-and-forget: never blocks the game.
-async function dbSyncUser(deviceId, username, caps, peakCaps){
-  try{
-    await fetch(`${SB_URL}/rest/v1/users`,{
-      method:"POST",
-      headers:{...SB_HEADERS,"Prefer":"resolution=merge-duplicates"},
-      body:JSON.stringify({
-        device_id: deviceId,
-        username:  username||"Anonymous",
-        caps:      caps||0,
-        peak_caps: peakCaps||0,
-        updated_at: new Date().toISOString(),
-      }),
-    });
-  }catch(e){/* offline — silently ignore */}
-}
-
-// Insert one Rush score row — called inside saveRushScore.
-// Only inserts if score > 0 and passes the plausibility cap.
-async function dbInsertRushScore(deviceId, username, category, score, weekKey){
-  if(!score||score<=0||score>60)return; // plausibility guard (mirrors DB constraint)
-  try{
-    await fetch(`${SB_URL}/rest/v1/rush_scores`,{
-      method:"POST",
-      headers:{...SB_HEADERS,"Prefer":"return=minimal"},
-      body:JSON.stringify({
-        device_id: deviceId,
-        username:  username||"Anonymous",
-        category,
-        score,
-        week_key:  weekKey,
-      }),
-    });
-  }catch(e){/* offline — silently ignore */}
-}
-
-// Fetch top 20 all-time Rush scores from DB.
-// Returns null if offline/error so caller can fall back to simulation.
-async function dbFetchAllTime(){
-  try{
-    const r=await fetch(
-      `${SB_URL}/rest/v1/rush_scores?select=username,score,category&order=score.desc&limit=20`,
-      {headers:SB_HEADERS}
-    );
-    if(!r.ok)return null;
-    return await r.json(); // [{username, score, category}]
-  }catch{return null;}
-}
-
-// Fetch top 20 Rush scores for the current ISO week.
-async function dbFetchWeekly(weekKey){
-  try{
-    const r=await fetch(
-      `${SB_URL}/rest/v1/rush_scores?select=username,score,category&week_key=eq.${encodeURIComponent(weekKey)}&order=score.desc&limit=20`,
-      {headers:SB_HEADERS}
-    );
-    if(!r.ok)return null;
-    return await r.json();
-  }catch{return null;}
-}
-
-// Fetch top 20 all-time caps from DB.
-async function dbFetchCaps(){
-  try{
-    const r=await fetch(
-      `${SB_URL}/rest/v1/users?select=username,caps&order=caps.desc&limit=20`,
-      {headers:SB_HEADERS}
-    );
-    if(!r.ok)return null;
-    return await r.json();
-  }catch{return null;}
-}
-
-// Insert or update player's daily score
-async function dbInsertDailyScore(deviceId, dayKey, score){
-  try{
-    await fetch(`${SB_URL}/rest/v1/daily_scores`,{
-      method:"POST",
-      headers:{...SB_HEADERS,"Prefer":"resolution=merge-duplicates"},
-      body:JSON.stringify({device_id:deviceId, day_key:dayKey, score}),
-    });
-  }catch(e){/* offline */}
-}
-
-// Fetch avg + percentile for a given day and score in one go
-// Returns {avg, percentile} or null if offline
-async function dbFetchDailyStats(dayKey, myScore){
-  try{
-    const r = await fetch(
-      `${SB_URL}/rest/v1/daily_scores?select=score&day_key=eq.${encodeURIComponent(dayKey)}`,
-      {headers:SB_HEADERS}
-    );
-    if(!r.ok) return null;
-    const rows = await r.json();
-    if(!rows.length) return null;
-    const scores = rows.map(r=>r.score);
-    const avg = Math.round((scores.reduce((a,b)=>a+b,0)/scores.length)*10)/10;
-    const countBelow = scores.filter(s=>s<myScore).length;
-    const percentile = Math.round((countBelow/scores.length)*100); // % who scored lower
-    const topPct = 100-percentile; // top X% label
-    return {avg, topPct, total:scores.length};
-  }catch{return null;}
-}
-
 const STAT_ICONS={Goals:"⚽",Assists:"🎯","Clean Sheets":"🧤",Appearances:"👟",Trophies:"🏆",Caps:"🌐","Red Cards":"🟥"};
 
 // ── RUSH CATEGORIES (8 categories, 100 cards each) ────────────────────────────
@@ -1188,52 +1078,10 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   const [tab, setTab] = useState(defaultTab);
   const [nameEditing, setNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
-  // Initialise from daily cache — so offline users see last real data
-  const todayCacheKey = "lb_cache_"+getTodayKey();
-  const cachedLb = lsGet(todayCacheKey, null);
-  const [dbAllTime,  setDbAllTime]  = useState(cachedLb?.allTime  || null);
-  const [dbWeekly,   setDbWeekly]   = useState(cachedLb?.weekly   || null);
-  const [dbCaps,     setDbCaps]     = useState(cachedLb?.caps     || null);
-  const [dbLoading,  setDbLoading]  = useState(!cachedLb); // skip loading state if cache hit
 
-  useEffect(()=>{
-    let cancelled=false;
-    async function fetchAll(){
-      // If we already have a cache for today, show it immediately and refresh silently
-      if(!cachedLb) setDbLoading(true);
-      const wk = getWeekKey();
-      const [at, wkData, caps] = await Promise.all([dbFetchAllTime(), dbFetchWeekly(wk), dbFetchCaps()]);
-      if(cancelled)return;
-      if(at||wkData||caps){
-        // At least one fetch succeeded — cache and display
-        const fresh = {allTime:at||cachedLb?.allTime||null, weekly:wkData||cachedLb?.weekly||null, caps:caps||cachedLb?.caps||null};
-        lsSet(todayCacheKey, fresh);
-        setDbAllTime(fresh.allTime);
-        setDbWeekly(fresh.weekly);
-        setDbCaps(fresh.caps);
-      }
-      setDbLoading(false);
-    }
-    fetchAll();
-    return ()=>{cancelled=true;};
-  },[]);
-
-  // Build boards — use real DB data if loaded, otherwise fall back to simulation
-  function mergeWithYou(rows, myScore, myName, myCat){
-    if(!rows)return null;
-    const mapped = rows.map(r=>({name:r.username||"Anonymous", score:r.score, isYou:false, cat:r.category||null}));
-    const withYou = myScore>0 ? [...mapped,{name:myName||"You",score:myScore,isYou:true,cat:myCat||null}] : mapped;
-    return withYou.sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
-  }
-
-  const myName = username||"You";
-  const myBestScore = rushScores.length?Math.max(...rushScores):0;
-
-  const capsBoard    = dbCaps
-    ? (()=>{ const rows=dbCaps.map(r=>({name:r.username||"Anonymous",score:r.caps,isYou:false})); const withYou=streak>0?[...rows,{name:myName,score:streak,isYou:true}]:rows; return withYou.sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1})); })()
-    : buildCapsBoard(streak, username);
-  const allTimeBoard = mergeWithYou(dbAllTime, myBestScore, myName, rushBestCat) || buildRushAllTimeBoard(rushScores, username, rushBestCat);
-  const weeklyBoard  = mergeWithYou(dbWeekly,  myBestScore, myName, rushBestCat) || buildRushWeeklyBoard(rushScores, username, rushBestCat);
+  const capsBoard    = buildCapsBoard(streak, username);
+  const allTimeBoard = buildRushAllTimeBoard(rushScores, username, rushBestCat);
+  const weeklyBoard  = buildRushWeeklyBoard(rushScores, username, rushBestCat);
 
   const board = tab==="caps" ? capsBoard : tab==="alltime" ? allTimeBoard : weeklyBoard;
   const youEntry = board.find(e=>e.isYou);
@@ -1415,9 +1263,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
           })}
         </div>
 
-        <div style={{textAlign:"center",marginTop:12,color:"rgba(255,255,255,0.25)",fontSize:9,letterSpacing:1,fontFamily:"'Inter',sans-serif"}}>
-          {dbLoading ? "⏳ Loading live scores..." : (dbAllTime ? "🌍 Live global scores" : "📴 Offline · showing local data")}
-        </div>
+        <div style={{textAlign:"center",marginTop:12,color:"rgba(255,255,255,0.25)",fontSize:9,letterSpacing:1,fontFamily:"'Inter',sans-serif"}}>Global scores are simulated · live data comes with Supabase</div>
       </div>
     </PageWrap>
   );
@@ -2494,7 +2340,6 @@ function App(){
   const [latestScore,setLatestScore]     = useState(null);
   const [rawCorrect,setRawCorrect]       = useState(0);  // pre-multiplier correct count for display
   const [prevCatBest,setPrevCatBest]     = useState(0);  // best BEFORE this run saved — for new-best detection
-  const [dailyStats,setDailyStats]       = useState(()=>lsGet("daily_stats_"+getTodayKey(),null)); // {avg, topPct, total}
   const [answerLog,setAnswerLog]         = useState([]);
   // Rush monetisation
   const [cleanScore,setCleanScore]       = useState(0);   // score before any continue
@@ -2513,15 +2358,7 @@ function App(){
   const continueCountRef = useRef(0);
   const rushScoreSavedRef = useRef(false); // guard against double-save across rush end paths
 
-  function setUsername(n){lsSet("username",n);setUsernameState(n);dbSyncUser(userId,n,streak,peakStreak);}
-
-  // ── INITIAL DB SYNC — runs once on mount ─────────────────────────────────
-  useEffect(()=>{
-    // Fire-and-forget: sync current user state to DB on every app open.
-    // Uses GREATEST logic on DB side so caps can only go up, never down.
-    dbSyncUser(userId, username, streak, peakStreak);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[]);
+  function setUsername(n){lsSet("username",n);setUsernameState(n);}
 
   // ── CAREER RESTORE / DECAY — runs once on mount ───────────────────────────
   useEffect(()=>{
@@ -2800,18 +2637,6 @@ function App(){
     lsSet("last_decay_applied","");setLastDecayApplied("");
     setCareerMode("normal");
     const r={key:todayKey,dots:log||answerLog};lsSet("daily_result",r);setDailyResult(r);
-    // Sync new caps to DB — fire-and-forget
-    dbSyncUser(userId, username, ns, Math.max(ns, lsGet("peak_streak",0)));
-    // Insert daily score then fetch real avg + percentile
-    const dk = todayKey;
-    const myScore = (log||answerLog).filter(r=>r==="correct").length;
-    dbInsertDailyScore(userId, dk, myScore).then(()=>{
-      dbFetchDailyStats(dk, myScore).then(stats=>{
-        if(!stats) return;
-        lsSet("daily_stats_"+dk, stats); // cache for today
-        setDailyStats(stats);
-      });
-    });
   }
   function saveRushScore(s, isClean){
     // Read fresh from localStorage to avoid stale closure
@@ -2834,8 +2659,6 @@ function App(){
       const newAllTime = Math.max(prev, s, newWeekly);
       if(newAllTime > prev) lsSet(`rush_best_${cat}`, newAllTime);
       lsSet(`rush_plays_${cat}`,lsGet(`rush_plays_${cat}`,0)+1);
-      // Fire-and-forget to DB — does not block, safe to fail
-      dbInsertRushScore(userId, username, cat, s, getWeekKey());
     }
   }
   useEffect(()=>()=>clearTimeout(timeoutRef.current),[]);
@@ -3336,13 +3159,12 @@ function App(){
                 {/* 2-col: score + global avg */}
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)",marginBottom:10,background:"rgba(255,255,255,0.05)"}}>
                   {[
-                    {label:"Your Score",val:`${todayResult.filter(r=>r==="correct").length}/10`,col:"#06b6d4",sub:null},
-                    {label:"Global Avg",val:dailyStats?.avg??"4.2",col:"rgba(255,255,255,0.4)",sub:dailyStats?.topPct!=null?`you: top ${dailyStats.topPct}%`:null},
+                    {label:"Your Score",val:`${todayResult.filter(r=>r==="correct").length}/10`,col:"#06b6d4"},
+                    {label:"Global Avg",val:"4.2",col:"rgba(255,255,255,0.4)"},
                   ].map((item,i)=>(
                     <div key={i} style={{textAlign:"center",padding:"12px 6px",borderLeft:i>0?"1px solid rgba(255,255,255,0.08)":"none"}}>
                       <div style={{fontSize:8,color:"rgba(255,255,255,0.4)",letterSpacing:1.5,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{item.label}</div>
                       <div style={{fontSize:20,fontWeight:800,color:item.col,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{item.val}</div>
-                      {item.sub&&<div style={{fontSize:9,color:"#f59e0b",fontWeight:700,marginTop:2,fontFamily:"'Inter',sans-serif"}}>{item.sub}</div>}
                     </div>
                   ))}
                 </div>
@@ -3604,9 +3426,7 @@ function App(){
                       <span style={{fontSize:64,fontWeight:900,color:accentCol,lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1,textShadow:`0 0 30px ${accentCol}44`}}>{latestScore}</span>
                       <span style={{fontSize:18,color:"rgba(255,255,255,0.2)",fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:4}}>/10</span>
                     </div>
-                    <div style={{fontSize:11,color:(latestScore||0)>(dailyStats?.avg||4.2)?"#06b6d4":"rgba(255,255,255,0.3)",fontWeight:600,marginTop:3,fontFamily:"'Inter',sans-serif"}}>
-                      {(latestScore||0)>(dailyStats?.avg||4.2)?"↑ Above avg":"↓ Below avg"} · avg {dailyStats?.avg??"4.2"}{dailyStats?.topPct!=null?<span style={{color:"#f59e0b",marginLeft:4}}>· top {dailyStats.topPct}%</span>:null}
-                    </div>
+                    <div style={{fontSize:11,color:(latestScore||0)>4.2?"#06b6d4":"rgba(255,255,255,0.3)",fontWeight:600,marginTop:3,fontFamily:"'Inter',sans-serif"}}>{(latestScore||0)>4.2?"↑ Above avg":"↓ Below avg"} · avg 4.2</div>
                   </div>
                   {latestScore>0&&(()=>{
                     const msg=getScoreMessage(latestScore);
