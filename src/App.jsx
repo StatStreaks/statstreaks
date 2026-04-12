@@ -2895,9 +2895,9 @@ function App(){
             position:"relative",
           }}>
             <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(255,255,255,0.05) 14px,rgba(255,255,255,0.05) 15px)",pointerEvents:"none"}}/>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif",position:"relative"}}>Today's Match</div>
-            <div style={{fontSize:15,color:"#ffffff",fontWeight:800,fontFamily:"'Inter',sans-serif",lineHeight:1.2,position:"relative"}}>{cleanTheme(todayChallenge.theme)}</div>
-            {!todayPlayed&&<div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,fontFamily:"'Inter',sans-serif",marginTop:3,position:"relative"}}>Higher or lower? · 10 questions</div>}
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.7)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif",position:"relative",textAlign:"center"}}>Today's Match</div>
+            <div style={{fontSize:15,color:"#ffffff",fontWeight:800,fontFamily:"'Inter',sans-serif",lineHeight:1.2,position:"relative",textAlign:"center"}}>{cleanTheme(todayChallenge.theme)}</div>
+            {!todayPlayed&&<div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,fontFamily:"'Inter',sans-serif",marginTop:3,position:"relative",textAlign:"center"}}>Higher or lower? · 10 questions</div>}
           </div>
 
           <div style={{padding:"16px 18px",position:"relative"}}>
@@ -2953,13 +2953,10 @@ function App(){
                 }} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:10,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(22,163,74,0.35)"}}>
                   <span style={{fontSize:15}}>💬</span> Share on WhatsApp
                 </button>
-                {/* Tomorrow's fixture — light cyan */}
-                <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:"rgba(6,182,212,0.08)",borderRadius:10,border:"1px solid rgba(6,182,212,0.2)"}}>
-                  <span style={{fontSize:14}}>🔭</span>
-                  <div>
-                    <div style={{fontSize:8,color:"rgba(6,182,212,0.6)",letterSpacing:2,fontWeight:600,marginBottom:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Tomorrow's Fixture</div>
-                    <div style={{fontSize:12,color:"#67e8f9",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{cleanTheme(tomorrowChallenge.theme)}</div>
-                  </div>
+                {/* Tomorrow's match — light cyan */}
+                <div style={{padding:"10px 12px",background:"rgba(6,182,212,0.08)",borderRadius:10,border:"1px solid rgba(6,182,212,0.2)",textAlign:"center"}}>
+                  <div style={{fontSize:8,color:"rgba(6,182,212,0.6)",letterSpacing:2,fontWeight:600,marginBottom:3,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>📅 Tomorrow's Match</div>
+                  <div style={{fontSize:12,color:"#67e8f9",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>{cleanTheme(tomorrowChallenge.theme)}</div>
                 </div>
               </>
             )}
@@ -3241,7 +3238,7 @@ function App(){
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(190,24,93,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
                   <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Hit the Training Pitch</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>Next fixture: {tomorrowTheme}</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>Tomorrow's match: {cleanTheme(tomorrowTheme)}</div>
                 </button>
               </div>
             </div>
