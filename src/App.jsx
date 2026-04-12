@@ -844,11 +844,11 @@ function getCardContext(card, catId) {
     teamLine = season || "Season";
     compLine = "Premier League";
   } else if (isGroundCap) {
-    // Player field is "Team (Stadium)" — stadium in pill, team name in compLine
+    // Player field is "Team (Stadium)" — stadium in pill, team + year below
     const matchStad = card.player ? card.player.match(/\(([^)]+)\)/) : null;
     const teamName  = card.player ? card.player.replace(/\s*\([^)]+\)\s*$/, "").trim() : "";
     teamLine = matchStad ? matchStad[1] : card.player;
-    compLine = teamName || "2024/25";
+    compLine = (teamName ? teamName + " · " : "") + "2024/25";
   } else if (isFACup) {
     teamLine = "All-Time";
     compLine = "FA Cup";
@@ -859,20 +859,34 @@ function getCardContext(card, catId) {
     teamLine = "All-Time";
     compLine = "World Cup";
   } else if (isMostCapped) {
-    teamLine = card.nationality || "International";
-    compLine = "All-Time";
+    teamLine = "All-Time";
+    compLine = card.nationality || "International";
   } else if (isTopScorers) {
-    teamLine = card.nationality || "International";
-    compLine = "All-Time";
+    teamLine = "All-Time";
+    compLine = card.nationality || "International";
   } else if (catId === "intl_caps") {
-    teamLine = card.nationality || "International";
-    compLine = "All-Time";
+    teamLine = "All-Time";
+    compLine = card.nationality || "International";
   } else if (catId === "intl_goals") {
-    teamLine = card.nationality || "International";
-    compLine = "All-Time";
+    teamLine = "All-Time";
+    compLine = card.nationality || "International";
   } else if (statType === "Caps" || isEnglandTheme) {
     teamLine = "England";
     compLine = "International";
+  // ── RUSH CATEGORY OVERRIDES — always override club data ──────────────────
+  } else if (catId === "pl_goals" || catId === "pl_assists" || catId === "pl_appearances") {
+    teamLine = "All-Time";
+    compLine = "Premier League";
+  } else if (catId === "mufc_goals") {
+    teamLine = "All-Time";
+    compLine = "Man Utd";
+  } else if (catId === "lfc_goals") {
+    teamLine = "All-Time";
+    compLine = "Liverpool";
+  } else if (catId === "ucl_goals") {
+    teamLine = "All-Time";
+    compLine = "Champions League";
+  // ── DAILY / FALLBACK — use club data ─────────────────────────────────────
   } else if (club === "PL All-Time") {
     teamLine = "All-Time";
     compLine = "Premier League";
@@ -883,7 +897,7 @@ function getCardContext(card, catId) {
     } else {
       compLine = "Club Career";
     }
-  } else if (catId === "pl_goals" || catId === "pl_assists" || catId === "pl_appearances" || isPLTheme || isPLAssists || isPLAppearances) {
+  } else if (isPLTheme || isPLAssists || isPLAppearances) {
     teamLine = "All-Time";
     compLine = "Premier League";
   } else if (isWorldCupTheme) {
@@ -3178,25 +3192,29 @@ function App(){
               <div style={{height:3,background:`linear-gradient(90deg,${accentCol},${accentCol}44)`,position:"relative"}}/>
               <div style={{padding:"18px 18px 16px",position:"relative"}}>
 
-                {/* Score row — big number left, roast message right */}
-                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14,gap:12}}>
+                {/* Score row — big number left, global stats right */}
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:10,gap:12}}>
                   <div style={{flexShrink:0}}>
                     <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:2,fontWeight:600,marginBottom:2,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Match Score</div>
                     <div style={{display:"flex",alignItems:"baseline",gap:3}}>
-                      <span style={{fontSize:64,fontWeight:900,color:accentCol,lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1,textShadow:`0 0 30px ${accentCol}44`}}>{latestScore}</span>
+                      <span style={{fontSize:64,fontWeight:900,color:"#ffffff",lineHeight:0.9,fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{latestScore}</span>
                       <span style={{fontSize:18,color:"rgba(255,255,255,0.2)",fontWeight:600,fontFamily:"'Inter',sans-serif",marginBottom:4}}>/10</span>
                     </div>
-                    <div style={{fontSize:11,color:(latestScore||0)>(dailyStats?.avg||4.2)?"#06b6d4":"rgba(255,255,255,0.3)",fontWeight:600,marginTop:3,fontFamily:"'Inter',sans-serif"}}>
-                      {(latestScore||0)>(dailyStats?.avg||4.2)?"↑ Above avg":"↓ Below avg"} · avg {dailyStats?.avg??"4.2"}{dailyStats?.topPct!=null?<span style={{color:"#f59e0b",marginLeft:4}}>· top {dailyStats.topPct}%</span>:null}
+                  </div>
+                  <div style={{flex:1,paddingTop:4,textAlign:"right"}}>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:1.5,fontWeight:600,marginBottom:6,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Global</div>
+                    <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",fontWeight:600,fontFamily:"'Inter',sans-serif",lineHeight:1.8}}>
+                      <div>Avg: <span style={{color:"#ffffff",fontWeight:800}}>{dailyStats?.avg??"—"}</span></div>
+                      {dailyStats?.topPct!=null&&<div>Rank: <span style={{color:"#f59e0b",fontWeight:800}}>top {dailyStats.topPct}%</span></div>}
                     </div>
                   </div>
-                  {latestScore>0&&(()=>{
-                    const msg=getScoreMessage(latestScore);
-                    return msg?<div style={{flex:1,paddingTop:4,textAlign:"right"}}>
-                      <div style={{color:accentCol,fontWeight:700,fontSize:12,lineHeight:1.45,fontFamily:"'Inter',sans-serif",fontStyle:"italic",opacity:0.85}}>{msg}</div>
-                    </div>:null;
-                  })()}
                 </div>
+
+                {/* Roast message — one line above dots */}
+                {latestScore>0&&(()=>{
+                  const msg=getScoreMessage(latestScore);
+                  return msg?<div style={{fontSize:12,color:"rgba(255,255,255,0.55)",fontWeight:600,fontFamily:"'Inter',sans-serif",fontStyle:"italic",marginBottom:10,lineHeight:1.4}}>{msg}</div>:null;
+                })()}
 
                 {/* Answer dots */}
                 {answerLog.length>0&&(
