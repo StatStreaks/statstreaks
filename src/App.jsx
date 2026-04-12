@@ -80,17 +80,31 @@ async function dbSyncUser(deviceId, username, caps, peakCaps){
 // Insert one Rush score row — called inside saveRushScore.
 // Only inserts if score > 0 and passes the plausibility cap.
 async function dbInsertRushScore(deviceId, username, category, score, weekKey){
-  if(!score||score<=0||score>60)return; // plausibility guard (mirrors DB constraint)
+  if(!score||score<=0||score>60)return; // plausibility guard
   try{
-    await fetch(`${SB_URL}/rest/v1/rush_scores`,{
+    // Fetch existing row first so we can do best-wins logic
+    const r = await fetch(
+      `${SB_URL}/rest/v1/rush_bests?device_id=eq.${encodeURIComponent(deviceId)}&category=eq.${encodeURIComponent(category)}`,
+      {headers:SB_HEADERS}
+    );
+    const existing = r.ok ? await r.json() : [];
+    const row = existing[0];
+    const isNewWeek = !row || row.week_key !== weekKey;
+    const newWeeklyBest = isNewWeek ? score : Math.max(row.weekly_best||0, score);
+    const newAlltimeBest = Math.max(row?.alltime_best||0, score);
+    // Only update if something actually improved
+    if(row && !isNewWeek && score <= row.weekly_best && score <= row.alltime_best) return;
+    await fetch(`${SB_URL}/rest/v1/rush_bests`,{
       method:"POST",
-      headers:{...SB_HEADERS,"Prefer":"return=minimal"},
+      headers:{...SB_HEADERS,"Prefer":"resolution=merge-duplicates"},
       body:JSON.stringify({
-        device_id: deviceId,
-        username:  username||"Anonymous",
+        device_id:    deviceId,
+        username:     username||"Anonymous",
         category,
-        score,
-        week_key:  weekKey,
+        alltime_best: newAlltimeBest,
+        weekly_best:  newWeeklyBest,
+        week_key:     weekKey,
+        updated_at:   new Date().toISOString(),
       }),
     });
   }catch(e){/* offline — silently ignore */}
@@ -101,11 +115,13 @@ async function dbInsertRushScore(deviceId, username, category, score, weekKey){
 async function dbFetchAllTime(){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/rush_scores?select=device_id,username,score,category&order=score.desc&limit=20`,
+      `${SB_URL}/rest/v1/rush_bests?select=device_id,username,alltime_best,category&order=alltime_best.desc&limit=100`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
-    return await r.json(); // [{username, score, category}]
+    const rows = await r.json();
+    // Normalise field name to "score" so board builders work unchanged
+    return rows.map(r=>({...r, score:r.alltime_best}));
   }catch{return null;}
 }
 
@@ -113,11 +129,13 @@ async function dbFetchAllTime(){
 async function dbFetchWeekly(weekKey){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/rush_scores?select=device_id,username,score,category&week_key=eq.${encodeURIComponent(weekKey)}&order=score.desc&limit=20`,
+      `${SB_URL}/rest/v1/rush_bests?select=device_id,username,weekly_best,category&week_key=eq.${encodeURIComponent(weekKey)}&order=weekly_best.desc&limit=100`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
-    return await r.json();
+    const rows = await r.json();
+    // Normalise field name to "score" so board builders work unchanged
+    return rows.map(r=>({...r, score:r.weekly_best}));
   }catch{return null;}
 }
 
@@ -125,7 +143,7 @@ async function dbFetchWeekly(weekKey){
 async function dbFetchCaps(){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/users?select=device_id,username,caps&order=caps.desc&limit=20`,
+      `${SB_URL}/rest/v1/users?select=device_id,username,caps&order=caps.desc&limit=100`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
@@ -1162,7 +1180,7 @@ function buildCapsBoard(streak, username) {
   const name = username||"You";
   const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,7,1,180), isYou:false}));
   const you = streak>0?[{name,score:streak,isYou:true}]:[];
-  return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+  return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
 }
 
 function buildRushAllTimeBoard(rushScores, username, rushBestCat) {
@@ -1170,7 +1188,7 @@ function buildRushAllTimeBoard(rushScores, username, rushBestCat) {
   const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,13,4,28), isYou:false, cat:RUSH_CAT_LABELS[seededVal(n,42,0,RUSH_CAT_LABELS.length-1)]}));
   const best = rushScores.length?Math.max(...rushScores):null;
   const you = best!==null?[{name,score:best,isYou:true,cat:rushBestCat||null}]:[];
-  return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+  return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
 }
 
 function buildRushWeeklyBoard(rushScores, username, rushBestCat) {
@@ -1178,7 +1196,7 @@ function buildRushWeeklyBoard(rushScores, username, rushBestCat) {
   const sim = SIM_NAMES.map(n=>({name:n, score:seededVal(n,97,1,16), isYou:false, cat:RUSH_CAT_LABELS[seededVal(n,17,0,RUSH_CAT_LABELS.length-1)]}));
   const best = rushScores.length?Math.max(...rushScores):null;
   const you = best!==null?[{name,score:best,isYou:true,cat:rushBestCat||null}]:[];
-  return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+  return [...sim,...you].sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
 }
 
 // Keep old function so nothing else breaks
@@ -1227,7 +1245,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
     const mapped = rows.map(r=>({name:r.username||"Anonymous", score:r.score, isYou:r.device_id===deviceId, cat:r.category||null}));
     // Only add a local entry if your score isn't in the DB yet (race condition on first save)
     const withYou = (!alreadyInDb&&myScore>0) ? [...mapped,{name:myName||"You",score:myScore,isYou:true,cat:myCat||null}] : mapped;
-    return withYou.sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+    return withYou.sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
   }
 
   const myName = username||"You";
@@ -1241,7 +1259,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
         const rows = dbCaps.map(r=>({name:r.username||"Anonymous",score:r.caps,isYou:r.device_id===deviceId}));
         // Only add a local entry if we're not in the DB yet (first sync hasn't completed)
         const withYou = (!alreadyInDb&&streak>0) ? [...rows,{name:myName,score:streak,isYou:true}] : rows;
-        return withYou.sort((a,b)=>b.score-a.score).slice(0,20).map((e,i)=>({...e,rank:i+1}));
+        return withYou.sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
       })()
     : buildCapsBoard(streak, username);
   const allTimeBoard = mergeWithYou(dbAllTime, myBestScore, myName, rushBestCat) || buildRushAllTimeBoard(rushScores, username, rushBestCat);
@@ -2518,6 +2536,7 @@ function App(){
   const [countdown,setCountdown]         = useState(null); // 3,2,1 pre-game countdown
   const [showInterstitial,setShowInterstitial] = useState(false); // interstitial before results
   const [showHowToPlay,setShowHowToPlay]       = useState(()=>!lsGet("htp_seen",false));
+  const [showNamePrompt,setShowNamePrompt]     = useState(false); // shows after HTP on first visit if no name set
   const timeoutRef = useRef();
   // Refs to hold live values for use inside timer/interval callbacks (avoids stale closures)
   const scoreRef   = useRef(0);
@@ -2532,6 +2551,8 @@ function App(){
     // Fire-and-forget: sync current user state to DB on every app open.
     // Uses GREATEST logic on DB side so caps can only go up, never down.
     dbSyncUser(userId, username, streak, peakStreak);
+    // Show name prompt immediately if returning player has no username and already seen HTP
+    if(!lsGet("username","") && lsGet("htp_seen",false)) setShowNamePrompt(true);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
@@ -3161,6 +3182,105 @@ function App(){
     return getGapMessage(streak);
   }
 
+
+  // ── NAME PROMPT OVERLAY ───────────────────────────────────────────────────
+  const AUTO_NAMES = [
+    "TikiTaka Terry","OffsideTrap Owen","TopBin Tommy","DeadBall Dave",
+    "NinetyMinute Nigel","FreeKick Frankie","HeaderKing Hazza","GoldenGlove Gary",
+    "PenaltySpot Pete","HatTrick Harvey","WorldClass Wazza","CurlingIn Carlo",
+    "RowZ Ronnie","NearPost Neville","BackOfTheNet Barry","SweepingPass Steve",
+    "DummyRun Derek","VolleyKing Vince","NutmegNorman","ChipShot Charlie",
+    "LongBall Larry","OneTouch Tony","HighPress Harry","ThreeLions Trevor",
+    "ElClasico Eddie","DerbyDay Danny","ParkThebus Phil","TotalFootball Ted",
+    "GoalMachine Gavin","CapCollector Colin",
+  ];
+  function randomAutoName(){return AUTO_NAMES[Math.floor(Math.random()*AUTO_NAMES.length)];}
+
+  function NamePromptOverlay(){
+    const [draft, setDraft] = useState("");
+    const [focused, setFocused] = useState(false);
+
+    function confirm(){
+      const name = draft.trim() || randomAutoName();
+      setUsername(name);
+      setShowNamePrompt(false);
+    }
+    function skip(){
+      const name = randomAutoName();
+      setUsername(name);
+      setShowNamePrompt(false);
+    }
+
+    return(
+      <div style={{position:"fixed",inset:0,background:"rgba(3,13,13,0.92)",backdropFilter:"blur(12px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:"20px 16px"}}>
+        <div style={{background:"linear-gradient(160deg,#0d1f2d,#061212)",border:"1px solid rgba(6,182,212,0.25)",borderRadius:24,padding:"32px 24px",width:"100%",maxWidth:360,textAlign:"center",boxShadow:"0 24px 80px rgba(0,0,0,0.6), 0 0 60px rgba(6,182,212,0.06)"}}>
+
+          {/* Badge */}
+          <div style={{width:56,height:56,borderRadius:16,background:"linear-gradient(135deg,#0d9488,#06b6d4)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px",fontSize:26,boxShadow:"0 8px 24px rgba(6,182,212,0.35)"}}>
+            🧢
+          </div>
+
+          <div style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:30,letterSpacing:1.5,color:"#ffffff",marginBottom:6}}>
+            Start Your Career
+          </div>
+          <div style={{fontFamily:"'Inter',sans-serif",fontSize:13,color:"rgba(255,255,255,0.45)",marginBottom:28,lineHeight:1.5}}>
+            How will you appear on the leaderboard?
+          </div>
+
+          {/* Input */}
+          <div style={{position:"relative",marginBottom:10}}>
+            <input
+              value={draft}
+              onChange={e=>setDraft(e.target.value.slice(0,20))}
+              onFocus={()=>setFocused(true)}
+              onBlur={()=>setFocused(false)}
+              onKeyDown={e=>e.key==="Enter"&&confirm()}
+              placeholder="Enter your name..."
+              maxLength={20}
+              autoFocus
+              style={{
+                width:"100%",boxSizing:"border-box",
+                padding:"14px 16px",
+                background:"rgba(255,255,255,0.06)",
+                border:`1.5px solid ${focused?"#06b6d4":"rgba(255,255,255,0.12)"}`,
+                borderRadius:12,
+                color:"#ffffff",
+                fontFamily:"'Inter',sans-serif",
+                fontSize:16,
+                fontWeight:600,
+                outline:"none",
+                transition:"border-color 0.2s",
+                textAlign:"center",
+              }}
+            />
+            {draft.length>0&&(
+              <div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",fontSize:10,color:"rgba(255,255,255,0.25)",fontFamily:"'Inter',sans-serif"}}>
+                {20-draft.length}
+              </div>
+            )}
+          </div>
+
+          {/* Confirm button */}
+          <button
+            onClick={confirm}
+            style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#0d9488,#06b6d4)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,cursor:"pointer",marginBottom:10,boxShadow:"0 4px 20px rgba(6,182,212,0.35)",transition:"opacity 0.15s"}}
+          >
+            Kick Off ⚽
+          </button>
+
+          {/* Skip */}
+          <button
+            onClick={skip}
+            style={{background:"transparent",border:"none",color:"rgba(255,255,255,0.3)",fontFamily:"'Inter',sans-serif",fontSize:12,cursor:"pointer",padding:"6px 12px",fontWeight:500}}
+          >
+            Skip — assign me a name
+          </button>
+
+        </div>
+      </div>
+    );
+  }
+
   // ── HOW TO PLAY OVERLAY ───────────────────────────────────────────────────
   function HowToPlayOverlay(){
     const [step,setStep]=useState(0);
@@ -3189,7 +3309,7 @@ function App(){
     ];
     const cur=steps[step];
     const isLast=step===steps.length-1;
-    function dismiss(){lsSet("htp_seen",true);setShowHowToPlay(false);}
+    function dismiss(){lsSet("htp_seen",true);setShowHowToPlay(false);if(!lsGet("username",""))setShowNamePrompt(true);}
     return(
       <div style={{position:"fixed",inset:0,background:"rgba(3,13,13,0.88)",backdropFilter:"blur(10px)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:"20px 16px"}}>
         <div style={{background:"linear-gradient(160deg,#0d1f2d,#061212)",border:"1px solid rgba(6,182,212,0.2)",borderRadius:24,padding:"28px 24px 28px",width:"100%",maxWidth:380}}>
@@ -3242,6 +3362,7 @@ function App(){
     return(
     <PageWrap>
       {showHowToPlay&&<HowToPlayOverlay/>}
+      {showNamePrompt&&<NamePromptOverlay/>}
       {/* ── CAREER RESTORE / DECAY OVERLAY ── */}
       {(careerMode==="restore"||careerMode==="decay")&&(
         <StreakRestoreOverlay
