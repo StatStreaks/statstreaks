@@ -1772,7 +1772,7 @@ function App(){
   const [testDayOffset,setTestDayOffset] = useState(0);
   const [devMode,setDevMode]               = useState(()=>lsGet("dev_mode",false));
   const [logoTaps,setLogoTaps]             = useState(0);
-  const logoTapTimer                       = React.useRef(null);
+  const logoTapTimer                       = useRef(null);
   const [latestScore,setLatestScore]     = useState(null);
   const [rawCorrect,setRawCorrect]       = useState(0);  // pre-multiplier correct count for display
   const [prevCatBest,setPrevCatBest]     = useState(0);  // best BEFORE this run saved — for new-best detection
