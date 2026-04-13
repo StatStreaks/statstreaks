@@ -3435,7 +3435,7 @@ function App(){
           ):(
             isRush?(
               <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:12,padding:"12px",textAlign:"center"}}>
-                <div style={{color:"rgba(255,255,255,0.5)",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:600,fontStyle:"italic"}}>Loose touch — go again</div>
+                <div style={{color:"rgba(255,255,255,0.5)",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:600,fontStyle:"italic"}}>{(timeLeft>20&&continueCount===0)?"Wrong — keep going":"Wrong!"}</div>
               </div>
             ):(!isRush?(
             <div style={{position:"fixed",inset:0,background:"rgba(10,18,28,0.94)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:50,padding:"0 20px",backdropFilter:"blur(8px)"}}>
