@@ -1594,6 +1594,7 @@ function TermsScreen({onBack}){
               "All statistics are sourced from publicly available records and are provided for entertainment purposes only. We do our best to keep them accurate but cannot guarantee every figure is correct. If you spot an error, please let us know.",
               "StatStreaks is not affiliated with, endorsed by, or connected to any football club, league, governing body, or player.",
               "The app contains advertisements served by Google AdMob. These may be personalised based on your device settings and Google's own policies. StatStreaks is not responsible for the content of third-party ads.",
+              "StatStreaks, including its name, logo, game format, design, and content, is the intellectual property of its creator. You may not copy, reproduce, resell, or create derivative works based on this game without explicit written permission.",
               "We reserve the right to update these terms at any time. Continued use of the app after changes are posted means you accept the updated terms.",
             ].map((text,i)=>(
               <div key={i} style={{display:"flex",gap:10,marginBottom:10,alignItems:"flex-start"}}>
