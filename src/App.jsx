@@ -531,8 +531,8 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   const youEntry = board.find(e=>e.isYou);
 
   const TABS = [
-    {id:"weekly",  label:"Top Scorer",  sub:"this week",  icon:"⚽", accent:"#06b6d4", desc:"Best Training Pitch score · this week"},
-    {id:"alltime", label:"Golden Boot", sub:"2026",        icon:"🥾", accent:"#ec4899", desc:"Best Training Pitch score · 2026"},
+    {id:"weekly",  label:"Top Scorer",  sub:"this week",  icon:"⚽", accent:"#06b6d4", desc:"Best Rush Mode score · this week"},
+    {id:"alltime", label:"Golden Boot", sub:"2026",        icon:"🥾", accent:"#ec4899", desc:"Best Rush Mode score · 2026"},
     {id:"caps",    label:"Caps",        sub:"all time",    icon:"🧢", accent:"#d97706", desc:"Longest active streak · all-time"},
   ];
   const activeTab = TABS.find(t=>t.id===tab);
@@ -1335,7 +1335,7 @@ function getRushMessage(score, catBest) {
 
   // No best yet (catBest === 0)
   if(catBest === 0 && score === 0) return "Why are you here? Actually, why are you here?";
-  if(catBest === 0 && score <= 2)  return "A few more hours on the training pitch and you might be dangerous.";
+  if(catBest === 0 && score <= 2)  return "A few more sessions and you might be dangerous.";
   if(catBest === 0 && score <= 5)  return "Decent start. Room to grow. A lot of room.";
   if(catBest === 0)                return "Solid first run. The data is in. Now beat it.";
 
@@ -1371,7 +1371,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
           <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,flexShrink:0}}>← Back</button>
           <div style={{flex:1}}>
             <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
-            <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Training Pitch</div>
+            <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Rush Mode</div>
           </div>
           {/* How to play + player status stacked right */}
           <div style={{textAlign:"right",flexShrink:0,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
@@ -2067,6 +2067,18 @@ function App(){
     }
     // Wrong answer — lock in clean score if first wrong
     if(continueCount===0) setCleanScore(score);
+    // Second wrong — no more chances, go straight to results (consistent with daily)
+    if(continueCount>0){
+      setShowRushModal(false);
+      const preBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
+      setPrevCatBest(preBest);
+      saveRushScore(score, false);
+      setLatestScore(score);
+      setGameOutcome("lose");
+      if(score > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest();
+      setShowInterstitial(true);
+      return;
+    }
     setFrozenTimeLeft(timeLeft);
     setShowRushModal(true);
   }
@@ -2117,11 +2129,7 @@ function App(){
     setLatestScore(score);
     setGameOutcome("lose");
     if(score > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest();
-    if(continueCount===0){
-      setShowInterstitial(true);
-    } else {
-      setScreen("result");
-    }
+    setShowInterstitial(true);
   }
 
   function finishGame(outcome,finalScore,log){
@@ -2365,16 +2373,12 @@ function App(){
               {canContinue&&(
                 <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(6,182,212,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,position:"relative",overflow:"hidden"}}>
                   <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.04) 12px,rgba(255,255,255,0.04) 13px)",pointerEvents:"none"}}/>
-                  <span style={{position:"relative"}}>Win It Back</span>
+                  <span style={{position:"relative"}}>▶ Watch Ad to Continue</span>
                   <span style={{position:"relative",fontSize:11,opacity:0.75,fontWeight:600}}>({frozenTimeLeft}s left)</span>
                 </button>
               )}
-              <button onClick={()=>startAd("retry")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,position:"relative",overflow:"hidden"}}>
-                <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.04) 12px,rgba(255,255,255,0.04) 13px)",pointerEvents:"none"}}/>
-                <span style={{position:"relative"}}>⚡ Back to Training</span>
-              </button>
               <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.09)",borderRadius:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:600,cursor:"pointer",letterSpacing:0.3}}>
-                End Training Session
+                End Session
               </button>
             </div>
           )}
@@ -2892,40 +2896,47 @@ function App(){
           )}
         </div>
 
-        {/* ══ TRAINING PITCH + LEADERBOARD — side by side ══ */}
-        <div style={{display:"flex",gap:10,marginBottom:16}}>
-          <button onClick={()=>{SFX.click();setScreen("rush");}}
-            style={{
-              flex:1,
-              background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 40%,#db2777 70%,#ec4899 100%)",
-              border:"1px solid rgba(236,72,153,0.3)",
-              borderRadius:14,cursor:"pointer",overflow:"hidden",
-              boxShadow:"0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
-              transition:"transform 0.12s,box-shadow 0.12s",textAlign:"left",padding:"12px 14px",
-            }}
-            onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(219,39,119,0.65), inset 0 1px 0 rgba(255,255,255,0.25)";}}
-            onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
-            <div style={{fontSize:18,marginBottom:5}}>⚡</div>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Training Pitch</div>
-            <div style={{fontSize:11,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>30s High Score Mode</div>
-          </button>
+        {/* ══ RUSH MODE — full width primary CTA ══ */}
+        <button onClick={()=>{SFX.click();setScreen("rush");}}
+          style={{
+            width:"100%",marginBottom:10,
+            background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 40%,#db2777 70%,#ec4899 100%)",
+            border:"1px solid rgba(236,72,153,0.3)",
+            borderRadius:14,cursor:"pointer",overflow:"hidden",
+            boxShadow:"0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
+            transition:"transform 0.12s,box-shadow 0.12s",
+            display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",
+          }}
+          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(219,39,119,0.65), inset 0 1px 0 rgba(255,255,255,0.25)";}}
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+          <div style={{textAlign:"left"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>Rush Mode</div>
+            <div style={{fontSize:15,fontWeight:900,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>⚡ Play Rush</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,marginTop:2,fontFamily:"'Inter',sans-serif"}}>30s · 8 categories · beat your score</div>
+          </div>
+          <div style={{fontSize:28,opacity:0.8}}>→</div>
+        </button>
 
-          <button onClick={()=>{SFX.click();setPrevScreen("home");setScreen("leaderboard");}}
-            style={{
-              flex:1,
-              background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
-              border:"1px solid rgba(217,119,6,0.4)",
-              borderRadius:14,cursor:"pointer",overflow:"hidden",
-              boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-              transition:"transform 0.12s,box-shadow 0.12s",textAlign:"left",padding:"12px 14px",
-            }}
-            onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5), inset 0 1px 0 rgba(255,255,255,0.15)";}}
-            onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
-            <div style={{fontSize:18,marginBottom:5}}>🏆</div>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:2,fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
-            <div style={{fontSize:11,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>Top Scorer · Golden Boot · Caps</div>
-          </button>
-        </div>
+        {/* ══ LEADERBOARDS — secondary ══ */}
+        <button onClick={()=>{SFX.click();setPrevScreen("home");setScreen("leaderboard");}}
+          style={{
+            width:"100%",marginBottom:16,
+            background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
+            border:"1px solid rgba(217,119,6,0.4)",
+            borderRadius:14,cursor:"pointer",overflow:"hidden",
+            boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+            transition:"transform 0.12s,box-shadow 0.12s",
+            display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 18px",
+          }}
+          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5), inset 0 1px 0 rgba(255,255,255,0.15)";}}
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
+          <div style={{textAlign:"left"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
+            <div style={{fontSize:13,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>🏆 See Where You Rank</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,marginTop:2,fontFamily:"'Inter',sans-serif"}}>Top Scorer · Golden Boot · Caps</div>
+          </div>
+          <div style={{fontSize:22,opacity:0.8}}>→</div>
+        </button>
 
         {/* ── DEV PANEL — hidden until logo tapped 7× ── */}
         {devMode&&(
@@ -2992,7 +3003,7 @@ function App(){
         {/* Back nav */}
         <button onClick={()=>{SFX.click();setScreen(isDaily?"home":"rush");}}
           style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:11,cursor:"pointer",padding:"7px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,letterSpacing:0.5,marginBottom:16}}>
-          ← {isDaily?"Home":"Training Pitch"}
+          ← {isDaily?"Home":"Rush Mode"}
         </button>
 
         {/* ── DAILY RESULT ── */}
@@ -3048,6 +3059,19 @@ function App(){
                 }} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.35), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
                   <span style={{fontSize:16}}>💬</span> Share on WhatsApp
                 </button>
+                {/* Copyable share text */}
+                {(()=>{
+                  const s2=latestScore||0;
+                  const grid=answerLog.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
+                  const shareText=`StatStreaks #${effectiveDayIdx+1} ⚽\n🏆 ${cleanTheme(todayChallenge.theme)}\n\n${grid}\n${s2}/10 · ${streak} career caps 🧢\n\nCan you beat it? statstreaks.com`;
+                  return(
+                    <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"10px 12px",marginBottom:8,position:"relative"}}>
+                      <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:6}}>Or copy manually</div>
+                      <pre style={{margin:0,fontSize:12,color:"rgba(255,255,255,0.7)",fontFamily:"'Inter',sans-serif",whiteSpace:"pre-wrap",lineHeight:1.6,userSelect:"all"}}>{shareText}</pre>
+                      <button onClick={()=>{navigator.clipboard?.writeText(shareText).catch(()=>{});}} style={{marginTop:8,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:7,color:"rgba(255,255,255,0.6)",fontSize:10,fontWeight:600,cursor:"pointer",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>📋 Copy</button>
+                    </div>
+                  );
+                })()}
 
                 {/* Training Pitch CTA — full width, same border-radius */}
                 <button onClick={()=>{SFX.click();setScreen("rush");}} style={{
@@ -3061,8 +3085,8 @@ function App(){
                 }}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(190,24,93,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
-                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Hit the Training Pitch</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>Tomorrow's match: {cleanTheme(tomorrowTheme)}</div>
+                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Keep Playing — Rush Mode</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>30 seconds · beat your high score · {cleanTheme(tomorrowTheme)} tomorrow</div>
                 </button>
               </div>
             </div>
@@ -3132,7 +3156,7 @@ function App(){
           // Session complete subtext — driven by whether rewarded was used
           const sessionSubtext = continueCount > 0
             ? "Good recovery to finish strong."
-            : "Solid work on the training pitch.";
+            : "Solid session. Now beat that score.";
           return(
           <>
             {/* ── SCORE CARD ── */}
@@ -3200,17 +3224,30 @@ function App(){
 
             {/* ── BUTTONS — outside card ── */}
             <AdBanner slotId="rush-result"/>
-            <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8,letterSpacing:0.3}}>⚡ Back on the Training Pitch</button>
+            <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8,letterSpacing:0.3}}>⚡ Play Again — Rush Mode</button>
             <div style={{display:"flex",gap:8,marginBottom:0}}>
               <button onClick={()=>{
                 const perfTag=isPerfect?" 🔥 PERFECT RUN (2×)":"";
-                const catLabel=activeCatData?.label||"Training Pitch";
-                const t=`StatStreaks ⚡ Training Pitch\n${catLabel}\n${displayScore} correct${perfTag} · ${streak} career caps 🧢\n\nThink you can beat me? statstreaks.com`;
+                const catLabel=activeCatData?.label||"Rush Mode";
+                const t=`StatStreaks ⚡ Rush Mode\n${catLabel}\n${displayScore} correct${perfTag} · ${streak} career caps 🧢\n\nThink you can beat me? statstreaks.com`;
                 if(navigator.share){navigator.share({text:t}).catch(()=>{});}
                 else{window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank");}
               }} style={{flex:1,padding:"12px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 12px rgba(22,163,74,0.35)"}}>
                 <span style={{fontSize:14}}>💬</span> Share
               </button>
+              {/* Copyable share text */}
+              {(()=>{
+                const perfTag2=isPerfect?" 🔥 PERFECT RUN (2×)":"";
+                const catLabel2=activeCatData?.label||"Rush Mode";
+                const shareText=`StatStreaks ⚡ Rush Mode\n${catLabel2}\n${displayScore} correct${perfTag2} · ${streak} career caps 🧢\n\nThink you can beat me? statstreaks.com`;
+                return(
+                  <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"10px 12px",marginTop:8,position:"relative"}}>
+                    <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:6}}>Or copy manually</div>
+                    <pre style={{margin:0,fontSize:12,color:"rgba(255,255,255,0.7)",fontFamily:"'Inter',sans-serif",whiteSpace:"pre-wrap",lineHeight:1.6,userSelect:"all"}}>{shareText}</pre>
+                    <button onClick={()=>{navigator.clipboard?.writeText(shareText).catch(()=>{});}} style={{marginTop:8,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:7,color:"rgba(255,255,255,0.6)",fontSize:10,fontWeight:600,cursor:"pointer",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>📋 Copy</button>
+                  </div>
+                );
+              })()}
               <button onClick={()=>{SFX.click();setPrevScreen("rush");setScreen("leaderboard");}} style={{
                 flex:1,padding:"12px",borderRadius:12,border:"none",cursor:"pointer",
                 background:"linear-gradient(135deg,#92400e,#b45309,#d97706)",
@@ -3287,8 +3324,8 @@ function App(){
             ← {isRush?"Pitch":"Home"}
           </button>
           <div style={{textAlign:"center"}}>
-            <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Training Pitch"):cleanTheme(theme)}</div>
-            <div style={{fontSize:9,color:isRush?"#fbbf24":"rgba(255,255,255,0)",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isRush?"Training Pitch":""}</div>
+            <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Rush Mode"):cleanTheme(theme)}</div>
+            <div style={{fontSize:9,color:isRush?"#fbbf24":"rgba(255,255,255,0)",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isRush?"Rush Mode":""}</div>
           </div>
           {/* Best score — rush only, top right */}
           {isRush?(()=>{
@@ -3305,12 +3342,26 @@ function App(){
           /* Rush: score left · timer right · bar below */
           <div style={{marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-              {/* Score */}
+              {/* Score + PB */}
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <div style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"6px 14px",display:"flex",alignItems:"baseline",gap:5}}>
                   <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:"#ffffff",lineHeight:1,letterSpacing:1}}>{score}</span>
                   <span style={{fontSize:11,color:"rgba(255,255,255,0.4)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>correct</span>
                 </div>
+                {(()=>{
+                  const pb = lsGet(`rush_best_${rushCat}`,0);
+                  const wk = getWeekKey();
+                  const wpb = lsGet(`rush_weekly_${rushCat}_${wk}`,0);
+                  const best = Math.max(pb, wpb);
+                  if(best<=0) return null;
+                  const beating = score > best;
+                  return(
+                    <div style={{background:beating?"rgba(6,182,212,0.12)":"rgba(255,255,255,0.05)",border:`1px solid ${beating?"rgba(6,182,212,0.3)":"rgba(255,255,255,0.1)"}`,borderRadius:8,padding:"4px 8px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                      <span style={{fontSize:8,color:beating?"#06b6d4":"rgba(255,255,255,0.3)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>PB</span>
+                      <span style={{fontSize:14,fontWeight:900,color:beating?"#06b6d4":"rgba(255,255,255,0.3)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>{best}</span>
+                    </div>
+                  );
+                })()}
               </div>
               {/* Timer */}
               <div style={{
@@ -3420,7 +3471,7 @@ function App(){
                 </div>
                 <div style={{color:"#f87171",fontWeight:900,fontSize:22,letterSpacing:2,marginBottom:6,fontFamily:"'Oswald',sans-serif",textTransform:"uppercase",textShadow:"0 0 20px rgba(248,113,113,0.4)"}}>🟥 Red Card</div>
                 <div style={{color:"rgba(255,255,255,0.85)",fontSize:14,marginBottom:4,lineHeight:1.5,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>Early bath.</div>
-                <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,marginBottom:6,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Back tomorrow for the next fixture. Or hit the training pitch to sharpen up.</div>
+                <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,marginBottom:6,lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>Back tomorrow for the next fixture. Or jump into Rush Mode to sharpen up.</div>
                 <div style={{color:"rgba(255,255,255,0.2)",fontSize:11,fontFamily:"'Inter',sans-serif"}}>Taking you to results...</div>
               </div>
             </div>
