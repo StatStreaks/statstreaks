@@ -50,6 +50,16 @@ function lsGet(k,fb=null){try{const v=localStorage.getItem(LS(k));return v!==nul
 function lsSet(k,v){try{localStorage.setItem(LS(k),JSON.stringify(v));}catch{}}
 function getTodayKey(){const d=new Date();return`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
 function getDayIndex(){const s=new Date("2026-01-01");return Math.floor((new Date()-s)/86400000);} // raw index, mod by total challenges from DB
+
+// Deterministic seeded shuffle — same seed always produces same order
+// Used to randomise daily challenge order while keeping everyone in sync
+function seededShuffle(arr, seed){
+  const a=[...arr];
+  let s=seed;
+  const rand=()=>{s=((s*1664525)+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(rand()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
 // Returns YYYY-Www string using true ISO 8601 week number (week containing Thursday)
 // Strip I/II/III suffix from theme for cleaner display
 function cleanTheme(t){ return t ? t.replace(/\s+(I{1,3})$/, "").trim() : t; }
@@ -1915,9 +1925,14 @@ function App(){
   // Use DB challenges if loaded, fall back to hardcoded list for themes
   const activeChallengeList = dbChallenges || DAILY_CHALLENGES;
   const totalDays = activeChallengeList.length || 30;
-  const effectiveDayIdx=(getDayIndex()+testDayOffset)%totalDays;
-  const todayChallenge=activeChallengeList[effectiveDayIdx] || DAILY_CHALLENGES[effectiveDayIdx%DAILY_CHALLENGES.length];
-  const tomorrowChallenge=activeChallengeList[(effectiveDayIdx+1)%totalDays] || DAILY_CHALLENGES[(effectiveDayIdx+1)%DAILY_CHALLENGES.length];
+  const rawDayIdx = getDayIndex()+testDayOffset;
+  // Shuffle the challenge order — seed changes each year and each full cycle
+  // so the same day always gets the same challenge, but order is unpredictable
+  const shuffleSeed = new Date().getFullYear()*1000 + Math.floor(rawDayIdx/totalDays);
+  const shuffledChallenges = seededShuffle(activeChallengeList, shuffleSeed);
+  const effectiveDayIdx = rawDayIdx % totalDays;
+  const todayChallenge = shuffledChallenges[effectiveDayIdx] || DAILY_CHALLENGES[effectiveDayIdx%DAILY_CHALLENGES.length];
+  const tomorrowChallenge = shuffledChallenges[(effectiveDayIdx+1)%totalDays] || DAILY_CHALLENGES[(effectiveDayIdx+1)%DAILY_CHALLENGES.length];
 
   function getPercentile(s) {
     if(s>=14) return 10;
@@ -2999,7 +3014,7 @@ function App(){
     const accentBorder=win?"#86efac":timeout?"#fde68a":"#fecaca";
 
     // Tomorrow's fixture for daily result CTA
-    const tomorrowTheme = isDaily ? (activeChallengeList[(effectiveDayIdx+1)%totalDays]?.theme||null) : null;
+    const tomorrowTheme = isDaily ? (shuffledChallenges[(effectiveDayIdx+1)%totalDays]?.theme||null) : null;
 
     return(
     <PageWrap glow={win?"default":timeout?"gold":"red"}>
