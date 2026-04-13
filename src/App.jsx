@@ -122,7 +122,7 @@ async function dbInsertRushScore(deviceId, username, category, score, weekKey){
 async function dbFetchAllTime(){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/rush_alltime_best?select=device_id,username,score,category&order=score.desc&limit=100`,
+      `${SB_URL}/rest/v1/rush_alltime_aggregate?select=device_id,username,score,categories_played&order=score.desc&limit=100`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
@@ -134,7 +134,7 @@ async function dbFetchAllTime(){
 async function dbFetchWeekly(weekKey){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/rush_weekly_best?select=device_id,username,score,category&week_key=eq.${encodeURIComponent(weekKey)}&order=score.desc&limit=100`,
+      `${SB_URL}/rest/v1/rush_weekly_aggregate?select=device_id,username,score,categories_played&week_key=eq.${encodeURIComponent(weekKey)}&order=score.desc&limit=100`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
@@ -491,12 +491,12 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   },[]);
 
   // Build boards — use real DB data if loaded, otherwise fall back to simulation
-  function mergeWithYou(rows, myScore, myName, myCat){
+  function mergeWithYou(rows, myScore, myName){
     if(!rows)return null;
     const deviceId = getDeviceId();
     const alreadyInDb = rows.some(r=>r.device_id===deviceId);
-    const mapped = rows.map(r=>({name:r.username||"Anonymous", score:r.score, isYou:r.device_id===deviceId, cat:r.category||null}));
-    const withYou = (!alreadyInDb&&myScore>0) ? [...mapped,{name:myName||"You",score:myScore,isYou:true,cat:myCat||null}] : mapped;
+    const mapped = rows.map(r=>({name:r.username||"Anonymous", score:r.score, isYou:r.device_id===deviceId, cats:r.categories_played||null}));
+    const withYou = (!alreadyInDb&&myScore>0) ? [...mapped,{name:myName||"You",score:myScore,isYou:true,cats:null}] : mapped;
     // Deduplicate by username — keep highest score, preserve isYou flag
     const seen = new Map();
     withYou.forEach(e=>{
@@ -512,8 +512,9 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   }
 
   const myName = username||"You";
-  const myBestScore = rushScores.length?Math.max(...rushScores):0;
-  const activeCat = dbBestCat || rushBestCat; // fix 3: prefer DB value
+  // Aggregate score: sum of all-time bests across categories from localStorage
+  const myAggregateScore = RUSH_CATEGORIES.filter(c=>!c.comingSoon).reduce((sum,c)=>sum+lsGet(`rush_best_${c.id}`,0),0);
+  const myWeeklyAggregateScore = RUSH_CATEGORIES.filter(c=>!c.comingSoon).reduce((sum,c)=>sum+lsGet(`rush_weekly_${c.id}_${getWeekKey()}`,0),0);
 
   const capsBoard = dbCaps
     ? (()=>{
@@ -524,15 +525,15 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
         return withYou.sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
       })()
     : buildOfflineCapsBoard(streak, username); // fix 1: no fake names offline
-  const allTimeBoard = mergeWithYou(dbAllTime, myBestScore, myName, activeCat) || buildOfflineBoard(myBestScore, myName, activeCat);
-  const weeklyBoard  = mergeWithYou(dbWeekly,  myBestScore, myName, activeCat) || buildOfflineBoard(myBestScore, myName, activeCat);
+  const allTimeBoard = mergeWithYou(dbAllTime, myAggregateScore, myName) || buildOfflineBoard(myAggregateScore, myName, null);
+  const weeklyBoard  = mergeWithYou(dbWeekly,  myWeeklyAggregateScore, myName) || buildOfflineBoard(myWeeklyAggregateScore, myName, null);
 
   const board = tab==="caps" ? capsBoard : tab==="alltime" ? allTimeBoard : weeklyBoard;
   const youEntry = board.find(e=>e.isYou);
 
   const TABS = [
-    {id:"weekly",  label:"Top Scorer",  sub:"this week",  icon:"⚽", accent:"#06b6d4", desc:"Best Rush Mode score · this week"},
-    {id:"alltime", label:"Golden Boot", sub:"2026",        icon:"🥾", accent:"#ec4899", desc:"Best Rush Mode score · 2026"},
+    {id:"weekly",  label:"Top Scorer",  sub:"this week",  icon:"⚽", accent:"#06b6d4", desc:"Total Rush score across all categories · this week"},
+    {id:"alltime", label:"Golden Boot", sub:"2026",        icon:"🥾", accent:"#ec4899", desc:"Total Rush score across all categories · 2026"},
     {id:"caps",    label:"Caps",        sub:"all time",    icon:"🧢", accent:"#d97706", desc:"Longest active streak · all-time"},
   ];
   const activeTab = TABS.find(t=>t.id===tab);
@@ -541,8 +542,8 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   const myDbAtRow  = (dbAllTime||[]).find(r=>r.device_id===getDeviceId());
   const myDbWkRow  = (dbWeekly||[]).find(r=>r.device_id===getDeviceId());
   const yourStat = tab==="caps" ? (streak||0) :
-                   tab==="alltime" ? (myDbAtRow?.score ?? (rushScores.length?Math.max(...rushScores):null)) :
-                   (myDbWkRow?.score ?? (rushScores.length?Math.max(...rushScores):null));
+                   tab==="alltime" ? (myDbAtRow?.score ?? (myAggregateScore||null)) :
+                   (myDbWkRow?.score ?? (myWeeklyAggregateScore||null));
 
   const yourStatus = getCareerStatus(streak||0);
 
@@ -623,7 +624,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
             <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:`linear-gradient(90deg,transparent,${activeTab.accent}60,transparent)`}}/>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",position:"relative"}}>
               <div>
-                <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:2,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Your {tab==="caps"?"Caps":"Score"}</div>
+                <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:2,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Your {tab==="caps"?"Caps":"Total Score"}</div>
                 <div style={{fontSize:44,fontWeight:900,color:activeTab.accent,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:`0 0 20px ${activeTab.accent}55`}}>{yourStat}</div>
                 <div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",marginTop:2}}>{activeTab.desc}</div>
               </div>
@@ -704,9 +705,9 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
                     <div style={{fontSize:9,color:entryStatus.col,fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1,opacity:0.8}}>
                       {entryStatus.icon} {entryStatus.label}
                     </div>
-                  ):e.cat?(
+                  ):e.cats?(
                     <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1,letterSpacing:0.2}}>
-                      {RUSH_CATEGORIES.find(c=>c.id===e.cat)?.label || e.cat}
+                      {e.cats}/8 categories
                     </div>
                   ):null}
                 </div>
