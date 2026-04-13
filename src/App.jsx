@@ -67,6 +67,8 @@ const SB_HEADERS = {"Content-Type":"application/json","apikey":SB_KEY,"Authoriza
 // Upsert user row — called on app load and when username/caps change.
 // Fire-and-forget: never blocks the game.
 async function dbSyncUser(deviceId, username, caps, peakCaps){
+  // Don't write ghost rows — only sync if player has played at least once
+  if(!caps && !username) return;
   try{
     await fetch(`${SB_URL}/rest/v1/users`,{
       method:"POST",
@@ -144,7 +146,7 @@ async function dbFetchWeekly(weekKey){
 async function dbFetchCaps(){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/users?select=device_id,username,caps&order=caps.desc&limit=100`,
+      `${SB_URL}/rest/v1/users?select=device_id,username,caps&caps=gt.0&order=caps.desc&limit=100`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
