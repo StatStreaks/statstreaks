@@ -1801,6 +1801,7 @@ function App(){
   const [frozenIdx,setFrozenIdx]         = useState(0);
   const [countdown,setCountdown]         = useState(null); // 3,2,1 pre-game countdown
   const [showInterstitial,setShowInterstitial] = useState(false); // interstitial before results
+  const [showCopied,setShowCopied]             = useState(false); // "Copied!" toast after share fallback
   const [showHowToPlay,setShowHowToPlay]       = useState(()=>!lsGet("htp_seen",false));
   const [showNamePrompt,setShowNamePrompt]     = useState(false); // shows after HTP on first visit if no name set
   const [pendingRushCat,setPendingRushCat]     = useState(null); // cat to launch after name prompt
@@ -2180,13 +2181,14 @@ function App(){
         } else if(mode==="rush"){
           SFX.wrong();setFlashResult("wrong");setResult("wrong");
           if(continueCount > 0){
-            // Rewarded already used — loose touch only, session continues, no modal, no interstitial
-            setTimeout(()=>{setCurrentIdx(i=>i+1);setRevealedNext(false);setResult(null);setFlashResult(null);},1600);
+            // Already used continue — end session immediately
+            setCleanScore(score);
+            setTimeout(()=>endRushRun("wrong"),900);
           } else if(timeLeft > 20){
             // Loose touch (early, no continue used yet) — flash and continue, no modal
             setTimeout(()=>{setCurrentIdx(i=>i+1);setRevealedNext(false);setResult(null);setFlashResult(null);},1600);
           } else {
-            // Clutch moment — ≤20s, first wrong, show modal
+            // ≤20s left, first wrong — show modal
             setCleanScore(score);
             setTimeout(()=>endRushRun("wrong"),900);
           }
@@ -3055,23 +3057,11 @@ function App(){
                   const emojiGrid=answerLog.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
                   const t=`StatStreaks #${effectiveDayIdx+1} ⚽\n🏆 ${todayChallenge.theme}\n\n${emojiGrid}\n${s}/10 · ${streak} career caps 🧢\n\nCan you beat it? statstreaks.com`;
                   if(navigator.share){navigator.share({text:t}).catch(()=>{});}
-                  else{window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank");}
+                  else{navigator.clipboard?.writeText(t).then(()=>{setShowCopied(true);setTimeout(()=>setShowCopied(false),2500);}).catch(()=>window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank"));}
                 }} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.35), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
-                  <span style={{fontSize:16}}>💬</span> Share on WhatsApp
+                  <span style={{fontSize:16}}>💬</span> {showCopied?"✓ Copied to clipboard!":"Share on WhatsApp"}
                 </button>
-                {/* Copyable share text */}
-                {(()=>{
-                  const s2=latestScore||0;
-                  const grid=answerLog.map(r=>r==="correct"?"🟩":r==="yellow"?"🟨":"🟥").join("");
-                  const shareText=`StatStreaks #${effectiveDayIdx+1} ⚽\n🏆 ${cleanTheme(todayChallenge.theme)}\n\n${grid}\n${s2}/10 · ${streak} career caps 🧢\n\nCan you beat it? statstreaks.com`;
-                  return(
-                    <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"10px 12px",marginBottom:8,position:"relative"}}>
-                      <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:6}}>Or copy manually</div>
-                      <pre style={{margin:0,fontSize:12,color:"rgba(255,255,255,0.7)",fontFamily:"'Inter',sans-serif",whiteSpace:"pre-wrap",lineHeight:1.6,userSelect:"all"}}>{shareText}</pre>
-                      <button onClick={()=>{navigator.clipboard?.writeText(shareText).catch(()=>{});}} style={{marginTop:8,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:7,color:"rgba(255,255,255,0.6)",fontSize:10,fontWeight:600,cursor:"pointer",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>📋 Copy</button>
-                    </div>
-                  );
-                })()}
+
 
                 {/* Training Pitch CTA — full width, same border-radius */}
                 <button onClick={()=>{SFX.click();setScreen("rush");}} style={{
@@ -3231,23 +3221,11 @@ function App(){
                 const catLabel=activeCatData?.label||"Rush Mode";
                 const t=`StatStreaks ⚡ Rush Mode\n${catLabel}\n${displayScore} correct${perfTag} · ${streak} career caps 🧢\n\nThink you can beat me? statstreaks.com`;
                 if(navigator.share){navigator.share({text:t}).catch(()=>{});}
-                else{window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank");}
+                else{navigator.clipboard?.writeText(t).then(()=>{setShowCopied(true);setTimeout(()=>setShowCopied(false),2500);}).catch(()=>window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank"));}
               }} style={{flex:1,padding:"12px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 12px rgba(22,163,74,0.35)"}}>
-                <span style={{fontSize:14}}>💬</span> Share
+                <span style={{fontSize:14}}>💬</span> {showCopied?"✓ Copied!":"Share"}
               </button>
-              {/* Copyable share text */}
-              {(()=>{
-                const perfTag2=isPerfect?" 🔥 PERFECT RUN (2×)":"";
-                const catLabel2=activeCatData?.label||"Rush Mode";
-                const shareText=`StatStreaks ⚡ Rush Mode\n${catLabel2}\n${displayScore} correct${perfTag2} · ${streak} career caps 🧢\n\nThink you can beat me? statstreaks.com`;
-                return(
-                  <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"10px 12px",marginTop:8,position:"relative"}}>
-                    <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:6}}>Or copy manually</div>
-                    <pre style={{margin:0,fontSize:12,color:"rgba(255,255,255,0.7)",fontFamily:"'Inter',sans-serif",whiteSpace:"pre-wrap",lineHeight:1.6,userSelect:"all"}}>{shareText}</pre>
-                    <button onClick={()=>{navigator.clipboard?.writeText(shareText).catch(()=>{});}} style={{marginTop:8,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:7,color:"rgba(255,255,255,0.6)",fontSize:10,fontWeight:600,cursor:"pointer",padding:"4px 10px",fontFamily:"'Inter',sans-serif"}}>📋 Copy</button>
-                  </div>
-                );
-              })()}
+
               <button onClick={()=>{SFX.click();setPrevScreen("rush");setScreen("leaderboard");}} style={{
                 flex:1,padding:"12px",borderRadius:12,border:"none",cursor:"pointer",
                 background:"linear-gradient(135deg,#92400e,#b45309,#d97706)",
