@@ -2025,7 +2025,7 @@ function App(){
     resetState();setScreen("game");
 
     // Fetch cards first, then start countdown so preview beat always has cards
-    const cacheKey = "rc_cards_"+cat;
+    const cacheKey = "rc_cards_v2_"+cat;
     let rawCards = lsGet(cacheKey, null);
     if(!rawCards){
       const fetched = await dbFetchRushCards(cat);
@@ -2121,10 +2121,10 @@ function App(){
     setTheme(category.label);
     resetState();setTimerActive(true);setScreen("game");
     // Use cache first, re-fetch from DB if cache somehow empty
-    let cached = lsGet("rc_cards_"+rushCat, null);
+    let cached = lsGet("rc_cards_v2_"+rushCat, null);
     if(!cached || !cached.length){
       const fetched = await dbFetchRushCards(rushCat);
-      if(fetched && fetched.length){ cached = fetched; lsSet("rc_cards_"+rushCat, cached); }
+      if(fetched && fetched.length){ cached = fetched; lsSet("rc_cards_v2_"+rushCat, cached); }
     }
     if(cached && cached.length){
       const mapped = cached.map(c=>({player:c.player,stat:c.stat,statType:c.stat_type,club:c.club||undefined,nationality:c.nationality||undefined}));
