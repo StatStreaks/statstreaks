@@ -495,11 +495,20 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
     if(!rows)return null;
     const deviceId = getDeviceId();
     const alreadyInDb = rows.some(r=>r.device_id===deviceId);
-    // Mark your existing DB row as isYou rather than adding a duplicate
     const mapped = rows.map(r=>({name:r.username||"Anonymous", score:r.score, isYou:r.device_id===deviceId, cat:r.category||null}));
-    // Only add a local entry if your score isn't in the DB yet (race condition on first save)
     const withYou = (!alreadyInDb&&myScore>0) ? [...mapped,{name:myName||"You",score:myScore,isYou:true,cat:myCat||null}] : mapped;
-    return withYou.sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
+    // Deduplicate by username — keep highest score, preserve isYou flag
+    const seen = new Map();
+    withYou.forEach(e=>{
+      const key = (e.name||"").toLowerCase();
+      const existing = seen.get(key);
+      if(!existing || e.score > existing.score){
+        seen.set(key, {...e, isYou: e.isYou || (existing?.isYou||false)});
+      } else if(e.isYou){
+        seen.set(key, {...existing, isYou:true});
+      }
+    });
+    return Array.from(seen.values()).sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
   }
 
   const myName = username||"You";
@@ -563,7 +572,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
             <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Leaderboards</div>
           </div>
           {/* Your identity — editable */}
-          <div style={{textAlign:"right",flexShrink:0,maxWidth:"40%",minWidth:0,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
+          <div style={{textAlign:"right",flexShrink:0,maxWidth:120,minWidth:0,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
             {nameEditing?(
               <div style={{display:"flex",gap:5,alignItems:"center",justifyContent:"flex-end"}}>
                 <input value={nameDraft} onChange={e=>setNameDraft(e.target.value.slice(0,20))}
@@ -1794,6 +1803,7 @@ function App(){
   const [showInterstitial,setShowInterstitial] = useState(false); // interstitial before results
   const [showHowToPlay,setShowHowToPlay]       = useState(()=>!lsGet("htp_seen",false));
   const [showNamePrompt,setShowNamePrompt]     = useState(false); // shows after HTP on first visit if no name set
+  const [pendingRushCat,setPendingRushCat]     = useState(null); // cat to launch after name prompt
   const [cardError,setCardError]               = useState(null); // shown when card fetch fails offline
   const [rushRanks,setRushRanks]               = useState(()=>lsGet("rush_ranks_"+getWeekKey(),null)); // [{category,alltime_best,weekly_best,alltime_rank,weekly_rank}]
   const [dbCapsPlayers,setDbCapsPlayers]       = useState(()=>lsGet("caps_players_v1",null)); // fetched once, cached indefinitely
@@ -1982,6 +1992,12 @@ function App(){
   }
 
   async function launchRush(cat){
+    // If no name set, prompt first then launch
+    if(!username){
+      setPendingRushCat(cat);
+      setShowNamePrompt(true);
+      return;
+    }
     SFX.click();
     const category=RUSH_CATEGORIES.find(c=>c.id===cat);
     if(!category)return;
@@ -2009,12 +2025,11 @@ function App(){
         nationality: c.nationality||undefined,
       }));
       setCards(rushShuffle(mapped));
-      setTimerActive(true);
       setCountdown(0);
       setTimeout(()=>setCountdown(3),2000);
       setTimeout(()=>setCountdown(2),3000);
       setTimeout(()=>setCountdown(1),4000);
-      setTimeout(()=>setCountdown(null),5000);
+      setTimeout(()=>{setCountdown(null);setTimerActive(true);},5000);
     } else {
       // No cards available — offline with no cache. Go back with error message.
       setScreen("rush");
@@ -2241,6 +2256,16 @@ function App(){
       if(!rows||!rows.length) return;
       lsSet(cacheKey, rows);
       setRushRanks(rows);
+      // Sync DB scores back to localStorage so Rush page shows correct bests
+      // even after clearing storage or using a new device
+      rows.forEach(r=>{
+        const cat = RUSH_CATEGORIES.find(c=>c.label===r.category);
+        if(!cat) return;
+        const localBest = lsGet(`rush_best_${cat.id}`,0);
+        const localWeekly = lsGet(`rush_weekly_${cat.id}_${wk}`,0);
+        if((r.alltime_best||0) > localBest) lsSet(`rush_best_${cat.id}`, r.alltime_best);
+        if((r.weekly_best||0) > localWeekly) lsSet(`rush_weekly_${cat.id}_${wk}`, r.weekly_best);
+      });
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[screen]);
@@ -2433,7 +2458,7 @@ function App(){
     "ElClasico Eddie","DerbyDay Danny","ParkThebus Phil","TotalFootball Ted",
     "GoalMachine Gavin","CapCollector Colin",
   ];
-  function randomAutoName(){return AUTO_NAMES[Math.floor(Math.random()*AUTO_NAMES.length)];}
+  function randomAutoName(){return AUTO_NAMES[Math.floor(Math.random()*AUTO_NAMES.length)]+" #"+String(Math.floor(Math.random()*9000)+1000);}
 
   function NamePromptOverlay(){
     const [draft, setDraft] = useState("");
@@ -2443,11 +2468,13 @@ function App(){
       const name = draft.trim() || randomAutoName();
       setUsername(name);
       setShowNamePrompt(false);
+      if(pendingRushCat){ const c=pendingRushCat; setPendingRushCat(null); setTimeout(()=>launchRush(c),100); }
     }
     function skip(){
       const name = randomAutoName();
       setUsername(name);
       setShowNamePrompt(false);
+      if(pendingRushCat){ const c=pendingRushCat; setPendingRushCat(null); setTimeout(()=>launchRush(c),100); }
     }
 
     return(
