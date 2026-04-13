@@ -2788,6 +2788,49 @@ function App(){
           </div>
         </div>
 
+        {/* ══ RUSH MODE — full width primary CTA ══ */}
+        <button onClick={()=>{SFX.click();setScreen("rush");}}
+          style={{
+            width:"100%",marginBottom:10,
+            background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 40%,#db2777 70%,#ec4899 100%)",
+            border:"1px solid rgba(236,72,153,0.3)",
+            borderRadius:14,cursor:"pointer",overflow:"hidden",
+            boxShadow:"0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
+            transition:"transform 0.12s,box-shadow 0.12s",
+            display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",
+          }}
+          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(219,39,119,0.65), inset 0 1px 0 rgba(255,255,255,0.25)";}}
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
+          <div style={{textAlign:"left"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>Rush Mode</div>
+            <div style={{fontSize:15,fontWeight:900,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>⚡ Play Rush</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,marginTop:2,fontFamily:"'Inter',sans-serif"}}>30s · 8 categories · beat your score</div>
+          </div>
+          <div style={{fontSize:28,opacity:0.8}}>→</div>
+        </button>
+
+        {/* ══ LEADERBOARDS — secondary ══ */}
+        <button onClick={()=>{SFX.click();setPrevScreen("home");setScreen("leaderboard");}}
+          style={{
+            width:"100%",marginBottom:16,
+            background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
+            border:"1px solid rgba(217,119,6,0.4)",
+            borderRadius:14,cursor:"pointer",overflow:"hidden",
+            boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
+            transition:"transform 0.12s,box-shadow 0.12s",
+            display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 18px",
+          }}
+          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5), inset 0 1px 0 rgba(255,255,255,0.15)";}}
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
+          <div style={{textAlign:"left"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
+            <div style={{fontSize:13,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>🏆 See Where You Rank</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,marginTop:2,fontFamily:"'Inter',sans-serif"}}>Top Scorer · Golden Boot · Caps</div>
+          </div>
+          <div style={{fontSize:22,opacity:0.8}}>→</div>
+        </button>
+
+
         {/* ══ CAREER CAPS HERO ══ */}
         <div style={{
           background:"linear-gradient(145deg,#1a2535 0%,#0f1923 60%,#1a1f10 100%)",
@@ -2897,48 +2940,6 @@ function App(){
             </div>
           )}
         </div>
-
-        {/* ══ RUSH MODE — full width primary CTA ══ */}
-        <button onClick={()=>{SFX.click();setScreen("rush");}}
-          style={{
-            width:"100%",marginBottom:10,
-            background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 40%,#db2777 70%,#ec4899 100%)",
-            border:"1px solid rgba(236,72,153,0.3)",
-            borderRadius:14,cursor:"pointer",overflow:"hidden",
-            boxShadow:"0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",
-            transition:"transform 0.12s,box-shadow 0.12s",
-            display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",
-          }}
-          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(219,39,119,0.65), inset 0 1px 0 rgba(255,255,255,0.25)";}}
-          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
-          <div style={{textAlign:"left"}}>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>Rush Mode</div>
-            <div style={{fontSize:15,fontWeight:900,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>⚡ Play Rush</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,marginTop:2,fontFamily:"'Inter',sans-serif"}}>30s · 8 categories · beat your score</div>
-          </div>
-          <div style={{fontSize:28,opacity:0.8}}>→</div>
-        </button>
-
-        {/* ══ LEADERBOARDS — secondary ══ */}
-        <button onClick={()=>{SFX.click();setPrevScreen("home");setScreen("leaderboard");}}
-          style={{
-            width:"100%",marginBottom:16,
-            background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
-            border:"1px solid rgba(217,119,6,0.4)",
-            borderRadius:14,cursor:"pointer",overflow:"hidden",
-            boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-            transition:"transform 0.12s,box-shadow 0.12s",
-            display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 18px",
-          }}
-          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5), inset 0 1px 0 rgba(255,255,255,0.15)";}}
-          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
-          <div style={{textAlign:"left"}}>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
-            <div style={{fontSize:13,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>🏆 See Where You Rank</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,marginTop:2,fontFamily:"'Inter',sans-serif"}}>Top Scorer · Golden Boot · Caps</div>
-          </div>
-          <div style={{fontSize:22,opacity:0.8}}>→</div>
-        </button>
 
         {/* ── DEV PANEL — hidden until logo tapped 7× ── */}
         {devMode&&(
