@@ -3163,29 +3163,13 @@ function App(){
                         ? <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>{prevCatBest-displayScore} off best</div>
                         : <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>First run!</div>
                   }
-                  {/* Global rank for this category */}
-                  {(()=>{
-                    const rankRow=(rushRanks||[]).find(r=>r.category===activeCatData?.label);
-                    const atRank=rankRow?.alltime_rank;
-                    const wkRank=rankRow?.weekly_rank;
-                    if(!atRank&&!wkRank) return null;
-                    return(
-                      <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:3}}>
-                        {atRank&&<div style={{fontSize:9,color:atRank<=3?"#fbbf24":"rgba(255,255,255,0.4)",fontWeight:700,fontFamily:"'Inter',sans-serif"}}>
-                          {atRank===1?"🏆 World #1":atRank<=3?`🥈 World #${atRank}`:`World #${atRank}`}
-                        </div>}
-                        {wkRank&&<div style={{fontSize:9,color:wkRank<=3?"#06b6d4":"rgba(255,255,255,0.35)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>
-                          {wkRank===1?"⚡ #1 this week":`#${wkRank} this week`}
-                        </div>}
-                      </div>
-                    );
-                  })()}
+
                 </div>
               </div>
 
               {/* ── MESSAGE BAND ── */}
               <div style={{margin:"14px 18px 0",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"11px 14px"}}>
-                <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.4,fontWeight:500}}>{msg}</div>
+                <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.4,fontWeight:500,textAlign:"center"}}>{msg}</div>
               </div>
               {/* ── WORLD #1 TARGET BAND ── */}
               {(()=>{
@@ -3203,16 +3187,16 @@ function App(){
                 const gapWk = top1Wk > 0 ? Math.max(0, top1Wk - displayScore) : null;
                 return(
                   <div style={{margin:"8px 18px 18px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 14px",display:"flex",gap:0}}>
-                    {/* All-time */}
-                    {(atRank || gapAt !== null) && (
-                      <div style={{flex:1,textAlign:"center",paddingRight:gapWk!==null||isWk1?8:0}}>
-                        <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>All-Time #1</div>
-                        {isAt1
-                          ? <><div style={{fontSize:13,fontWeight:900,color:"#fbbf24",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>🏆 You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
-                          : gapAt > 0
-                            ? <><div style={{fontSize:22,fontWeight:900,color:"#f59e0b",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>+{gapAt}</div><div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",marginTop:2}}>to reach World #1</div></>
-                            : gapAt === 0 && top1At > 0
-                              ? <><div style={{fontSize:13,fontWeight:900,color:"#fbbf24",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>🏆 You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
+                    {/* Weekly — left */}
+                    {(wkRank || gapWk !== null) && (
+                      <div style={{flex:1,textAlign:"center",paddingRight:gapAt!==null||isAt1?8:0}}>
+                        <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>This Week #1</div>
+                        {isWk1
+                          ? <><div style={{fontSize:13,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>⚡ You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
+                          : gapWk > 0
+                            ? <><div style={{fontSize:22,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>+{gapWk}</div><div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",marginTop:2}}>to reach #1 this week</div></>
+                            : gapWk === 0 && top1Wk > 0
+                              ? <><div style={{fontSize:13,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>⚡ You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
                               : <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",fontFamily:"'Inter',sans-serif"}}>—</div>
                         }
                       </div>
@@ -3221,16 +3205,16 @@ function App(){
                     {((atRank||gapAt!==null) && (wkRank||gapWk!==null)) && (
                       <div style={{width:1,background:"rgba(255,255,255,0.07)",margin:"2px 0",alignSelf:"stretch"}}/>
                     )}
-                    {/* Weekly */}
-                    {(wkRank || gapWk !== null) && (
-                      <div style={{flex:1,textAlign:"center",paddingLeft:gapAt!==null||isAt1?8:0}}>
-                        <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>This Week #1</div>
-                        {isWk1
-                          ? <><div style={{fontSize:13,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>⚡ You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
-                          : gapWk > 0
-                            ? <><div style={{fontSize:22,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>+{gapWk}</div><div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",marginTop:2}}>to reach #1 this week</div></>
-                            : gapWk === 0 && top1Wk > 0
-                              ? <><div style={{fontSize:13,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>⚡ You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
+                    {/* 2026 — right */}
+                    {(atRank || gapAt !== null) && (
+                      <div style={{flex:1,textAlign:"center",paddingLeft:gapWk!==null||isWk1?8:0}}>
+                        <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>2026 #1</div>
+                        {isAt1
+                          ? <><div style={{fontSize:13,fontWeight:900,color:"#fbbf24",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>🏆 You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
+                          : gapAt > 0
+                            ? <><div style={{fontSize:22,fontWeight:900,color:"#f59e0b",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>+{gapAt}</div><div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",marginTop:2}}>to reach 2026 #1</div></>
+                            : gapAt === 0 && top1At > 0
+                              ? <><div style={{fontSize:13,fontWeight:900,color:"#fbbf24",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>🏆 You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
                               : <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",fontFamily:"'Inter',sans-serif"}}>—</div>
                         }
                       </div>
