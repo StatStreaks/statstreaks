@@ -2920,18 +2920,6 @@ function App(){
     const accentCol=win?"#16a34a":timeout?"#d97706":"#dc2626";
     const accentBg=win?"#f0fdf4":timeout?"#fffbeb":"#fef2f2";
     const accentBorder=win?"#86efac":timeout?"#fde68a":"#fecaca";
-    // Fire result sound once when screen renders
-    useEffect(()=>{
-      if(!isDaily){
-        const preBest=lsGet(`rush_best_${rushCat}`,0);
-        const s=latestScore||0;
-        if(s>preBest) SFX.newBest(); else if(preBest>0) SFX.noBest(); else SFX.timeout();
-      } else {
-        if(win) SFX.win();
-      }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[]);
-
     // Tomorrow's fixture for daily result CTA
     const tomorrowTheme = isDaily ? (shuffledChallenges[(effectiveDayIdx+1)%totalDays]?.theme||null) : null;
 
@@ -3187,7 +3175,18 @@ function App(){
     <PageWrap glow={isRush?"gold":"default"}>
       {showYellow&&<YellowCardOverlay onWatchAd={onWatchAd} onDecline={onDeclineAd}/>}
       {showRushModal&&<RushModal/>}
-      {showInterstitial&&<InterstitialOverlay onDismiss={()=>{setShowInterstitial(false);setScreen("result");}}/>}
+      {showInterstitial&&<InterstitialOverlay onDismiss={()=>{
+  setShowInterstitial(false);
+  // Fire result sound here — after ad, before results screen
+  if(mode==="rush"){
+    const preBest=lsGet(`rush_best_${rushCat}`,0);
+    const s=latestScore||0;
+    if(s>preBest) SFX.newBest(); else if(preBest>0) SFX.noBest(); else SFX.timeout();
+  } else {
+    if(gameOutcome==="win") SFX.win();
+  }
+  setScreen("result");
+}}/>}
       {/* 3-2-1 countdown overlay */}
       {countdown!==null&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,backdropFilter:"blur(4px)"}}>
