@@ -1609,7 +1609,7 @@ function TermsScreen({onBack}){
               "StatStreaks is a free-to-play football trivia game. By using the app you agree to these terms.",
               "All statistics are sourced from publicly available records and are provided for entertainment purposes only. We do our best to keep them accurate but cannot guarantee every figure is correct. If you spot an error, please let us know.",
               "StatStreaks is not affiliated with, endorsed by, or connected to any football club, league, governing body, or player.",
-              "The app contains advertisements served by Google AdMob. These may be personalised based on your device settings and Google's own policies. StatStreaks is not responsible for the content of third-party ads.",
+              "The app contains advertisements served by Google AdSense. These may be personalised based on your device settings and Google's own policies. StatStreaks is not responsible for the content of third-party ads.",
               "StatStreaks, including its name, logo, game format, design, and content, is the intellectual property of its creator. You may not copy, reproduce, resell, or create derivative works based on this game without explicit written permission.",
               "We reserve the right to update these terms at any time. Continued use of the app after changes are posted means you accept the updated terms.",
             ].map((text,i)=>(
@@ -2235,6 +2235,17 @@ function App(){
       // Store human-readable label so leaderboard reads cleanly in DB and app
       const catLabel = RUSH_CATEGORIES.find(c=>c.id===cat)?.label || cat;
       dbInsertRushScore(userId, username, catLabel, s, getWeekKey());
+      // Fetch #1 alltime + weekly scores for this category (for "X more to reach #1" display)
+      const wk2 = getWeekKey();
+      Promise.all([
+        fetch(`${SB_URL}/rest/v1/rush_alltime_aggregate?select=score&order=score.desc&limit=1`,{headers:SB_HEADERS}).then(r=>r.ok?r.json():null).catch(()=>null),
+        fetch(`${SB_URL}/rest/v1/rush_weekly_aggregate?select=score&week_key=eq.${encodeURIComponent(wk2)}&order=score.desc&limit=1`,{headers:SB_HEADERS}).then(r=>r.ok?r.json():null).catch(()=>null),
+        fetch(`${SB_URL}/rest/v1/rush_bests?select=alltime_best,weekly_best&order=alltime_best.desc&category=eq.${encodeURIComponent(catLabel)}&limit=1`,{headers:SB_HEADERS}).then(r=>r.ok?r.json():null).catch(()=>null),
+        fetch(`${SB_URL}/rest/v1/rush_bests?select=weekly_best&week_key=eq.${encodeURIComponent(wk2)}&order=weekly_best.desc&category=eq.${encodeURIComponent(catLabel)}&limit=1`,{headers:SB_HEADERS}).then(r=>r.ok?r.json():null).catch(()=>null),
+      ]).then(([,, catAt, catWk])=>{
+        if(catAt?.[0]?.alltime_best) lsSet(`rush_top1_${cat}`, catAt[0].alltime_best);
+        if(catWk?.[0]?.weekly_best)  lsSet(`rush_top1_wk_${cat}_${wk2}`, catWk[0].weekly_best);
+      });
     }
   }
   useEffect(()=>()=>clearTimeout(timeoutRef.current),[]);
@@ -3106,11 +3117,7 @@ function App(){
             : isPerfect
               ? "Perfect run. Double score. Top of the world."
               : getRushMessage(displayScore, prevCatBest, worldBest);
-          const sessionSubtext = continueCount > 0
-            ? "One mistake — but you fought back."
-            : isPerfect
-              ? "Flawless. Score doubled. ⚡"
-              : "Session complete.";
+
           return(
           <>
             {/* ── SCORE CARD ── */}
@@ -3122,7 +3129,6 @@ function App(){
               {/* Session complete header */}
               <div style={{padding:"14px 18px 0",position:"relative"}}>
                 <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:2}}>🏟️ Session Complete</div>
-                <div style={{fontSize:12,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",fontWeight:500}}>{sessionSubtext}</div>
               </div>
 
               {/* ── SCORES ROW ── */}
@@ -3177,17 +3183,58 @@ function App(){
                 </div>
               </div>
 
-              {/* ── MESSAGE + CAREER CAPS BAND ── */}
+              {/* ── MESSAGE BAND ── */}
+              <div style={{margin:"14px 18px 0",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"11px 14px"}}>
+                <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.4,fontWeight:500}}>{msg}</div>
+              </div>
+              {/* ── WORLD #1 TARGET BAND ── */}
               {(()=>{
-                const rStatus = getCareerStatus(streak);
+                const cat = rushCatRef.current || rushCat;
+                const top1At  = lsGet(`rush_top1_${cat}`, 0);
+                const wk3     = getWeekKey();
+                const top1Wk  = lsGet(`rush_top1_wk_${cat}_${wk3}`, 0);
+                const rankRow = (rushRanks||[]).find(r=>r.category===activeCatData?.label);
+                const atRank  = rankRow?.alltime_rank;
+                const wkRank  = rankRow?.weekly_rank;
+                if(!top1At && !top1Wk && !atRank && !wkRank) return null;
+                const isAt1 = atRank === 1;
+                const isWk1 = wkRank === 1;
+                const gapAt = top1At > 0 ? Math.max(0, top1At - displayScore) : null;
+                const gapWk = top1Wk > 0 ? Math.max(0, top1Wk - displayScore) : null;
                 return(
-                  <div style={{margin:"14px 18px 18px",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,padding:"11px 14px",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10}}>
-                    <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,fontStyle:"italic",fontFamily:"'Inter',sans-serif",lineHeight:1.4,flex:1,fontWeight:500}}>{msg}</div>
-                    <div style={{flexShrink:0,textAlign:"center",borderLeft:"1px solid rgba(255,255,255,0.08)",paddingLeft:12}}>
-                      <div style={{fontSize:7.5,color:rStatus.col,opacity:0.7,letterSpacing:1.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:1}}>Career Caps</div>
-                      <div style={{fontSize:24,fontWeight:900,color:rStatus.col,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:`0 0 16px ${rStatus.glow}`}}>{streak}</div>
-                      <div style={{fontSize:8,color:rStatus.col,fontWeight:700,fontFamily:"'Inter',sans-serif",marginTop:1,opacity:0.8}}>{rStatus.icon}</div>
-                    </div>
+                  <div style={{margin:"8px 18px 18px",background:"rgba(255,255,255,0.03)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:10,padding:"10px 14px",display:"flex",gap:0}}>
+                    {/* All-time */}
+                    {(atRank || gapAt !== null) && (
+                      <div style={{flex:1,textAlign:"center",paddingRight:gapWk!==null||isWk1?8:0}}>
+                        <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>All-Time #1</div>
+                        {isAt1
+                          ? <><div style={{fontSize:13,fontWeight:900,color:"#fbbf24",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>🏆 You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
+                          : gapAt > 0
+                            ? <><div style={{fontSize:22,fontWeight:900,color:"#f59e0b",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>+{gapAt}</div><div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",marginTop:2}}>to reach World #1</div></>
+                            : gapAt === 0 && top1At > 0
+                              ? <><div style={{fontSize:13,fontWeight:900,color:"#fbbf24",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>🏆 You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
+                              : <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",fontFamily:"'Inter',sans-serif"}}>—</div>
+                        }
+                      </div>
+                    )}
+                    {/* Divider */}
+                    {((atRank||gapAt!==null) && (wkRank||gapWk!==null)) && (
+                      <div style={{width:1,background:"rgba(255,255,255,0.07)",margin:"2px 0",alignSelf:"stretch"}}/>
+                    )}
+                    {/* Weekly */}
+                    {(wkRank || gapWk !== null) && (
+                      <div style={{flex:1,textAlign:"center",paddingLeft:gapAt!==null||isAt1?8:0}}>
+                        <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>This Week #1</div>
+                        {isWk1
+                          ? <><div style={{fontSize:13,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>⚡ You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
+                          : gapWk > 0
+                            ? <><div style={{fontSize:22,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>+{gapWk}</div><div style={{fontSize:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",marginTop:2}}>to reach #1 this week</div></>
+                            : gapWk === 0 && top1Wk > 0
+                              ? <><div style={{fontSize:13,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5,lineHeight:1.2}}>⚡ You're #1</div><div style={{fontSize:10,color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",marginTop:3,lineHeight:1.3}}>Make it harder to catch</div></>
+                              : <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",fontFamily:"'Inter',sans-serif"}}>—</div>
+                        }
+                      </div>
+                    )}
                   </div>
                 );
               })()}
