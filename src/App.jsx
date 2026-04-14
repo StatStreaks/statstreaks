@@ -1280,68 +1280,74 @@ function getScoreMessage(score) {
 
 // ── RUSH RESULT MESSAGES ──────────────────────────────────────────────────────
 // Funny football messages relative to personal high score
-function getRushMessage(score, catBest) {
+function getRushMessage(score, catBest, globalBest) {
   const isNewBest = score > catBest;
   const isEqualBest = score === catBest && catBest > 0;
   const gap = catBest - score;
+  const gapToWorld = globalBest > 0 ? globalBest - score : null;
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
+  // Perfect run handled separately — called with isPerfect flag
   // New best
   if(isNewBest && score === 0) return "You set a new best of zero. Impressive in the worst possible way.";
   if(isNewBest) return pick([
-    "Get in. New personal best. Frame it.",
-    "That's a new one. Write it down.",
-    "New high score. Tell someone who'll appreciate it.",
-    "Top of your own charts. For now.",
-    "Different level today. New PB.",
-    "New PB. The bar just moved.",
+    "New personal best. Now go take #1.",
+    "The bar just moved. Keep going.",
+    "New PB. Someone at the top is nervous.",
     "Personal best smashed. Who are you?",
-    "That's the one. New high score.",
+    "That's the one. New high score. Don't stop there.",
   ]);
 
   // Matched best
   if(isEqualBest) return pick([
-    "Matched your best. So close to something special.",
-    "Level with your best. Try harder.",
-    "Equal PB. The bar remains exactly where you left it.",
-    "Matched it. Now go one better.",
-    "Same peak. Different day. Push harder.",
+    "Matched your best. Next time, beat it.",
+    "Equal PB. One more and you're in new territory.",
     "You've been here before. Time to go further.",
+    "Same peak. Push through it.",
   ]);
 
   // Score = 0
   if(score === 0) return "Nil-nil. You've achieved absolutely nothing. Respect the process, I suppose.";
 
-  // Below best — 3 rotating variants per bucket
+  // 1 off best — extra pointed
+  if(gap === 1) return pick([
+    "One away from your best. One. Go again.",
+    "So close it hurts. You know what to do.",
+    "One short. That's the most painful number in sport.",
+  ]);
+
+  // 2 off best
+  if(gap === 2) return pick([
+    "Two off your best. You were right there.",
+    "Nearly. Not quite. Go again.",
+    "Two away. Tantalisingly close.",
+  ]);
+
+  // 3-4 off best — reference world rank if available
+  if(gap >= 3 && gap <= 4){
+    if(gapToWorld !== null && gapToWorld <= 5) return `${gapToWorld} away from the world best. Go get it.`;
+    return pick([
+      `${gap} off your best. You're better than this.`,
+      "Close but not close enough. Again.",
+      "Getting there. Just not today.",
+    ]);
+  }
+
+  // Below best
   if(gap >= 10) return pick([
     "You've been much better than this. Have a word with yourself.",
     "This isn't you. Where did you go?",
     "A disaster by your standards. Regroup.",
   ]);
   if(gap >= 7) return pick([
-    "A shadow of your former self today. Disappointing.",
     "Well below your best. Rough one.",
+    "A shadow of your best today.",
     "You've forgotten how good you are.",
   ]);
   if(gap >= 5) return pick([
     "Off the pace. Your best self would be embarrassed.",
     "Not your day. Try again.",
     "You've done better. Significantly.",
-  ]);
-  if(gap >= 3) return pick([
-    `${gap} short of your best. You're better than this and you know it.`,
-    "Close but no cigar. Again.",
-    "Getting there. Just not today.",
-  ]);
-  if(gap === 2) return pick([
-    "Two off your best. Tantalisingly close. Annoyingly so.",
-    "Two away. You were right there.",
-    "Nearly. Not quite. Painful.",
-  ]);
-  if(gap === 1) return pick([
-    "One short of your best. One. Imagine how that feels.",
-    "One away. Absolutely gutting.",
-    "So close it hurts. Go again.",
   ]);
 
   // No best yet (catBest === 0)
@@ -1420,8 +1426,8 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
             <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
             <div style={{position:"relative"}}>
               <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>How it works</div>
-              <div style={{color:"#ffffff",fontWeight:800,fontSize:13,marginBottom:4,fontFamily:"'Inter',sans-serif"}}>30s · go perfect ⚡</div>
-              <div style={{color:"rgba(255,255,255,0.7)",fontSize:11,lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>Zero mistakes = <strong style={{color:"#fde047"}}>2× score</strong></div>
+              <div style={{color:"#ffffff",fontWeight:900,fontSize:13,marginBottom:4,fontFamily:"'Inter',sans-serif"}}>30s. 2 mistakes. Game over.</div>
+              <div style={{color:"rgba(255,255,255,0.7)",fontSize:11,lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>Go perfect and your score doubles <strong style={{color:"#fde047"}}>⚡</strong></div>
             </div>
           </div>
 
@@ -2499,6 +2505,30 @@ function App(){
         ),
       },
       {
+        icon:"⚡",
+        title:"Rush Mode — 30 seconds",
+        body:"Race against the clock across 8 categories. One mistake and you lose possession — but you can keep going. Two mistakes and your session is over. Go perfect and your score doubles. Can you top the leaderboard?",
+        preview:(
+          <div style={{marginTop:14,display:"flex",gap:8}}>
+            <div style={{flex:1,padding:"10px 6px",background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.25)",borderRadius:10,textAlign:"center"}}>
+              <div style={{fontSize:16,marginBottom:3}}>⚠️</div>
+              <div style={{color:"#fbbf24",fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700}}>1 MISTAKE</div>
+              <div style={{color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",fontSize:9,marginTop:2}}>Lost possession</div>
+            </div>
+            <div style={{flex:1,padding:"10px 6px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.25)",borderRadius:10,textAlign:"center"}}>
+              <div style={{fontSize:16,marginBottom:3}}>🟥</div>
+              <div style={{color:"#ef4444",fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700}}>2 MISTAKES</div>
+              <div style={{color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",fontSize:9,marginTop:2}}>Session over</div>
+            </div>
+            <div style={{flex:1,padding:"10px 6px",background:"rgba(6,182,212,0.1)",border:"1px solid rgba(6,182,212,0.25)",borderRadius:10,textAlign:"center"}}>
+              <div style={{fontSize:16,marginBottom:3}}>🔥</div>
+              <div style={{color:"#06b6d4",fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:700}}>0 MISTAKES</div>
+              <div style={{color:"rgba(255,255,255,0.4)",fontFamily:"'Inter',sans-serif",fontSize:9,marginTop:2}}>Score ×2</div>
+            </div>
+          </div>
+        ),
+      },
+      {
         icon:"🔥",
         title:"Build your streak",
         body:"Play every day to build your Career Caps. It doesn't matter how you score — just show up and play to keep your streak alive.",
@@ -3000,8 +3030,8 @@ function App(){
                 }}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(190,24,93,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
-                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Keep Playing — Rush Mode</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>30 seconds · beat your high score · {cleanTheme(tomorrowTheme)} tomorrow</div>
+                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Now See If You Can Top the Rush Leaderboard</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>30 seconds · 8 categories · {cleanTheme(tomorrowTheme)} tomorrow</div>
                 </button>
               </div>
             </div>
@@ -3065,13 +3095,22 @@ function App(){
           const isNewBest = displayScore > prevCatBest;
           const shownBest = isNewBest ? displayScore : prevCatBest;
           const toughSession = displayScore < 4;
+          // Get world best for this category from leaderboard
+          const worldBest = (()=>{
+            // rushRanks has per-category rank — find rank 1 by checking dbAllTime if available
+            // Fallback: use alltime rank to infer world best isn't available directly, so omit
+            return null; // will be wired up below via dbTopScore
+          })();
           const msg = toughSession
             ? "Tough session. Shake it off and go again."
-            : getRushMessage(displayScore, prevCatBest);
-          // Session complete subtext — driven by whether rewarded was used
+            : isPerfect
+              ? "Perfect run. Double score. Top of the world."
+              : getRushMessage(displayScore, prevCatBest, worldBest);
           const sessionSubtext = continueCount > 0
-            ? "Good recovery to finish strong."
-            : "Solid session. Now beat that score.";
+            ? "One mistake — but you fought back."
+            : isPerfect
+              ? "Flawless. Score doubled. ⚡"
+              : "Session complete.";
           return(
           <>
             {/* ── SCORE CARD ── */}
@@ -3102,7 +3141,7 @@ function App(){
                 })()}
                 {/* Divider */}
                 <div style={{width:1,background:"rgba(255,255,255,0.07)",margin:"4px 0 0",alignSelf:"stretch"}}/>
-                {/* Personal Best */}
+                {/* Personal Best + Global Rank */}
                 <div style={{flex:1,textAlign:"center",paddingLeft:12}}>
                   <div style={{fontSize:8,color:"rgba(255,255,255,0.3)",letterSpacing:2.5,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:4}}>Personal Best</div>
                   <div style={{fontSize:72,fontWeight:900,
@@ -3118,6 +3157,23 @@ function App(){
                         ? <div style={{fontSize:10,color:"rgba(255,255,255,0.3)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>{prevCatBest-displayScore} off best</div>
                         : <div style={{fontSize:10,color:"rgba(255,255,255,0.25)",marginTop:4,fontFamily:"'Inter',sans-serif"}}>First run!</div>
                   }
+                  {/* Global rank for this category */}
+                  {(()=>{
+                    const rankRow=(rushRanks||[]).find(r=>r.category===activeCatData?.label);
+                    const atRank=rankRow?.alltime_rank;
+                    const wkRank=rankRow?.weekly_rank;
+                    if(!atRank&&!wkRank) return null;
+                    return(
+                      <div style={{marginTop:8,display:"flex",flexDirection:"column",gap:3}}>
+                        {atRank&&<div style={{fontSize:9,color:atRank<=3?"#fbbf24":"rgba(255,255,255,0.4)",fontWeight:700,fontFamily:"'Inter',sans-serif"}}>
+                          {atRank===1?"🏆 World #1":atRank<=3?`🥈 World #${atRank}`:`World #${atRank}`}
+                        </div>}
+                        {wkRank&&<div style={{fontSize:9,color:wkRank<=3?"#06b6d4":"rgba(255,255,255,0.35)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>
+                          {wkRank===1?"⚡ #1 this week":`#${wkRank} this week`}
+                        </div>}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
@@ -3138,8 +3194,8 @@ function App(){
             </div>
 
             {/* ── BUTTONS — outside card ── */}
-            <AdBanner slotId="rush-result"/>
             <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8,letterSpacing:0.3}}>⚡ Play Again — Rush Mode</button>
+            <AdBanner slotId="rush-result"/>
             <div style={{display:"flex",gap:8,marginBottom:0}}>
               <button onClick={()=>{
                 const perfTag=isPerfect?" 🔥 PERFECT RUN (2×)":"";
