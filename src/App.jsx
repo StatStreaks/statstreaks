@@ -2074,80 +2074,42 @@ function App(){
       setCleanScore(finalClean);
       setGameOutcome("timeout");
       // New best or not — play appropriate sound
-      if(finalScore > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest(); else SFX.timeout();
-      // Interstitial only if no continue (rewarded) was used this run
-      if(liveIsPerfect){
-        setShowInterstitial(true);
-      } else {
-        setScreen("result");
-      }
-      return;
-    }
-    // Wrong answer — lock in clean score if first wrong
-    if(continueCount===0) setCleanScore(score);
-    // Second wrong — no more chances, go straight to results (consistent with daily)
-    if(continueCount>0){
-      setShowRushModal(false);
-      const preBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
-      setPrevCatBest(preBest);
-      saveRushScore(score, false);
-      setLatestScore(score);
-      setGameOutcome("lose");
-      if(score > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest();
+      // Sound fires on results screen render, not here
+      // Interstitial always shown before results
       setShowInterstitial(true);
       return;
     }
+    // Wrong answer path
+    if(continueCount>0){
+      // Second wrong — session over, interstitial then results (sound plays on results)
+      setShowRushModal(false);
+      const preBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
+      setPrevCatBest(preBest);
+      rushScoreSavedRef.current = true;
+      saveRushScore(score, false);
+      setLatestScore(score);
+      setGameOutcome("lose");
+      setShowInterstitial(true);
+      return;
+    }
+    // First wrong — show Lost Possession modal (no ad)
+    if(continueCount===0) setCleanScore(score);
     setFrozenTimeLeft(timeLeft);
     setShowRushModal(true);
   }
 
   // User watches ad to CONTINUE — resume same run
-  function rushContinue(){
-    setShowRushModal(false);
-    setContinueCount(c=>c+1);
-    // Reshuffle remaining cards from current position, keeping score + time
-    const remaining=rushShuffle([...cards].slice(currentIdx+1));
-    const newCards=[...cards.slice(0,currentIdx+1),...remaining];
-    setCards(newCards);
-    setResult(null);setFlashResult(null);setRevealedNext(false);
-    setTimerActive(true);
-  }
 
-  async function rushRetry(){
-    setShowRushModal(false);
-    const category=RUSH_CATEGORIES.find(c=>c.id===rushCat);
-    if(!category)return;
-    rushScoreSavedRef.current = false;
-    setTheme(category.label);
-    resetState();setTimerActive(true);setScreen("game");
-    // Use cache first, re-fetch from DB if cache somehow empty
-    let cached = lsGet("rc_cards_v2_"+rushCat, null);
-    if(!cached || !cached.length){
-      const fetched = await dbFetchRushCards(rushCat);
-      if(fetched && fetched.length){ cached = fetched; lsSet("rc_cards_v2_"+rushCat, cached); }
-    }
-    if(cached && cached.length){
-      const mapped = cached.map(c=>({player:c.player,stat:c.stat,statType:c.stat_type,club:c.club||undefined,nationality:c.nationality||undefined}));
-      setCards(rushShuffle(mapped));
-    } else {
-      // Still nothing — offline with no cache
-      setScreen("rush");
-      setCardError("Couldn't load cards. Check your connection and try again.");
-      setTimeout(()=>setCardError(null), 4000);
-    }
-  }
 
   // User dismisses modal — go to result (always a non-clean run since they got a wrong answer)
   function rushDismiss(){
+    // Player acknowledges Lost Possession — resume game, one strike used
     setShowRushModal(false);
-    const preBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
-    setPrevCatBest(preBest);
-    rushScoreSavedRef.current = true;
-    saveRushScore(score, false);
-    setLatestScore(score);
-    setGameOutcome("lose");
-    if(score > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest();
-    setShowInterstitial(true);
+    setContinueCount(c=>c+1);
+    continueCountRef.current += 1;
+    setResult(null);setFlashResult(null);setRevealedNext(false);
+    setTimerActive(true);
+    setTimeout(()=>{setCurrentIdx(i=>i+1);},400);
   }
 
   function finishGame(outcome,finalScore,log){
@@ -2198,14 +2160,11 @@ function App(){
         } else if(mode==="rush"){
           SFX.wrong();setFlashResult("wrong");setResult("wrong");
           if(continueCount > 0){
-            // Already used continue — end session immediately
+            // Second wrong — session over, interstitial then results
             setCleanScore(score);
             setTimeout(()=>endRushRun("wrong"),900);
-          } else if(timeLeft > 20){
-            // Loose touch (early, no continue used yet) — flash and continue, no modal
-            setTimeout(()=>{setCurrentIdx(i=>i+1);setRevealedNext(false);setResult(null);setFlashResult(null);},1600);
           } else {
-            // ≤20s left, first wrong — show modal
+            // First wrong — show Lost Possession modal
             setCleanScore(score);
             setTimeout(()=>endRushRun("wrong"),900);
           }
@@ -2323,84 +2282,33 @@ function App(){
 
   // ── RUSH CONTINUE MODAL (inline component) ────────────────────────────────
   const RushModal = ()=>{
-    const [watching,setWatching] = useState(null); // null | "continue" | "retry"
-    const [cd,setCd]             = useState(5);
-    const ref = useRef();
-    const pct  = getPercentile(score);
-    const next = getNextTarget(score);
-    const isOnFire = score >= 12;
-    const canContinue = frozenTimeLeft > 2; // need at least 2s to be worth continuing
-
-    function startAd(type){
-      setWatching(type);setCd(5);
-      ref.current=setInterval(()=>setCd(c=>{
-        if(c<=1){clearInterval(ref.current);if(type==="continue")rushContinue();else rushRetry();return 0;}
-        return c-1;
-      }),1000);
-    }
-    useEffect(()=>()=>clearInterval(ref.current),[]);
+    const catBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`,0);
+    const toHigh = catBest>0 ? catBest-score : null;
 
     return(
       <div style={{position:"fixed",inset:0,background:"rgba(10,18,28,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px",backdropFilter:"blur(8px)"}}>
-        <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:"1px solid rgba(190,24,93,0.25)",borderRadius:20,padding:"24px 20px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(190,24,93,0.08)",position:"relative",overflow:"hidden"}}>
-          {/* Diagonal texture */}
+        <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:"1px solid rgba(190,24,93,0.25)",borderRadius:20,padding:"28px 20px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.6)",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 14px,rgba(255,255,255,0.012) 14px,rgba(255,255,255,0.012) 15px)",pointerEvents:"none"}}/>
-          {/* Top shimmer */}
           <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#be185d,#ec4899,#06b6d4)",pointerEvents:"none"}}/>
-          {/* Radial bloom */}
-          <div style={{position:"absolute",top:"-30%",left:"50%",transform:"translateX(-50%)",width:"80%",height:"60%",background:"radial-gradient(ellipse,rgba(190,24,93,0.12) 0%,transparent 70%)",pointerEvents:"none"}}/>
+          <div style={{position:"relative"}}>
+            {/* Icon + title */}
+            <div style={{fontSize:36,marginBottom:8}}>⚠️</div>
+            <div style={{color:"#ffffff",fontWeight:900,fontSize:22,marginBottom:4,fontFamily:"'Oswald',sans-serif",letterSpacing:1}}>LOST POSSESSION</div>
+            <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,fontFamily:"'Inter',sans-serif",marginBottom:20}}>One more wrong answer ends your session.</div>
 
-          {watching?(
-            <div style={{position:"relative",padding:"12px 0"}}>
-              <div style={{color:"rgba(255,255,255,0.3)",fontSize:9,letterSpacing:3,marginBottom:12,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Back In Session</div>
-              <div style={{color:"#fbbf24",fontWeight:900,fontSize:64,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:"0 0 40px rgba(251,191,36,0.5)",letterSpacing:-1}}>{cd}</div>
-              <div style={{color:"rgba(255,255,255,0.35)",fontSize:12,marginTop:10,fontFamily:"'Inter',sans-serif"}}>{watching==="continue"?"Winning possession back...":"Starting fresh run..."}</div>
+            {/* Score */}
+            <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px",marginBottom:20}}>
+              <div style={{color:"rgba(255,255,255,0.3)",fontSize:8,letterSpacing:2,marginBottom:4,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Score so far</div>
+              <div style={{color:"#ffffff",fontWeight:900,fontSize:52,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-1}}>{score}</div>
+              {catBest>0&&score>=catBest&&<div style={{color:"#06b6d4",fontWeight:700,fontSize:12,marginTop:4,fontFamily:"'Inter',sans-serif"}}>✦ New personal best!</div>}
+              {toHigh!==null&&toHigh>0&&<div style={{color:"#d97706",fontWeight:600,fontSize:11,marginTop:4,fontFamily:"'Inter',sans-serif"}}>+{toHigh} to beat your best of {catBest}</div>}
             </div>
-          ):(
-            <div style={{position:"relative"}}>
 
-              {/* Icon + title */}
-              <div style={{marginBottom:14}}>
-                <div style={{width:52,height:52,background:"linear-gradient(135deg,rgba(236,72,153,0.2),rgba(190,24,93,0.1))",border:"1px solid rgba(236,72,153,0.3)",borderRadius:14,margin:"0 auto 10px",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26,boxShadow:"0 4px 16px rgba(190,24,93,0.2)"}}>🔥</div>
-                <div style={{color:"#ffffff",fontWeight:900,fontSize:20,marginBottom:3,fontFamily:"'Oswald',sans-serif",letterSpacing:1}}>🔥 LOST POSSESSION</div>
-                <div style={{color:"rgba(255,255,255,0.55)",fontSize:13,fontFamily:"'Inter',sans-serif",fontWeight:600}}>Win it back?</div>
-                <div style={{color:"rgba(255,255,255,0.35)",fontSize:12,fontFamily:"'Inter',sans-serif",marginTop:3}}>Stay in the session and keep the run alive.</div>
-              </div>
-
-              {/* Score panel */}
-              <div style={{background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.07)",borderRadius:12,padding:"14px",marginBottom:16,position:"relative",overflow:"hidden"}}>
-                <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 10px,rgba(255,255,255,0.008) 10px,rgba(255,255,255,0.008) 11px)",pointerEvents:"none"}}/>
-                <div style={{color:"rgba(255,255,255,0.25)",fontSize:8,letterSpacing:2.5,marginBottom:4,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",position:"relative"}}>Training Score</div>
-                <div style={{color:"#ffffff",fontWeight:900,fontSize:56,fontFamily:"'Bebas Neue',sans-serif",lineHeight:0.95,letterSpacing:-1,marginBottom:6,position:"relative",textShadow:"0 2px 0 rgba(0,0,0,0.3)"}}>{score}</div>
-                {(()=>{
-                  const catBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`,0);
-                  const toHigh = catBest>0 ? catBest-score : null;
-                  if(catBest>0 && score>=catBest){
-                    return <div style={{display:"inline-flex",alignItems:"center",gap:5,background:"rgba(6,182,212,0.12)",border:"1px solid rgba(6,182,212,0.25)",borderRadius:8,padding:"3px 10px",position:"relative"}}>
-                      <span style={{color:"#06b6d4",fontWeight:700,fontSize:12,fontFamily:"'Inter',sans-serif"}}>✦ New personal best!</span>
-                    </div>;
-                  } else if(toHigh!==null && toHigh>0){
-                    return <div style={{color:"#d97706",fontWeight:600,fontSize:11,fontFamily:"'Inter',sans-serif",position:"relative"}}>+{toHigh} to beat your best of {catBest}</div>;
-                  } else {
-                    return <div style={{color:"rgba(255,255,255,0.25)",fontSize:11,fontFamily:"'Inter',sans-serif",position:"relative"}}>No best yet — keep going!</div>;
-                  }
-                })()}
-                {continueCount>0&&<div style={{color:"rgba(255,255,255,0.25)",fontSize:10,marginTop:8,borderTop:"1px solid rgba(255,255,255,0.05)",paddingTop:8,position:"relative",fontFamily:"'Inter',sans-serif"}}>Clean run: <strong style={{color:"#06b6d4"}}>{cleanScore}</strong> · no mistakes</div>}
-              </div>
-
-              {/* Buttons */}
-              {canContinue&&(
-                <button onClick={()=>startAd("continue")} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:800,cursor:"pointer",marginBottom:8,boxShadow:"0 4px 16px rgba(6,182,212,0.4), inset 0 1px 0 rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",gap:8,position:"relative",overflow:"hidden"}}>
-                  <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 12px,rgba(255,255,255,0.04) 12px,rgba(255,255,255,0.04) 13px)",pointerEvents:"none"}}/>
-                  <span style={{position:"relative"}}>▶ Watch Ad to Continue</span>
-                  <span style={{position:"relative",fontSize:11,opacity:0.75,fontWeight:600}}>({frozenTimeLeft}s left)</span>
-                </button>
-              )}
-              <button onClick={rushDismiss} style={{width:"100%",padding:"10px",background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.09)",borderRadius:10,color:"rgba(255,255,255,0.35)",fontFamily:"'Inter',sans-serif",fontSize:12,fontWeight:600,cursor:"pointer",letterSpacing:0.3}}>
-                End Session
-              </button>
-            </div>
-          )}
+            {/* Single button — keep going */}
+            <button onClick={rushDismiss} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(6,182,212,0.4)"}}>
+              Keep Going ⚡
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -3012,6 +2920,17 @@ function App(){
     const accentCol=win?"#16a34a":timeout?"#d97706":"#dc2626";
     const accentBg=win?"#f0fdf4":timeout?"#fffbeb":"#fef2f2";
     const accentBorder=win?"#86efac":timeout?"#fde68a":"#fecaca";
+    // Fire result sound once when screen renders
+    useEffect(()=>{
+      if(!isDaily){
+        const preBest=lsGet(`rush_best_${rushCat}`,0);
+        const s=latestScore||0;
+        if(s>preBest) SFX.newBest(); else if(preBest>0) SFX.noBest(); else SFX.timeout();
+      } else {
+        if(win) SFX.win();
+      }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[]);
 
     // Tomorrow's fixture for daily result CTA
     const tomorrowTheme = isDaily ? (shuffledChallenges[(effectiveDayIdx+1)%totalDays]?.theme||null) : null;
