@@ -2243,7 +2243,7 @@ function App(){
         fetch(`${SB_URL}/rest/v1/rush_bests?select=alltime_best,weekly_best&order=alltime_best.desc&category=eq.${encodeURIComponent(catLabel)}&limit=1`,{headers:SB_HEADERS}).then(r=>r.ok?r.json():null).catch(()=>null),
         fetch(`${SB_URL}/rest/v1/rush_bests?select=weekly_best&week_key=eq.${encodeURIComponent(wk2)}&order=weekly_best.desc&category=eq.${encodeURIComponent(catLabel)}&limit=1`,{headers:SB_HEADERS}).then(r=>r.ok?r.json():null).catch(()=>null),
       ]).then(([,, catAt, catWk])=>{
-        if(catAt?.[0]?.alltime_best) lsSet(`rush_top1_${cat}`, catAt[0].alltime_best);
+        if(catAt?.[0]?.alltime_best) lsSet(`rush_top1_${cat}_${getTodayKey()}`, catAt[0].alltime_best);
         if(catWk?.[0]?.weekly_best)  lsSet(`rush_top1_wk_${cat}_${wk2}`, catWk[0].weekly_best);
       });
     }
@@ -3174,7 +3174,7 @@ function App(){
               {/* ── WORLD #1 TARGET BAND ── */}
               {(()=>{
                 const cat = rushCatRef.current || rushCat;
-                const top1At  = lsGet(`rush_top1_${cat}`, 0);
+                const top1At  = lsGet(`rush_top1_${cat}_${getTodayKey()}`, 0);
                 const wk3     = getWeekKey();
                 const top1Wk  = lsGet(`rush_top1_wk_${cat}_${wk3}`, 0);
                 const rankRow = (rushRanks||[]).find(r=>r.category===activeCatData?.label);
