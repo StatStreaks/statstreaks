@@ -1218,11 +1218,6 @@ function InterstitialOverlay({onDismiss}) {
 }
 
 function YellowCardOverlay({onWatchAd,onDecline}) {
-  const [watching,setWatching]=useState(false);
-  const [cd,setCd]=useState(5);
-  const ref=useRef();
-  function startAd(){setWatching(true);setCd(5);ref.current=setInterval(()=>setCd(c=>{if(c<=1){clearInterval(ref.current);onWatchAd();return 0;}return c-1;}),1000);}
-  useEffect(()=>()=>clearInterval(ref.current),[]);
   return(
     <div style={{position:"fixed",inset:0,background:"rgba(10,18,28,0.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:100,padding:"0 20px",backdropFilter:"blur(8px)"}}>
       <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:"1px solid rgba(251,191,36,0.2)",borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,0.6), 0 0 80px rgba(217,119,6,0.08)"}}>
@@ -1240,18 +1235,10 @@ function YellowCardOverlay({onWatchAd,onDecline}) {
         <div style={{color:"rgba(255,255,255,0.85)",fontSize:14,marginBottom:4,lineHeight:1.5,fontWeight:600,fontFamily:"'Inter',sans-serif"}}>Show your manager you deserve to stay on the pitch.</div>
         <div style={{color:"rgba(255,255,255,0.45)",fontSize:12,marginBottom:20,lineHeight:1.5,fontFamily:"'Inter',sans-serif"}}>One mistake forgiven. Keep your cap alive.</div>
 
-        {watching?(
-          <div style={{background:"rgba(255,255,255,0.04)",borderRadius:12,padding:"20px",border:"1px solid rgba(255,255,255,0.08)"}}>
-            <div style={{color:"rgba(255,255,255,0.35)",fontSize:9,letterSpacing:3,marginBottom:8,fontWeight:700,fontFamily:"'Inter',sans-serif"}}>MANAGER CALL</div>
-            <div style={{color:"#fbbf24",fontWeight:900,fontSize:52,fontFamily:"'Oswald',sans-serif",lineHeight:1,textShadow:"0 0 30px rgba(251,191,36,0.5)"}}>{cd}</div>
-            <div style={{color:"rgba(255,255,255,0.4)",fontSize:11,marginTop:6,fontFamily:"'Inter',sans-serif"}}>Back on the pitch...</div>
-          </div>
-        ):(
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            <button onClick={startAd} style={{padding:"14px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 20px rgba(6,182,212,0.45), inset 0 1px 0 rgba(255,255,255,0.2)"}}>Stay On Pitch</button>
-            <button onClick={onDecline} style={{padding:"11px",background:"rgba(220,38,38,0.08)",border:"1px solid rgba(220,38,38,0.2)",borderRadius:10,color:"rgba(248,113,113,0.8)",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Head Off</button>
-          </div>
-        )}
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          <button onClick={onWatchAd} style={{padding:"14px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 20px rgba(6,182,212,0.45), inset 0 1px 0 rgba(255,255,255,0.2)"}}>Stay On Pitch</button>
+          <button onClick={onDecline} style={{padding:"11px",background:"rgba(220,38,38,0.08)",border:"1px solid rgba(220,38,38,0.2)",borderRadius:10,color:"rgba(248,113,113,0.8)",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>Head Off</button>
+        </div>
       </div>
     </div>
   );
