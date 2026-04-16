@@ -3305,18 +3305,22 @@ Think you can beat me? statstreaks.com`;
       {showRushModal&&<RushModal/>}
       {showRestoreInterstitial&&<InterstitialOverlay onDismiss={()=>{
         setShowRestoreInterstitial(false);
-        // Now apply the restore/boost after ad
         const savedMode = lsGet("ss_restore_pending_mode","restore");
         if(savedMode==="restore"){
+          // Full restore — streak unchanged, reset flags
           lsSet("restore_offered",false);setRestoreOffered(false);
           lsSet("last_played",todayKey);
+          lsSet("decay_start","");setDecayStart("");
         } else {
-          const peak = Math.max(lsGet("peak_streak",0), streak+3);
+          // Decay boost — +3 capped at peak
+          const peak = Math.max(lsGet("peak_streak",0), streak);
           const boosted = Math.min(streak+3, peak);
           lsSet("streak",boosted);setStreak(boosted);
+          lsSet("decay_start","");setDecayStart("");
           lsSet("last_decay_applied",todayKey);setLastDecayApplied(todayKey);
         }
         lsSet("ss_restore_pending_mode","");
+        setCareerMode("normal");
       }}/>}
       {showInterstitial&&<InterstitialOverlay onDismiss={()=>{
   setShowInterstitial(false);
