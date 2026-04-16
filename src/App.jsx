@@ -2043,7 +2043,7 @@ function App(){
     const cacheKey = "rc_cards_v3_"+cat;
     let rawCards = lsGet(cacheKey, null);
     if(!rawCards){
-      const fetched = await dbFetchRushCards(cat);
+      const fetched = await dbFetchRushCards(category.label);
       if(fetched && fetched.length){
         rawCards = fetched;
         lsSet(cacheKey, rawCards);
