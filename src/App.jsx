@@ -1437,19 +1437,19 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
             {myAggregateScore>0?(
               <div style={{display:"flex",gap:8}}>
                 {/* Weekly aggregate */}
-                <div style={{flex:1,background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px",border:"1px solid rgba(255,255,255,0.1)"}}>
-                  <div style={{fontSize:8,color:"rgba(255,255,255,0.5)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>⚽ This Week</div>
+                <div style={{flex:1,background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px",border:"1px solid rgba(255,255,255,0.15)"}}>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>⚽ This Week</div>
                   <div style={{display:"flex",alignItems:"baseline",gap:6,justifyContent:"space-between"}}>
-                    <div style={{fontSize:28,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(6,182,212,0.5)"}}>{myWeeklyScore||"—"}</div>
-                    {myWkRank&&<div style={{fontSize:11,fontWeight:800,color:"rgba(6,182,212,0.8)",fontFamily:"'Inter',sans-serif"}}>#{myWkRank}</div>}
+                    <div style={{fontSize:28,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(255,255,255,0.3)"}}>{myWeeklyScore||"—"}</div>
+                    {myWkRank&&<div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.7)",fontFamily:"'Inter',sans-serif"}}>#{myWkRank}</div>}
                   </div>
                 </div>
                 {/* All-time aggregate */}
-                <div style={{flex:1,background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px",border:"1px solid rgba(255,255,255,0.1)"}}>
-                  <div style={{fontSize:8,color:"rgba(255,255,255,0.5)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>🥾 All Time 2026</div>
+                <div style={{flex:1,background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px",border:"1px solid rgba(255,255,255,0.15)"}}>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>🥾 All Time 2026</div>
                   <div style={{display:"flex",alignItems:"baseline",gap:6,justifyContent:"space-between"}}>
-                    <div style={{fontSize:28,fontWeight:900,color:"#ec4899",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(236,72,153,0.5)"}}>{myAggregateScore}</div>
-                    {myAtRank&&<div style={{fontSize:11,fontWeight:800,color:"rgba(236,72,153,0.8)",fontFamily:"'Inter',sans-serif"}}>#{myAtRank}</div>}
+                    <div style={{fontSize:28,fontWeight:900,color:"#fde047",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(253,224,71,0.4)"}}>{myAggregateScore}</div>
+                    {myAtRank&&<div style={{fontSize:11,fontWeight:800,color:"rgba(253,224,71,0.85)",fontFamily:"'Inter',sans-serif"}}>#{myAtRank}</div>}
                   </div>
                 </div>
               </div>
