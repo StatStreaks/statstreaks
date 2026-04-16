@@ -3263,9 +3263,15 @@ function App(){
             <AdBanner slotId="rush-result"/>
             <div style={{display:"flex",gap:8,marginBottom:0}}>
               <button onClick={()=>{
-                const perfTag=isPerfect?" 🔥 PERFECT RUN (2×)":"";
-                const catLabel=activeCatData?.label||"Rush Mode";
-                const t=`StatStreaks ⚡ Rush Mode\n${catLabel}\n${displayScore} correct${perfTag} · ${streak} career caps 🧢\n\nThink you can beat me? statstreaks.com`;
+                const catLabel = activeCatData?.label||"Rush Mode";
+                const rankRow2 = (rushRanks||[]).find(r=>r.category===activeCatData?.label);
+                const wkR = rankRow2?.weekly_rank;
+                const atR = rankRow2?.alltime_rank;
+                const rankStr = (wkR||atR) ? ` · ${wkR?`#${wkR} this week`:""}${wkR&&atR?" · ":""}${atR?`#${atR} in 2026`:""}` : "";
+                const scoreStr = isPerfect ? `⚡ ${displayScore} pts (PERFECT RUN · 2×)` : `${displayScore} pts`;
+                const t=`⚡ StatStreaks Rush — ${catLabel}
+${scoreStr}${rankStr}
+Think you can beat me? statstreaks.com`;
                 if(navigator.share){navigator.share({text:t}).catch(()=>{});}
                 else{navigator.clipboard?.writeText(t).then(()=>{setShowCopied(true);setTimeout(()=>setShowCopied(false),2500);}).catch(()=>window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank"));}
               }} style={{flex:1,padding:"12px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,boxShadow:"0 4px 12px rgba(22,163,74,0.35)"}}>
