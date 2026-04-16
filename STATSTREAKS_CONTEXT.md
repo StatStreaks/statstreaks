@@ -261,14 +261,14 @@ Daily play = +1 cap. `getCareerStatus(caps)` tiers:
 ---
 
 ## Pending / Next Session
-- **PWA** — manifest.json + service worker (installable, add to home screen)
-- **More daily challenges** — 30 days loops after a month
+- **More daily challenges** — 30 days loops after a month, need more variety
 - **Stats validation** — check all rush card data for errors
 - **La Liga Goals + Transfer Fees** — data not ready
-- **Rewarded ads** — not available yet, continue mechanic to be wired up when ready
 - **ICO registration** — £40, before wider marketing
 - **Share image** — Wordle-style result card
-- **Push notifications** — needs PWA first
+- **Push notifications** — parked until larger user base
+- ~~**PWA**~~ ✅ Done — manifest, service worker, install banner live
+- ~~**Rewarded ads**~~ ❌ Removed — not available on AdSense. Ad strategy is static banners (AdBanner component) + interstitials only. No rewarded/continue mechanic planned.
 
 ---
 
