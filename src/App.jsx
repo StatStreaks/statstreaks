@@ -3269,10 +3269,14 @@ function App(){
                 const rankRow2 = (rushRanks||[]).find(r=>r.category===activeCatData?.label);
                 const wkR = rankRow2?.weekly_rank;
                 const atR = rankRow2?.alltime_rank;
-                const rankStr = (wkR||atR) ? ` · ${wkR?`#${wkR} this week`:""}${wkR&&atR?" · ":""}${atR?`#${atR} in 2026`:""}` : "";
-                const scoreStr = isPerfect ? `⚡ ${displayScore} pts (PERFECT RUN · 2×)` : `${displayScore} pts`;
+                const medal = r => r===1?"🥇":r===2?"🥈":r===3?"🥉":"";
+                const fmtRank = (r,label) => r ? `${medal(r)}#${r} ${label}` : null;
+                const rankParts = [fmtRank(wkR,"this week"), fmtRank(atR,"in 2026")].filter(Boolean);
+                const rankLine = rankParts.length ? `
+${rankParts.join(" · ")}` : "";
+                const scoreStr = isPerfect ? `⚡ ${displayScore} pts (PERFECT RUN · 2×) 🔥` : `${displayScore} pts 🔥`;
                 const t=`⚡ StatStreaks Rush — ${catLabel}
-${scoreStr}${rankStr}
+${scoreStr}${rankLine}
 Think you can beat me? statstreaks.com`;
                 if(navigator.share){navigator.share({text:t}).catch(()=>{});}
                 else{navigator.clipboard?.writeText(t).then(()=>{setShowCopied(true);setTimeout(()=>setShowCopied(false),2500);}).catch(()=>window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank"));}
