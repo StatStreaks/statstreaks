@@ -1115,8 +1115,7 @@ function StreakRestoreOverlay({mode, streak, peakStreak, onWatch, onDecline}) {
       <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:`1px solid ${accentCol}30`,borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:`0 20px 60px rgba(0,0,0,0.7), 0 0 80px ${accentGlow}`}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,transparent,${accentCol},transparent)`,borderRadius:"20px 20px 0 0"}}/>
 
-        {(
-          <>
+        <>
             {/* Icon */}
             <div style={{fontSize:36,marginBottom:12}}>{isRestore?"🤝":"💪"}</div>
 
@@ -1156,7 +1155,7 @@ function StreakRestoreOverlay({mode, streak, peakStreak, onWatch, onDecline}) {
               {isRestore?"Start Fresh":"Not Today"}
             </button>
             {!isRestore&&<div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:8,fontFamily:"'Inter',sans-serif"}}>One boost per day · capped at your peak of {peakStreak}</div>}
-          </>
+        </>
       </div>
     </div>
   );
