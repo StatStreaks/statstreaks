@@ -2619,6 +2619,23 @@ function App(){
 
     return(
     <PageWrap>
+      {showRestoreInterstitial&&<InterstitialOverlay onDismiss={()=>{
+        setShowRestoreInterstitial(false);
+        const savedMode = lsGet("ss_restore_pending_mode","restore");
+        if(savedMode==="restore"){
+          lsSet("restore_offered",false);setRestoreOffered(false);
+          lsSet("last_played",todayKey);
+          lsSet("decay_start","");setDecayStart("");
+        } else {
+          const peak = Math.max(lsGet("peak_streak",0), streak);
+          const boosted = Math.min(streak+3, peak);
+          lsSet("streak",boosted);setStreak(boosted);
+          lsSet("decay_start","");setDecayStart("");
+          lsSet("last_decay_applied",todayKey);setLastDecayApplied(todayKey);
+        }
+        lsSet("ss_restore_pending_mode","");
+        setCareerMode("normal");
+      }}/>}
       {showHowToPlay&&<HowToPlayOverlay/>}
       {showNamePrompt&&<NamePromptOverlay/>}
       {/* ── CAREER RESTORE / DECAY OVERLAY ── */}
@@ -3303,25 +3320,6 @@ Think you can beat me? statstreaks.com`;
     <PageWrap glow={isRush?"gold":"default"}>
       {showYellow&&<YellowCardOverlay onWatchAd={onWatchAd} onDecline={onDeclineAd}/>}
       {showRushModal&&<RushModal/>}
-      {showRestoreInterstitial&&<InterstitialOverlay onDismiss={()=>{
-        setShowRestoreInterstitial(false);
-        const savedMode = lsGet("ss_restore_pending_mode","restore");
-        if(savedMode==="restore"){
-          // Full restore — streak unchanged, reset flags
-          lsSet("restore_offered",false);setRestoreOffered(false);
-          lsSet("last_played",todayKey);
-          lsSet("decay_start","");setDecayStart("");
-        } else {
-          // Decay boost — +3 capped at peak
-          const peak = Math.max(lsGet("peak_streak",0), streak);
-          const boosted = Math.min(streak+3, peak);
-          lsSet("streak",boosted);setStreak(boosted);
-          lsSet("decay_start","");setDecayStart("");
-          lsSet("last_decay_applied",todayKey);setLastDecayApplied(todayKey);
-        }
-        lsSet("ss_restore_pending_mode","");
-        setCareerMode("normal");
-      }}/>}
       {showInterstitial&&<InterstitialOverlay onDismiss={()=>{
   setShowInterstitial(false);
   // Fire result sound here — after ad, before results screen
