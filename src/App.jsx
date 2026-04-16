@@ -2290,6 +2290,19 @@ function App(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[screen]);
 
+  // Re-fetch daily stats when result screen shown — unconditional hook, gated inside
+  useEffect(()=>{
+    if(screen!=="result" || mode!=="daily") return;
+    const dk=todayKey;
+    const myScore=(answerLog||[]).filter(r=>r==="correct").length;
+    dbFetchDailyStats(dk, myScore).then(stats=>{
+      if(!stats) return;
+      lsSet("daily_stats_"+dk, stats);
+      setDailyStats(stats);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[screen]);
+
   const currentCard=cards[currentIdx];
   const nextCard=cards[currentIdx+1];
 
@@ -2985,18 +2998,7 @@ function App(){
     const accentBorder=win?"#86efac":timeout?"#fde68a":"#fecaca";
     // Tomorrow's fixture for daily result CTA
     const tomorrowTheme = isDaily ? (shuffledChallenges[(effectiveDayIdx+1)%totalDays]?.theme||null) : null;
-    // Re-fetch daily stats live so rank updates as more people play throughout the day
-    useEffect(()=>{
-      if(!isDaily) return;
-      const dk=todayKey;
-      const myScore=(answerLog||[]).filter(r=>r==="correct").length;
-      dbFetchDailyStats(dk, myScore).then(stats=>{
-        if(!stats) return;
-        lsSet("daily_stats_"+dk, stats);
-        setDailyStats(stats);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    },[]);
+    // (daily stats refresh — moved to unconditional useEffect below)
 
     return(
     <PageWrap glow={win?"default":timeout?"gold":"red"}>
