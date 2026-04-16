@@ -1103,20 +1103,11 @@ function AdBanner({slotId}) {
 
 // ── STREAK RESTORE OVERLAY ────────────────────────────────────────────────────
 function StreakRestoreOverlay({mode, streak, peakStreak, onWatch, onDecline}) {
-  const [watching,setWatching] = useState(false);
-  const [cd,setCd]             = useState(5);
   const ref = useRef();
   const isRestore = mode==="restore";
   const accentCol = isRestore ? "#0d9488" : "#f59e0b";
   const accentGlow = isRestore ? "rgba(13,148,136,0.35)" : "rgba(245,158,11,0.35)";
 
-  function startAd(){
-    setWatching(true);setCd(5);
-    ref.current=setInterval(()=>setCd(c=>{
-      if(c<=1){clearInterval(ref.current);onWatch();return 0;}
-      return c-1;
-    }),1000);
-  }
   useEffect(()=>()=>clearInterval(ref.current),[]);
 
   return(
@@ -1124,13 +1115,7 @@ function StreakRestoreOverlay({mode, streak, peakStreak, onWatch, onDecline}) {
       <div style={{background:"linear-gradient(160deg,#1a2535,#0f1923)",border:`1px solid ${accentCol}30`,borderRadius:20,padding:"28px 24px",maxWidth:340,width:"100%",textAlign:"center",boxShadow:`0 20px 60px rgba(0,0,0,0.7), 0 0 80px ${accentGlow}`}}>
         <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:`linear-gradient(90deg,transparent,${accentCol},transparent)`,borderRadius:"20px 20px 0 0"}}/>
 
-        {watching?(
-          <div style={{padding:"12px 0"}}>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",letterSpacing:3,marginBottom:12,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Manager's Call</div>
-            <div style={{color:accentCol,fontWeight:900,fontSize:64,fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,textShadow:`0 0 40px ${accentGlow}`,letterSpacing:-1}}>{cd}</div>
-            <div style={{color:"rgba(255,255,255,0.35)",fontSize:12,marginTop:10,fontFamily:"'Inter',sans-serif"}}>{isRestore?"Welcome back to the squad...":"+3 caps on the way..."}</div>
-          </div>
-        ):(
+        {(
           <>
             {/* Icon */}
             <div style={{fontSize:36,marginBottom:12}}>{isRestore?"🤝":"💪"}</div>
@@ -1164,7 +1149,7 @@ function StreakRestoreOverlay({mode, streak, peakStreak, onWatch, onDecline}) {
             </div>
 
             {/* Buttons */}
-            <button onClick={startAd} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${isRestore?"#0e7490,#0891b2,#06b6d4":"#92400e,#b45309,#d97706"})`,border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:0.5,cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:`0 4px 20px ${accentGlow}, inset 0 1px 0 rgba(255,255,255,0.2)`,marginBottom:8}}>
+            <button onClick={onWatch} style={{width:"100%",padding:"14px",background:`linear-gradient(135deg,${isRestore?"#0e7490,#0891b2,#06b6d4":"#92400e,#b45309,#d97706"})`,border:"none",borderRadius:12,color:"#fff",fontSize:15,fontWeight:900,letterSpacing:0.5,cursor:"pointer",fontFamily:"'Inter',sans-serif",boxShadow:`0 4px 20px ${accentGlow}, inset 0 1px 0 rgba(255,255,255,0.2)`,marginBottom:8}}>
               {isRestore?"Return to Squad":"Fight Back (+3 Caps)"}
             </button>
             <button onClick={onDecline} style={{width:"100%",padding:"11px",background:"transparent",border:"1px solid rgba(255,255,255,0.08)",borderRadius:10,color:"rgba(255,255,255,0.3)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
@@ -1172,7 +1157,6 @@ function StreakRestoreOverlay({mode, streak, peakStreak, onWatch, onDecline}) {
             </button>
             {!isRestore&&<div style={{fontSize:10,color:"rgba(255,255,255,0.2)",marginTop:8,fontFamily:"'Inter',sans-serif"}}>One boost per day · capped at your peak of {peakStreak}</div>}
           </>
-        )}
       </div>
     </div>
   );
@@ -1821,6 +1805,7 @@ function App(){
   const [frozenIdx,setFrozenIdx]         = useState(0);
   const [countdown,setCountdown]         = useState(null); // 3,2,1 pre-game countdown
   const [showInterstitial,setShowInterstitial] = useState(false); // interstitial before results
+  const [showRestoreInterstitial,setShowRestoreInterstitial] = useState(false); // interstitial for caps restore/boost
   const [showCopied,setShowCopied]             = useState(false); // "Copied!" toast after share fallback
   const [showHowToPlay,setShowHowToPlay]       = useState(()=>!lsGet("htp_seen",false));
   const [showNamePrompt,setShowNamePrompt]     = useState(false); // shows after HTP on first visit if no name set
@@ -2644,18 +2629,10 @@ function App(){
           streak={streak}
           peakStreak={peakStreak||streak}
           onWatch={()=>{
-            if(careerMode==="restore"){
-              // Full restore — streak unchanged, just reset flags
-              lsSet("restore_offered",false);setRestoreOffered(false);
-              lsSet("last_played",todayKey);
-            } else {
-              // Decay boost — +3 capped at peak
-              const peak = Math.max(lsGet("peak_streak",0), streak+3);
-              const boosted = Math.min(streak+3, peak);
-              lsSet("streak",boosted);setStreak(boosted);
-              lsSet("last_decay_applied",todayKey);setLastDecayApplied(todayKey);
-            }
+            // Store current mode so interstitial knows what to apply on dismiss
+            lsSet("ss_restore_pending_mode", careerMode);
             setCareerMode("normal");
+            setShowRestoreInterstitial(true);
           }}
           onDecline={()=>{
             if(careerMode==="restore"){
@@ -3327,6 +3304,21 @@ Think you can beat me? statstreaks.com`;
     <PageWrap glow={isRush?"gold":"default"}>
       {showYellow&&<YellowCardOverlay onWatchAd={onWatchAd} onDecline={onDeclineAd}/>}
       {showRushModal&&<RushModal/>}
+      {showRestoreInterstitial&&<InterstitialOverlay onDismiss={()=>{
+        setShowRestoreInterstitial(false);
+        // Now apply the restore/boost after ad
+        const savedMode = lsGet("ss_restore_pending_mode","restore");
+        if(savedMode==="restore"){
+          lsSet("restore_offered",false);setRestoreOffered(false);
+          lsSet("last_played",todayKey);
+        } else {
+          const peak = Math.max(lsGet("peak_streak",0), streak+3);
+          const boosted = Math.min(streak+3, peak);
+          lsSet("streak",boosted);setStreak(boosted);
+          lsSet("last_decay_applied",todayKey);setLastDecayApplied(todayKey);
+        }
+        lsSet("ss_restore_pending_mode","");
+      }}/>}
       {showInterstitial&&<InterstitialOverlay onDismiss={()=>{
   setShowInterstitial(false);
   // Fire result sound here — after ad, before results screen
