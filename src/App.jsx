@@ -1834,6 +1834,8 @@ function App(){
   const [rushRanks,setRushRanks]               = useState(()=>lsGet("rush_ranks_"+getWeekKey(),null)); // [{category,alltime_best,weekly_best,alltime_rank,weekly_rank}]
   const [aggregateBoards,setAggregateBoards]   = useState(()=>lsGet("lb_cache_v2_"+getTodayKey(),null)); // {allTime,weekly} — fetched for Rush page rank display
   const [dbCapsPlayers,setDbCapsPlayers]       = useState(()=>lsGet("caps_players_v1",null)); // fetched once, cached indefinitely
+  const [installPrompt,setInstallPrompt]       = useState(null);  // beforeinstallprompt event
+  const [pwaDismissed,setPwaDismissed]         = useState(()=>lsGet("ss_pwa_dismissed",false));
   const timeoutRef = useRef();
   // Refs to hold live values for use inside timer/interval callbacks (avoids stale closures)
   const scoreRef   = useRef(0);
@@ -1878,6 +1880,10 @@ function App(){
         setDbCapsPlayers(rows);
       });
     }
+    // Capture PWA install prompt
+    const handler = e => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
@@ -2971,6 +2977,24 @@ function App(){
                 <button key={i} onClick={b.fn} style={{flex:1,padding:"6px",background:"transparent",border:`1px dashed ${b.danger?"rgba(220,38,38,0.25)":"rgba(255,255,255,0.08)"}`,borderRadius:7,color:b.danger?"rgba(220,38,38,0.4)":"rgba(255,255,255,0.2)",fontSize:9,letterSpacing:1,cursor:"pointer",fontFamily:"'Inter',sans-serif",textTransform:"uppercase"}}>{b.label}</button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ── PWA INSTALL BANNER ── */}
+        {installPrompt && !pwaDismissed && (
+          <div style={{background:"linear-gradient(135deg,#1e3a5f,#1e40af)",border:"1px solid rgba(59,130,246,0.35)",borderRadius:12,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,boxShadow:"0 4px 16px rgba(30,64,175,0.3)"}}>
+            <span style={{fontSize:22,flexShrink:0}}>📲</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:12,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",marginBottom:1}}>Add to Home Screen</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.55)",fontFamily:"'Inter',sans-serif"}}>Install for the best experience</div>
+            </div>
+            <button onClick={()=>{
+              SFX.click();
+              installPrompt.prompt();
+              installPrompt.userChoice.then(()=>{ setInstallPrompt(null); });
+            }} style={{background:"#3b82f6",border:"none",borderRadius:8,color:"#ffffff",fontSize:11,fontWeight:800,padding:"7px 12px",cursor:"pointer",fontFamily:"'Inter',sans-serif",flexShrink:0,letterSpacing:0.3}}>Install</button>
+            <button onClick={()=>{ SFX.click(); setPwaDismissed(true); lsSet("ss_pwa_dismissed",true); }}
+              style={{background:"transparent",border:"none",color:"rgba(255,255,255,0.3)",fontSize:16,cursor:"pointer",padding:"4px",flexShrink:0,lineHeight:1}}>✕</button>
           </div>
         )}
 
