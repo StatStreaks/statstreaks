@@ -33,7 +33,7 @@ function createSoundEngine() {
     timeout(){ tone(220,"sawtooth",0.12,0.3); tone(180,"sawtooth",0.2,0.3,0.1); tone(150,"sawtooth",0.3,0.3,0.22); },
     tick()   { tone(880,"sine",0.04,0.08); },
     win()    { [523,659,784,1047,784,1047].forEach((n,i)=>tone(n,"sine",0.18,0.25,i*0.1)); },
-    newBest(){ [523,659,784,1047,1319].forEach((n,i)=>tone(n,"sine",0.2,0.28,i*0.09)); },
+    newBest(){ [523,659,784,1047,1319,1047,1319,1568].forEach((n,i)=>tone(n,"sine",i<5?0.2:0.15,i<5?0.18:0.22,i*0.075)); },
     noBest() { tone(330,"sine",0.15,0.2); tone(294,"sine",0.18,0.25,0.18); tone(262,"sine",0.2,0.35,0.34); },
     click()  { tone(600,"sine",0.06,0.15); },
     card()   { tone(880,"sine",0.08,0.12); tone(1100,"sine",0.06,0.1,0.05); },
@@ -2777,7 +2777,7 @@ function App(){
                   if(navigator.share){navigator.share({text:t}).catch(()=>{});}
                   else{window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank");}
                 }} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:10,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:6,marginBottom:10,boxShadow:"0 4px 12px rgba(22,163,74,0.35)"}}>
-                  <span style={{fontSize:15}}>💬</span> Share on WhatsApp
+                  <span style={{fontSize:15}}>💬</span> Challenge Friends
                 </button>
                 {/* Tomorrow's match — light cyan */}
                 <div style={{padding:"10px 12px",background:"rgba(6,182,212,0.08)",borderRadius:10,border:"1px solid rgba(6,182,212,0.2)",textAlign:"center"}}>
@@ -3061,7 +3061,7 @@ function App(){
                   if(navigator.share){navigator.share({text:t}).catch(()=>{});}
                   else{navigator.clipboard?.writeText(t).then(()=>{setShowCopied(true);setTimeout(()=>setShowCopied(false),2500);}).catch(()=>window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,"_blank"));}
                 }} style={{width:"100%",padding:"13px",background:"linear-gradient(135deg,#15803d,#16a34a,#22c55e)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:8,boxShadow:"0 4px 16px rgba(22,163,74,0.35), inset 0 1px 0 rgba(255,255,255,0.15)"}}>
-                  <span style={{fontSize:16}}>💬</span> {showCopied?"✓ Copied to clipboard!":"Share on WhatsApp"}
+                  <span style={{fontSize:16}}>💬</span> {showCopied?"✓ Copied to clipboard!":"Challenge Friends"}
                 </button>
 
 
