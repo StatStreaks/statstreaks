@@ -20,6 +20,14 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
 
+    <!-- PWA -->
+<link rel="manifest" href="/manifest.json" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="StatStreaks" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
     <!-- Primary SEO -->
     <title>StatStreaks – The Football Higher or Lower Game</title>
     <meta name="description" content="Can you guess higher or lower? StatStreaks is a free daily football stats game. Test your knowledge of Premier League goals, international caps, Champions League records and more. Play every day to build your streak." />
@@ -69,5 +77,13 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+ <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .catch(err => console.log('SW registration failed:', err));
+    });
+  }
+</script>
   </body>
 </html>
