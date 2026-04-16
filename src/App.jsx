@@ -253,8 +253,10 @@ async function dbFetchDailyStats(dayKey, myScore){
     const avg = Math.round((scores.reduce((a,b)=>a+b,0)/scores.length)*10)/10;
     const countBelow = scores.filter(s=>s<myScore).length;
     const percentile = Math.round((countBelow/scores.length)*100); // % who scored lower
-    const topPct = 100-percentile; // top X% label
-    return {avg, topPct, total:scores.length};
+    const topPct = 100-percentile; // top X% (% who scored same or lower)
+    // If topPct > 50, flip to "bottom X%" so we never say "top 100%" or mislead low scorers
+    const bottomPct = topPct > 50 ? (100-topPct) : null;
+    return {avg, topPct, bottomPct, total:scores.length};
   }catch{return null;}
 }
 
@@ -1363,7 +1365,7 @@ function getCareerStatus(caps){
   return           {label:"Hall of Fame",               icon:"🏆",col:"#ffffff",glow:"#ffffff",next:null, nextLabel:null};
 }
 
-function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak, onSetUsername, rushRanks=null}) {
+function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak, onSetUsername, rushRanks=null, myAggregateScore=0, myWeeklyScore=0, myAtRank=null, myWkRank=null}) {
   const status = getCareerStatus(streak||0);
   const [nameEditing, setNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -1405,39 +1407,57 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
           </div>
         </div>
 
-        {/* How it works + Leaderboard — side by side */}
-        <div style={{display:"flex",gap:10,marginBottom:16}}>
-          {/* Mode explainer */}
-          <div style={{flex:1,background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 50%,#db2777 100%)",borderRadius:14,padding:"12px 14px",boxShadow:"0 4px 20px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(255,255,255,0.025) 20px,rgba(255,255,255,0.025) 21px)",pointerEvents:"none"}}/>
-            <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
-            <div style={{position:"relative"}}>
-              <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>How it works</div>
-              <div style={{color:"#ffffff",fontWeight:900,fontSize:13,marginBottom:4,fontFamily:"'Inter',sans-serif"}}>30s. 2 mistakes. Game over.</div>
-              <div style={{color:"rgba(255,255,255,0.7)",fontSize:11,lineHeight:1.4,fontFamily:"'Inter',sans-serif"}}>Go perfect and your score doubles <strong style={{color:"#fde047"}}>⚡</strong></div>
+        {/* How it works — full width */}
+        <div style={{background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 50%,#db2777 100%)",borderRadius:14,padding:"12px 16px",marginBottom:10,boxShadow:"0 4px 20px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(255,255,255,0.025) 20px,rgba(255,255,255,0.025) 21px)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
+          <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+            <div>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>How it works</div>
+              <div style={{color:"#ffffff",fontWeight:900,fontSize:13,fontFamily:"'Inter',sans-serif",lineHeight:1.3}}>30s · 2 mistakes · Game over</div>
+            </div>
+            <div style={{textAlign:"right",flexShrink:0}}>
+              <div style={{color:"rgba(255,255,255,0.7)",fontSize:11,fontFamily:"'Inter',sans-serif"}}>Perfect run = score <strong style={{color:"#fde047"}}>×2 ⚡</strong></div>
+              <div style={{color:"rgba(255,255,255,0.5)",fontSize:10,fontFamily:"'Inter',sans-serif",marginTop:2}}>Best across all 8 categories counts</div>
             </div>
           </div>
+        </div>
 
-          {/* Leaderboard link */}
-          <button onClick={onLeaderboard} style={{
-            flex:1,
-            background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",
-            border:"1px solid rgba(217,119,6,0.4)",
-            borderRadius:14,cursor:"pointer",overflow:"hidden",
-            boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",
-            transition:"transform 0.12s,box-shadow 0.12s",textAlign:"left",padding:"12px 14px",
-          }}
+        {/* Aggregate score + leaderboard — full width */}
+        <button onClick={onLeaderboard} style={{width:"100%",background:"linear-gradient(135deg,#92400e 0%,#b45309 50%,#d97706 100%)",border:"1px solid rgba(217,119,6,0.4)",borderRadius:14,cursor:"pointer",overflow:"hidden",boxShadow:"0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)",marginBottom:16,padding:"12px 16px",textAlign:"left",position:"relative",transition:"transform 0.12s,box-shadow 0.12s"}}
           onMouseOver={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(217,119,6,0.5)";}}
           onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(217,119,6,0.35), inset 0 1px 0 rgba(255,255,255,0.15)";}}>
-            <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
-            <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
-            <div style={{position:"relative"}}>
-              <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>Leaderboards</div>
-              <div style={{fontSize:13,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",marginBottom:4,lineHeight:1.2}}>Top Scorer · Golden Boot · Caps</div>
-              <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif"}}>See where you rank →</div>
+          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
+          <div style={{position:"relative"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:myAggregateScore>0?8:0}}>
+              <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>🏆 Leaderboards</div>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",fontWeight:600}}>See all rankings →</div>
             </div>
-          </button>
-        </div>
+            {myAggregateScore>0?(
+              <div style={{display:"flex",gap:8}}>
+                {/* Weekly aggregate */}
+                <div style={{flex:1,background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px",border:"1px solid rgba(255,255,255,0.1)"}}>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.5)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>⚽ This Week</div>
+                  <div style={{display:"flex",alignItems:"baseline",gap:6,justifyContent:"space-between"}}>
+                    <div style={{fontSize:28,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(6,182,212,0.5)"}}>{myWeeklyScore||"—"}</div>
+                    {myWkRank&&<div style={{fontSize:11,fontWeight:800,color:"rgba(6,182,212,0.8)",fontFamily:"'Inter',sans-serif"}}>#{myWkRank}</div>}
+                  </div>
+                </div>
+                {/* All-time aggregate */}
+                <div style={{flex:1,background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px",border:"1px solid rgba(255,255,255,0.1)"}}>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.5)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>🥾 All Time 2026</div>
+                  <div style={{display:"flex",alignItems:"baseline",gap:6,justifyContent:"space-between"}}>
+                    <div style={{fontSize:28,fontWeight:900,color:"#ec4899",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(236,72,153,0.5)"}}>{myAggregateScore}</div>
+                    {myAtRank&&<div style={{fontSize:11,fontWeight:800,color:"rgba(236,72,153,0.8)",fontFamily:"'Inter',sans-serif"}}>#{myAtRank}</div>}
+                  </div>
+                </div>
+              </div>
+            ):(
+              <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif"}}>Top Scorer · Golden Boot · Caps — see where you rank</div>
+            )}
+          </div>
+        </button>
 
         {/* Category grid */}
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
@@ -1812,6 +1832,7 @@ function App(){
   const [pendingRushCat,setPendingRushCat]     = useState(null); // cat to launch after name prompt
   const [cardError,setCardError]               = useState(null); // shown when card fetch fails offline
   const [rushRanks,setRushRanks]               = useState(()=>lsGet("rush_ranks_"+getWeekKey(),null)); // [{category,alltime_best,weekly_best,alltime_rank,weekly_rank}]
+  const [aggregateBoards,setAggregateBoards]   = useState(()=>lsGet("lb_cache_v2_"+getTodayKey(),null)); // {allTime,weekly} — fetched for Rush page rank display
   const [dbCapsPlayers,setDbCapsPlayers]       = useState(()=>lsGet("caps_players_v1",null)); // fetched once, cached indefinitely
   const timeoutRef = useRef();
   // Refs to hold live values for use inside timer/interval callbacks (avoids stale closures)
@@ -2257,6 +2278,15 @@ function App(){
         if((r.weekly_best||0) > localWeekly) lsSet(`rush_weekly_${cat.id}_${wk}`, r.weekly_best);
       });
     });
+    // Also fetch aggregate leaderboard boards so Rush page can show aggregate rank
+    const wk2 = getWeekKey();
+    Promise.all([dbFetchAllTime(), dbFetchWeekly(wk2)]).then(([at,wk])=>{
+      if(at||wk){
+        const boards = {allTime:at||null, weekly:wk||null};
+        setAggregateBoards(boards);
+        lsSet("lb_cache_v2_"+getTodayKey(), boards);
+      }
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[screen]);
 
@@ -2280,7 +2310,12 @@ function App(){
   if(screen==="terms")return <TermsScreen onBack={()=>setScreen("home")}/>;
   if(screen==="rush")return <>
     {showHowToPlay&&<HowToPlayOverlay/>}
-    <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={setUsername} rushRanks={rushRanks}/>
+    <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={setUsername} rushRanks={rushRanks}
+      myAggregateScore={(()=>RUSH_CATEGORIES.filter(c=>!c.comingSoon).reduce((s,c)=>s+lsGet(`rush_best_${c.id}`,0),0))()}
+      myWeeklyScore={(()=>RUSH_CATEGORIES.filter(c=>!c.comingSoon).reduce((s,c)=>s+lsGet(`rush_weekly_${c.id}_${getWeekKey()}`,0),0))()}
+      myAtRank={(()=>{const me=getDeviceId();const rows=(aggregateBoards?.allTime||[]);const myRow=rows.find(r=>r.device_id===me);return myRow?rows.filter(r=>r.score>myRow.score).length+1:null;})()}
+      myWkRank={(()=>{const me=getDeviceId();const rows=(aggregateBoards?.weekly||[]);const myRow=rows.find(r=>r.device_id===me);return myRow?rows.filter(r=>r.score>myRow.score).length+1:null;})()}
+    />
     {cardError&&<div style={{position:"fixed",bottom:32,left:"50%",transform:"translateX(-50%)",background:"#dc2626",color:"#ffffff",padding:"12px 20px",borderRadius:12,fontSize:13,fontWeight:600,fontFamily:"'Inter',sans-serif",boxShadow:"0 4px 20px rgba(0,0,0,0.4)",zIndex:999,maxWidth:300,textAlign:"center"}}>📴 {cardError}</div>}
   </>;
 
@@ -2494,7 +2529,7 @@ function App(){
       {
         icon:"↕",
         title:"Higher or Lower?",
-        body:"The next player is revealed — guess whether their stat is higher or lower than the one before.",
+        body:"The next entry is revealed — guess whether their stat is higher or lower than the one before.",
         preview:(
           <div style={{marginTop:14,display:"flex",gap:10}}>
             <div style={{flex:1,padding:"12px 8px",background:"linear-gradient(135deg,#0e7490,#06b6d4)",borderRadius:10,textAlign:"center",color:"#fff",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,boxShadow:"0 4px 14px rgba(6,182,212,0.4)"}}>⬆ HIGHER</div>
@@ -2712,7 +2747,7 @@ function App(){
                 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",borderRadius:10,overflow:"hidden",border:"1px solid rgba(255,255,255,0.08)",marginBottom:10,background:"rgba(255,255,255,0.05)"}}>
                   {[
                     {label:"Your Score",val:`${todayResult.filter(r=>r==="correct").length}/10`,col:"#06b6d4",sub:null},
-                    {label:"Global Avg",val:dailyStats?.avg??"4.2",col:"rgba(255,255,255,0.4)",sub:dailyStats?.topPct!=null?`you: top ${dailyStats.topPct}%`:null},
+                    {label:"Global Avg",val:dailyStats?.avg??"4.2",col:"rgba(255,255,255,0.4)",sub:dailyStats?.topPct!=null?(dailyStats.bottomPct!=null?`you: bottom ${dailyStats.bottomPct}%`:`you: top ${dailyStats.topPct}%`):null},
                   ].map((item,i)=>(
                     <div key={i} style={{textAlign:"center",padding:"12px 6px",borderLeft:i>0?"1px solid rgba(255,255,255,0.08)":"none"}}>
                       <div style={{fontSize:8,color:"rgba(255,255,255,0.4)",letterSpacing:1.5,fontWeight:600,marginBottom:4,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{item.label}</div>
@@ -2950,6 +2985,18 @@ function App(){
     const accentBorder=win?"#86efac":timeout?"#fde68a":"#fecaca";
     // Tomorrow's fixture for daily result CTA
     const tomorrowTheme = isDaily ? (shuffledChallenges[(effectiveDayIdx+1)%totalDays]?.theme||null) : null;
+    // Re-fetch daily stats live so rank updates as more people play throughout the day
+    useEffect(()=>{
+      if(!isDaily) return;
+      const dk=todayKey;
+      const myScore=(answerLog||[]).filter(r=>r==="correct").length;
+      dbFetchDailyStats(dk, myScore).then(stats=>{
+        if(!stats) return;
+        lsSet("daily_stats_"+dk, stats);
+        setDailyStats(stats);
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },[]);
 
     return(
     <PageWrap glow={win?"default":timeout?"gold":"red"}>
@@ -2986,7 +3033,7 @@ function App(){
                     <div style={{fontSize:9,color:"rgba(255,255,255,0.35)",letterSpacing:1.5,fontWeight:600,marginBottom:6,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Global</div>
                     <div style={{fontSize:12,color:"rgba(255,255,255,0.6)",fontWeight:600,fontFamily:"'Inter',sans-serif",lineHeight:1.8}}>
                       <div>Avg: <span style={{color:"#ffffff",fontWeight:800}}>{dailyStats?.avg??"—"}</span></div>
-                      {dailyStats?.topPct!=null&&<div>Rank: <span style={{color:"#f59e0b",fontWeight:800}}>top {dailyStats.topPct}%</span></div>}
+                      {dailyStats?.topPct!=null&&<div>Rank: <span style={{color:"#f59e0b",fontWeight:800}}>{dailyStats.bottomPct!=null?`bottom ${dailyStats.bottomPct}%`:`top ${dailyStats.topPct}%`}</span></div>}
                     </div>
                   </div>
                 </div>
@@ -3271,12 +3318,12 @@ function App(){
               {isRush?activeCat?.label:cleanTheme(theme)}
             </div>
             <div style={{fontSize:15,color:"rgba(255,255,255,0.85)",fontFamily:"'Inter',sans-serif",fontWeight:600,lineHeight:1.5}}>
-              Will the next player's{" "}
-              <strong style={{color:"#fbbf24"}}>{cards[0]?.statType||"stat"}</strong>
-              {" "}be{" "}
-              <strong style={{color:"#06b6d4"}}>HIGHER</strong>
-              {" "}or{" "}
-              <strong style={{color:"#ec4899"}}>LOWER</strong>?
+              {(()=>{
+                const isStadium = !isRush && (theme.toLowerCase().includes("ground capacity") || theme.toLowerCase().includes("stadium"));
+                const isClub    = !isRush && (theme.toLowerCase().includes("club") || theme.toLowerCase().includes("team") || theme.toLowerCase().includes("league") || theme.toLowerCase().includes("premier") || theme.toLowerCase().includes("golden boot") || theme.toLowerCase().includes("mufc") || theme.toLowerCase().includes("lfc"));
+                const subj = isStadium ? "the next stadium's" : isClub ? "the next team's" : "the next player's";
+                return <>{`Will ${subj} `}<strong style={{color:"#fbbf24"}}>{cards[0]?.statType||"stat"}</strong>{" be "}<strong style={{color:"#06b6d4"}}>HIGHER</strong>{" or "}<strong style={{color:"#ec4899"}}>LOWER</strong>?</>;
+              })()}
             </div>
           </div>
 
