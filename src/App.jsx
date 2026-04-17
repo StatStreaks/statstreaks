@@ -1533,7 +1533,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                         {/* Weekly — Top Scorer (first) */}
                         {(()=>{const isWkNo1=wkRank===1;return(
                         <div style={{flex:1,background:isWkNo1?"rgba(251,191,36,0.12)":catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${isWkNo1?"rgba(251,191,36,0.5)":catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end",boxShadow:isWkNo1?"0 0 12px rgba(251,191,36,0.3)":"none",position:"relative",overflow:"hidden"}}>
-                          {isWkNo1&&<div style={{position:"absolute",bottom:4,left:4,fontSize:9,lineHeight:1}}>👑</div>}
+                          {isWkNo1&&<div style={{position:"absolute",bottom:4,right:4,fontSize:9,lineHeight:1}}>👑</div>}
                           <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
                             <span style={{fontSize:8}}>⚽</span>
                             <span style={{fontSize:7,color:isWkNo1?"rgba(251,191,36,0.9)":catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>Week</span>
@@ -1543,7 +1543,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                         {/* Golden Boot 2026 (second) */}
                         {(()=>{const isAtNo1=atRank===1;return(
                         <div style={{flex:1,background:isAtNo1?"rgba(251,191,36,0.12)":"rgba(236,72,153,0.08)",border:`1px solid ${isAtNo1?"rgba(251,191,36,0.5)":"rgba(236,72,153,0.18)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end",boxShadow:isAtNo1?"0 0 12px rgba(251,191,36,0.3)":"none",position:"relative",overflow:"hidden"}}>
-                          {isAtNo1&&<div style={{position:"absolute",bottom:4,left:4,fontSize:9,lineHeight:1}}>👑</div>}
+                          {isAtNo1&&<div style={{position:"absolute",bottom:4,right:4,fontSize:9,lineHeight:1}}>👑</div>}
                           <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
                             <span style={{fontSize:8}}>🥾</span>
                             <span style={{fontSize:7,color:isAtNo1?"rgba(251,191,36,0.9)":"rgba(236,72,153,0.7)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>2026</span>
