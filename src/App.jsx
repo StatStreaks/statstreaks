@@ -1426,7 +1426,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
             {myAggregateScore>0?(
               <div style={{display:"flex",gap:8}}>
                 <div style={{flex:1,background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px",border:"1px solid rgba(255,255,255,0.15)"}}>
-                  <div style={{fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>⚽ This Week Total</div>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>⚽ Week Total</div>
                   <div style={{display:"flex",alignItems:"baseline",gap:6,justifyContent:"space-between"}}>
                     <div style={{fontSize:28,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(255,255,255,0.3)"}}>{myWeeklyScore||"—"}</div>
                     {myWkRank&&<div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.7)",fontFamily:"'Inter',sans-serif"}}>#{myWkRank}</div>}
@@ -1533,7 +1533,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                         {/* Weekly — Top Scorer (first) */}
                         {(()=>{const isWkNo1=wkRank===1;return(
                         <div style={{flex:1,background:isWkNo1?"rgba(251,191,36,0.12)":catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${isWkNo1?"rgba(251,191,36,0.5)":catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end",boxShadow:isWkNo1?"0 0 12px rgba(251,191,36,0.3)":"none",position:"relative",overflow:"hidden"}}>
-                          {isWkNo1&&<div style={{position:"absolute",top:2,right:4,fontSize:9,lineHeight:1}}>👑</div>}
+                          {isWkNo1&&<div style={{position:"absolute",bottom:4,left:4,fontSize:9,lineHeight:1}}>👑</div>}
                           <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
                             <span style={{fontSize:8}}>⚽</span>
                             <span style={{fontSize:7,color:isWkNo1?"rgba(251,191,36,0.9)":catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>Week</span>
@@ -1543,7 +1543,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                         {/* Golden Boot 2026 (second) */}
                         {(()=>{const isAtNo1=atRank===1;return(
                         <div style={{flex:1,background:isAtNo1?"rgba(251,191,36,0.12)":"rgba(236,72,153,0.08)",border:`1px solid ${isAtNo1?"rgba(251,191,36,0.5)":"rgba(236,72,153,0.18)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end",boxShadow:isAtNo1?"0 0 12px rgba(251,191,36,0.3)":"none",position:"relative",overflow:"hidden"}}>
-                          {isAtNo1&&<div style={{position:"absolute",top:2,right:4,fontSize:9,lineHeight:1}}>👑</div>}
+                          {isAtNo1&&<div style={{position:"absolute",bottom:4,left:4,fontSize:9,lineHeight:1}}>👑</div>}
                           <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
                             <span style={{fontSize:8}}>🥾</span>
                             <span style={{fontSize:7,color:isAtNo1?"rgba(251,191,36,0.9)":"rgba(236,72,153,0.7)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>2026</span>
