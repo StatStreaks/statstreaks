@@ -696,7 +696,9 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
 
           {board.map((e,i)=>{
             const medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":null;
-            const entryStatus = getCareerStatus(tab==="caps"?e.score:0);
+            // For rush tabs, look up caps from the caps board so status is accurate
+            const entryCaps = tab==="caps" ? e.score : (capsBoard||[]).find(c=>c.name===e.name)?.score || 0;
+            const entryStatus = getCareerStatus(entryCaps);
             return(
               <div key={i} style={{
                 display:"flex",alignItems:"center",padding:"10px 16px",
