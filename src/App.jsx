@@ -547,7 +547,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
   const youEntry = board.find(e=>e.isYou);
 
   const TABS = [
-    {id:"weekly",  label:"Top Scorer",  sub:"this week",  icon:"⚽", accent:"#06b6d4", desc:"Total Rush score across all categories · this week"},
+    {id:"weekly",  label:"Top Scorer",  sub:"week",       icon:"⚽", accent:"#06b6d4", desc:"Total Rush score across all categories · this week"},
     {id:"alltime", label:"Golden Boot", sub:"2026",        icon:"🥾", accent:"#ec4899", desc:"Total Rush score across all categories · 2026"},
     {id:"caps",    label:"Caps",        sub:"all time",    icon:"🧢", accent:"#d97706", desc:"Longest active streak · all-time"},
   ];
@@ -1531,21 +1531,25 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                     <div>
                       <div style={{display:"flex",gap:6,marginBottom:rankRow?6:0}}>
                         {/* Weekly — Top Scorer (first) */}
-                        <div style={{flex:1,background:catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+                        {(()=>{const isWkNo1=wkRank===1;return(
+                        <div style={{flex:1,background:isWkNo1?"rgba(251,191,36,0.12)":catWeekly>0?"rgba(6,182,212,0.08)":"rgba(255,255,255,0.03)",border:`1px solid ${isWkNo1?"rgba(251,191,36,0.5)":catWeekly>0?"rgba(6,182,212,0.2)":"rgba(255,255,255,0.06)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end",boxShadow:isWkNo1?"0 0 12px rgba(251,191,36,0.3)":"none",position:"relative",overflow:"hidden"}}>
+                          {isWkNo1&&<div style={{position:"absolute",top:2,right:4,fontSize:9,lineHeight:1}}>👑</div>}
                           <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
                             <span style={{fontSize:8}}>⚽</span>
-                            <span style={{fontSize:7,color:catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>Week</span>
+                            <span style={{fontSize:7,color:isWkNo1?"rgba(251,191,36,0.9)":catWeekly>0?"rgba(6,182,212,0.7)":"rgba(255,255,255,0.2)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>Week</span>
                           </div>
-                          <div style={{fontSize:26,fontWeight:900,color:catWeekly>0?"#06b6d4":"rgba(255,255,255,0.15)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:catWeekly>0?"0 0 16px rgba(6,182,212,0.4)":"none"}}>{catWeekly||"—"}</div>
-                        </div>
+                          <div style={{fontSize:26,fontWeight:900,color:isWkNo1?"#fbbf24":catWeekly>0?"#06b6d4":"rgba(255,255,255,0.15)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:isWkNo1?"0 0 20px rgba(251,191,36,0.6)":catWeekly>0?"0 0 16px rgba(6,182,212,0.4)":"none"}}>{catWeekly||"—"}</div>
+                        </div>);})()}
                         {/* Golden Boot 2026 (second) */}
-                        <div style={{flex:1,background:"rgba(236,72,153,0.08)",border:"1px solid rgba(236,72,153,0.18)",borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end"}}>
+                        {(()=>{const isAtNo1=atRank===1;return(
+                        <div style={{flex:1,background:isAtNo1?"rgba(251,191,36,0.12)":"rgba(236,72,153,0.08)",border:`1px solid ${isAtNo1?"rgba(251,191,36,0.5)":"rgba(236,72,153,0.18)"}`,borderRadius:8,padding:"6px 8px",display:"flex",flexDirection:"column",justifyContent:"flex-end",boxShadow:isAtNo1?"0 0 12px rgba(251,191,36,0.3)":"none",position:"relative",overflow:"hidden"}}>
+                          {isAtNo1&&<div style={{position:"absolute",top:2,right:4,fontSize:9,lineHeight:1}}>👑</div>}
                           <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:2}}>
                             <span style={{fontSize:8}}>🥾</span>
-                            <span style={{fontSize:7,color:"rgba(236,72,153,0.7)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>2026</span>
+                            <span style={{fontSize:7,color:isAtNo1?"rgba(251,191,36,0.9)":"rgba(236,72,153,0.7)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>2026</span>
                           </div>
-                          <div style={{fontSize:26,fontWeight:900,color:"#ec4899",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(236,72,153,0.45)"}}>{catBest}</div>
-                        </div>
+                          <div style={{fontSize:26,fontWeight:900,color:isAtNo1?"#fbbf24":"#ec4899",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:isAtNo1?"0 0 20px rgba(251,191,36,0.6)":"0 0 16px rgba(236,72,153,0.45)"}}>{catBest}</div>
+                        </div>);})()}
                       </div>
                       {/* Global rank strip — only shows if ranks loaded */}
                       {rankRow&&(
