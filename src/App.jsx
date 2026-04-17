@@ -578,14 +578,17 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
       <div style={{width:"100%"}}>
 
         {/* Header */}
-        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
-          <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,flexShrink:0}}>← Back</button>
-          <div style={{flex:1,minWidth:0}}>
-            <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
-            <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Leaderboards</div>
+        <div style={{marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+            <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,flexShrink:0}}>← Back</button>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
+              <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Leaderboards</div>
+            </div>
           </div>
-          {/* Your identity — editable */}
-          <div style={{textAlign:"right",flexShrink:0,maxWidth:120,minWidth:0,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
+          {/* Your identity — editable, full width row below title */}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"flex-end",gap:8,paddingLeft:4}}>
+          <div style={{textAlign:"right",flexShrink:0,minWidth:0,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:2}}>
             {nameEditing?(
               <div style={{display:"flex",gap:5,alignItems:"center",justifyContent:"flex-end"}}>
                 <input value={nameDraft} onChange={e=>setNameDraft(e.target.value.slice(0,20))}
@@ -605,6 +608,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
               </button>
             )}
             <div style={{fontSize:9,color:yourStatus.col,opacity:0.75,fontWeight:600,letterSpacing:0.5,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap",textAlign:"right"}}>{yourStatus.icon} {yourStatus.label}</div>
+          </div>
           </div>
         </div>
 
@@ -717,11 +721,13 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
                     <div style={{fontSize:9,color:entryStatus.col,fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1,opacity:0.8}}>
                       {entryStatus.icon} {entryStatus.label}
                     </div>
-                  ):e.cats?(
-                    <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontWeight:600,fontFamily:"'Inter',sans-serif",marginTop:1,letterSpacing:0.2}}>
-                      {e.cats}/8 categories
+                  ):(
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginTop:1}}>
+                      {e.cats&&<div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontWeight:600,fontFamily:"'Inter',sans-serif",letterSpacing:0.2}}>{e.cats}/8 categories</div>}
+                      {e.cats&&<div style={{fontSize:9,color:"rgba(255,255,255,0.15)"}}>·</div>}
+                      <div style={{fontSize:9,color:entryStatus.col,fontWeight:600,fontFamily:"'Inter',sans-serif",opacity:0.8}}>{entryStatus.icon} {entryStatus.label}</div>
                     </div>
-                  ):null}
+                  )}
                 </div>
                 <div style={{width:50,textAlign:"right",fontFamily:"'Bebas Neue',sans-serif",fontWeight:700,fontSize:20,
                   color:e.isYou?activeTab.accent:i<3?"#ffffff":"rgba(255,255,255,0.3)"}}>
