@@ -289,6 +289,9 @@ const RUSH_CATEGORIES = [
   { id:"intl_goals", label:"International Goals", icon:"🏆", color:"#3b82f6", globalAvg:4.2},
 
 
+  // ── WOMEN'S CATEGORIES ─────────────────────────────────────────────────────
+  { id:"womens_int_caps", label:"Women's Int'l Caps", icon:"👩", color:"#ec4899", globalAvg:0 },
+
   // ── COMING SOON CATEGORIES ──────────────────────────────────────────────────
   { id:"transfer_fees", label:"Transfer Fees", icon:"💰", color:"#f59e0b", comingSoon:true, globalAvg:0 },
   { id:"la_liga_goals", label:"La Liga Goals", icon:"🏟️", color:"#ef4444", comingSoon:true, globalAvg:0 },
@@ -906,7 +909,7 @@ function getCardContext(card, catId) {
   } else if (isTopScorers) {
     teamLine = "All-Time";
     compLine = card.nationality || "International";
-  } else if (catId === "intl_caps") {
+  } else if (catId === "intl_caps" || catId === "womens_int_caps") {
     teamLine = "All-Time";
     compLine = card.nationality || "International";
   } else if (catId === "intl_goals") {
