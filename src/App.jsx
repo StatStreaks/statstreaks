@@ -262,11 +262,11 @@ async function dbFetchDailyStats(dayKey, myScore){
 
 const STAT_ICONS={Goals:"⚽",Assists:"🎯","Clean Sheets":"🧤",Appearances:"👟",Trophies:"🏆",Caps:"🌐","Red Cards":"🟥"};
 
-// ── RUSH CATEGORIES (8 categories, 100 cards each) ────────────────────────────
+// ── RUSH CATEGORIES ─────────────────────────────────────────────────────────────
 // ── RUSH CATEGORIES — 10 categories, consistent colours by stat type ──────────
 // Blue = Goals, Red = Clean Sheets, Purple = Assists, Amber = Caps/Appearances
 // Ordered by likely popularity / most played first
-// ── RUSH CATEGORIES — 8 categories, ~150 verified cards each ─────────────────
+// ── RUSH CATEGORIES — ~150 verified cards each ──────────────────────────────────
 // PL Fundamentals (4): Goals, Assists, Clean Sheets, Appearances
 // England Pride (2): Caps, Goals
 // Club Rivalries (2): Man Utd vs Liverpool, Real Madrid vs Barcelona
@@ -728,7 +728,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
                     </div>
                   ):(
                     <div style={{display:"flex",alignItems:"center",gap:5,marginTop:1}}>
-                      {e.cats&&<div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontWeight:600,fontFamily:"'Inter',sans-serif",letterSpacing:0.2}}>{e.cats}/8 categories</div>}
+                      {e.cats&&<div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontWeight:600,fontFamily:"'Inter',sans-serif",letterSpacing:0.2}}>{e.cats}/{RUSH_CATEGORIES.filter(c=>!c.comingSoon).length} categories</div>}
                       {e.cats&&<div style={{fontSize:9,color:"rgba(255,255,255,0.15)"}}>·</div>}
                       <div style={{fontSize:9,color:entryStatus.col,fontWeight:600,fontFamily:"'Inter',sans-serif",opacity:0.8}}>{entryStatus.icon} {entryStatus.label}</div>
                     </div>
@@ -2539,7 +2539,7 @@ function App(){
       {
         icon:"⚡",
         title:"Rush Mode — 30 seconds",
-        body:"Race against the clock across 8 categories. One mistake and you lose possession — but you can keep going. Two mistakes and your session is over. Go perfect and your score doubles. Can you top the leaderboard?",
+        body:`Race against the clock across ${RUSH_CATEGORIES.filter(c=>!c.comingSoon).length} categories. One mistake and you lose possession — but you can keep going. Two mistakes and your session is over. Go perfect and your score doubles. Can you top the leaderboard?`,
         preview:(
           <div style={{marginTop:14,display:"flex",gap:8}}>
             <div style={{flex:1,padding:"10px 6px",background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.25)",borderRadius:10,textAlign:"center"}}>
@@ -3072,7 +3072,7 @@ function App(){
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(190,24,93,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
                   <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Now See If You Can Top the Rush Leaderboard</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>30 seconds · 8 categories · {cleanTheme(tomorrowTheme)} tomorrow</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>30 seconds · {RUSH_CATEGORIES.filter(c=>!c.comingSoon).length} categories · {cleanTheme(tomorrowTheme)} tomorrow</div>
                 </button>
               </div>
             </div>
