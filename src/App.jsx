@@ -1872,41 +1872,24 @@ function App(){
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
 
-  // ── CAREER RESTORE / DECAY — runs once on mount ───────────────────────────
+  // ── CAREER RESTORE — runs once on mount ──────────────────────────────────
   useEffect(()=>{
     const lastPlayed = lsGet("last_played","");
     if(!lastPlayed){ setCareerMode("normal"); return; }
     const today = getTodayKey();
     if(lastPlayed === today){ setCareerMode("normal"); return; }
-    // Days missed (yesterday = 1, two days ago = 2, etc.)
     const msPerDay = 86400000;
     const lastDate = new Date(lastPlayed);
     const todayDate = new Date(today);
     const daysMissed = Math.round((todayDate - lastDate) / msPerDay);
-    // Only trigger if at least 2 days missed — daysMissed=1 means they played yesterday
-    // and simply haven't played today yet, which is normal. Give them the day first.
     if(daysMissed <= 1){ setCareerMode("normal"); return; }
     const alreadyOffered = lsGet("restore_offered", false);
     if(!alreadyOffered){
-      // First open after absence — offer full restore
       setCareerMode("restore");
       lsSet("restore_offered", true);
       setRestoreOffered(true);
     } else {
-      // Already declined restore — apply decay
-      const dStart = lsGet("decay_start","") || today;
-      if(!lsGet("decay_start","")){ lsSet("decay_start", today); setDecayStart(today); }
-      const lastApplied = lsGet("last_decay_applied","");
-      if(lastApplied !== today){
-        // Apply one cap decay for today
-        const current = lsGet("streak", 0);
-        const decayed = Math.max(0, current - 1);
-        lsSet("streak", decayed);
-        setStreak(decayed);
-        lsSet("last_decay_applied", today);
-        setLastDecayApplied(today);
-      }
-      setCareerMode(lsGet("streak",0) <= 0 ? "normal" : "decay");
+      setCareerMode("normal");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
@@ -2203,8 +2186,6 @@ function App(){
     if(ns>peak){lsSet("peak_streak",ns);setPeakStreak(ns);}
     lsSet("last_played",todayKey);
     lsSet("restore_offered",false);setRestoreOffered(false);
-    lsSet("decay_start","");setDecayStart("");
-    lsSet("last_decay_applied","");setLastDecayApplied("");
     setCareerMode("normal");
     const r={key:todayKey,dots:log||answerLog};lsSet("daily_result",r);setDailyResult(r);
     // Sync new caps to DB — fire-and-forget
@@ -2620,8 +2601,6 @@ function App(){
       lsSet("peak_streak",0);setPeakStreak(0);
       lsSet("last_played","");
       lsSet("restore_offered",false);setRestoreOffered(false);
-      lsSet("decay_start","");setDecayStart("");
-      lsSet("last_decay_applied","");setLastDecayApplied("");
       setCareerMode("normal");
       lsSet("rush_scores",[]);setRushScores([]);
       RUSH_CATEGORIES.forEach(c=>{lsSet(`rush_best_${c.id}`,0);lsSet(`rush_plays_${c.id}`,0);});
@@ -2642,13 +2621,10 @@ function App(){
         if(savedMode==="restore"){
           lsSet("restore_offered",false);setRestoreOffered(false);
           lsSet("last_played",todayKey);
-          lsSet("decay_start","");setDecayStart("");
         } else {
           const peak = Math.max(lsGet("peak_streak",0), streak);
           const boosted = Math.min(streak+3, peak);
           lsSet("streak",boosted);setStreak(boosted);
-          lsSet("decay_start","");setDecayStart("");
-          lsSet("last_decay_applied",todayKey);setLastDecayApplied(todayKey);
         }
         lsSet("ss_restore_pending_mode","");
         setCareerMode("normal");
@@ -2656,7 +2632,7 @@ function App(){
       {showHowToPlay&&<HowToPlayOverlay/>}
       {showNamePrompt&&<NamePromptOverlay/>}
       {/* ── CAREER RESTORE / DECAY OVERLAY ── */}
-      {(careerMode==="restore"||careerMode==="decay")&&(
+      {careerMode==="restore"&&(
         <StreakRestoreOverlay
           mode={careerMode}
           streak={streak}
@@ -2669,11 +2645,7 @@ function App(){
           }}
           onDecline={()=>{
             if(careerMode==="restore"){
-              // Declined restore — start decay, transition straight to decay card
-              lsSet("decay_start",todayKey);setDecayStart(todayKey);
-              lsSet("last_decay_applied",todayKey);setLastDecayApplied(todayKey);
-              // Only show decay card if they still have caps to lose
-              setCareerMode(streak > 0 ? "decay" : "normal");
+              setCareerMode("normal");
             } else {
               setCareerMode("normal");
             }
@@ -2965,16 +2937,7 @@ function App(){
                   const yk=`${yesterday.getFullYear()}-${yesterday.getMonth()+1}-${yesterday.getDate()}`;
                   lsSet("last_played",yk);
                   lsSet("restore_offered",false);setRestoreOffered(false);
-                  lsSet("decay_start","");setDecayStart("");
                   setCareerMode("restore");
-                }},
-                {label:"📉 Decay",fn:()=>{
-                  const decayed = Math.max(0, streak-1);
-                  lsSet("streak",decayed);setStreak(decayed);
-                  lsSet("restore_offered",true);setRestoreOffered(true);
-                  lsSet("decay_start",todayKey);setDecayStart(todayKey);
-                  lsSet("last_decay_applied","");setLastDecayApplied("");
-                  setCareerMode(decayed > 0 ? "decay" : "normal");
                 }},
                 {label:"🗑 Reset",fn:resetDemo,danger:true},
               ].map((b,i)=>(
