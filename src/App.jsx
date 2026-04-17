@@ -1399,15 +1399,10 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
         <div style={{background:"linear-gradient(135deg,#7c0d3e 0%,#be185d 50%,#db2777 100%)",borderRadius:14,padding:"12px 16px",marginBottom:10,boxShadow:"0 4px 20px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.15)",position:"relative",overflow:"hidden"}}>
           <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 20px,rgba(255,255,255,0.025) 20px,rgba(255,255,255,0.025) 21px)",pointerEvents:"none"}}/>
           <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
-          <div style={{position:"relative",display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
-            <div>
-              <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>How it works</div>
-              <div style={{color:"#ffffff",fontWeight:900,fontSize:13,fontFamily:"'Inter',sans-serif",lineHeight:1.3}}>30s · 2 mistakes · Game over</div>
-            </div>
-            <div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{color:"rgba(255,255,255,0.7)",fontSize:11,fontFamily:"'Inter',sans-serif"}}>Perfect run = score <strong style={{color:"#fde047"}}>×2 ⚡</strong></div>
-              <div style={{color:"rgba(255,255,255,0.5)",fontSize:10,fontFamily:"'Inter',sans-serif",marginTop:2}}>Best across all 8 categories counts</div>
-            </div>
+          <div style={{position:"relative"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.65)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",marginBottom:4,fontFamily:"'Inter',sans-serif"}}>How it works</div>
+            <div style={{color:"#ffffff",fontWeight:900,fontSize:13,fontFamily:"'Inter',sans-serif"}}>30s · 2 mistakes · Game over</div>
+            <div style={{color:"rgba(255,255,255,0.7)",fontSize:11,fontFamily:"'Inter',sans-serif",marginTop:3}}>Perfect run = score <strong style={{color:"#fde047"}}>×2 ⚡</strong></div>
           </div>
         </div>
 
@@ -1425,14 +1420,14 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
             {myAggregateScore>0?(
               <div style={{display:"flex",gap:8}}>
                 <div style={{flex:1,background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px",border:"1px solid rgba(255,255,255,0.15)"}}>
-                  <div style={{fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>⚽ This Week</div>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>⚽ This Week Total</div>
                   <div style={{display:"flex",alignItems:"baseline",gap:6,justifyContent:"space-between"}}>
                     <div style={{fontSize:28,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(255,255,255,0.3)"}}>{myWeeklyScore||"—"}</div>
                     {myWkRank&&<div style={{fontSize:11,fontWeight:800,color:"rgba(255,255,255,0.7)",fontFamily:"'Inter',sans-serif"}}>#{myWkRank}</div>}
                   </div>
                 </div>
                 <div style={{flex:1,background:"rgba(0,0,0,0.2)",borderRadius:10,padding:"8px 10px",border:"1px solid rgba(255,255,255,0.15)"}}>
-                  <div style={{fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>🥾 All Time 2026</div>
+                  <div style={{fontSize:8,color:"rgba(255,255,255,0.55)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",marginBottom:3}}>🥾 2026 Total</div>
                   <div style={{display:"flex",alignItems:"baseline",gap:6,justifyContent:"space-between"}}>
                     <div style={{fontSize:28,fontWeight:900,color:"#fde047",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:"0 0 16px rgba(253,224,71,0.4)"}}>{myAggregateScore}</div>
                     {myAtRank&&<div style={{fontSize:11,fontWeight:800,color:"rgba(253,224,71,0.85)",fontFamily:"'Inter',sans-serif"}}>#{myAtRank}</div>}
@@ -2807,9 +2802,8 @@ function App(){
           onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(219,39,119,0.65), inset 0 1px 0 rgba(255,255,255,0.25)";}}
           onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(219,39,119,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
           <div style={{textAlign:"left"}}>
-            <div style={{fontSize:9,color:"rgba(255,255,255,0.6)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>Rush Mode</div>
-            <div style={{fontSize:15,fontWeight:900,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>⚡ Play Rush</div>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,marginTop:2,fontFamily:"'Inter',sans-serif"}}>30s · 8 categories · beat your score</div>
+            <div style={{fontSize:15,fontWeight:900,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>⚡ Rush Mode</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.6)",fontWeight:500,marginTop:2,fontFamily:"'Inter',sans-serif"}}>30 seconds · Can you be the best in the world?</div>
           </div>
           <div style={{fontSize:28,opacity:0.8}}>→</div>
         </button>
