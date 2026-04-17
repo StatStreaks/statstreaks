@@ -2030,7 +2030,7 @@ function App(){
     resetState();setScreen("game");
 
     // Fetch cards first, then start countdown so preview beat always has cards
-    const cacheKey = "rc_cards_v3_"+cat;
+    const cacheKey = "rc_cards_v4_"+cat;
     let rawCards = lsGet(cacheKey, null);
     if(!rawCards){
       // DB stores old categories by id, combined_goals by label
