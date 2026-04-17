@@ -292,7 +292,7 @@ const RUSH_CATEGORIES = [
   // ── COMING SOON CATEGORIES ──────────────────────────────────────────────────
   { id:"transfer_fees", label:"Transfer Fees", icon:"💰", color:"#f59e0b", comingSoon:true, globalAvg:0 },
   { id:"la_liga_goals", label:"La Liga Goals", icon:"🏟️", color:"#ef4444", comingSoon:true, globalAvg:0 },
-  { id:"arsenal_spurs_goals", label:"Arsenal & Spurs Goals", icon:"🔴", color:"#ef4444", comingSoon:true, globalAvg:0 },
+  { id:"arsenal_spurs_goals", label:"Arsenal vs Spurs Goals", icon:"⚔️", color:"#ef4444", globalAvg:0 },
   { id:"ucl_goals",     label:"UCL Goals", icon:"⭐", color:"#8b5cf6", globalAvg:4.8 },
   { id:"combined_goals", label:"Man Utd & Liverpool Goals", icon:"⚔️", color:"#9d174d", globalAvg:4.5 },
 ];
@@ -922,6 +922,9 @@ function getCardContext(card, catId) {
   } else if (catId === "combined_goals") {
     teamLine = "All-Time";
     compLine = card.club || "Man Utd & Liverpool";
+  } else if (catId === "arsenal_spurs_goals") {
+    teamLine = card.club || "";
+    compLine = "All-Time";
   } else if (catId === "ucl_goals") {
     teamLine = "All-Time";
     compLine = "Champions League";
