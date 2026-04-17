@@ -3346,9 +3346,10 @@ Think you can beat me? statstreaks.com`;
             <div style={{fontSize:15,color:"rgba(255,255,255,0.85)",fontFamily:"'Inter',sans-serif",fontWeight:600,lineHeight:1.5}}>
               {(()=>{
                 const isStadium = !isRush && (theme.toLowerCase().includes("ground capacity") || theme.toLowerCase().includes("stadium"));
-                const isClub    = !isRush && (theme.toLowerCase().includes("club") || theme.toLowerCase().includes("team") || theme.toLowerCase().includes("league") || theme.toLowerCase().includes("premier") || theme.toLowerCase().includes("golden boot") || theme.toLowerCase().includes("mufc") || theme.toLowerCase().includes("lfc"));
-                const subj = isStadium ? "the next stadium's" : isClub ? "the next team's" : "the next player's";
-                return <>{`Will ${subj} `}<strong style={{color:"#fbbf24"}}>{cards[0]?.statType||"stat"}</strong>{" be "}<strong style={{color:"#06b6d4"}}>HIGHER</strong>{" or "}<strong style={{color:"#ec4899"}}>LOWER</strong>?</>;
+                const isTrophy  = !isRush && (theme.toLowerCase().includes("winners") || theme.toLowerCase().includes("trophies"));
+                const subj = isStadium ? "the next stadium's" : isTrophy ? "the next team's" : "the next player's";
+                const statLabel = cards[0]?.statType || (isRush ? activeCat?.label?.split(" ").pop() : "stat");
+                return <>{`Will ${subj} `}<strong style={{color:"#fbbf24"}}>{statLabel}</strong>{" be "}<strong style={{color:"#06b6d4"}}>HIGHER</strong>{" or "}<strong style={{color:"#ec4899"}}>LOWER</strong>?</>;
               })()}
             </div>
           </div>
