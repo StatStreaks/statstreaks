@@ -2184,7 +2184,16 @@ function App(){
     },350);
   }
 
-  function onWatchAd(){setYellowUsed(true);setShowYellow(false);setCurrentIdx(i=>i+1);setRevealedNext(false);setResult(null);setFlashResult(null);}
+  function onWatchAd(){
+    setYellowUsed(true);setShowYellow(false);
+    // If yellow was on the last card, game is complete — finish as win (no next card to show)
+    if(currentIdx+1>=cards.length-1){
+      SFX.win();setRevealedNext(false);setResult(null);setFlashResult(null);
+      finishGame("win",score,answerLog);
+    } else {
+      setCurrentIdx(i=>i+1);setRevealedNext(false);setResult(null);setFlashResult(null);
+    }
+  }
   function onDeclineAd(){SFX.red();setShowYellow(false);setDeclinedYellow(true);setResult("wrong");setFlashResult("wrong");const nl=[...answerLog];if(nl[nl.length-1]==="yellow")nl[nl.length-1]="red";else nl.push("red");setAnswerLog(nl);finishGame("lose",score,nl);}
   function markDailyPlayed(log){
     lsSet("daily_done",todayKey);setDailyDone(todayKey);
@@ -3385,23 +3394,17 @@ Think you can beat me? statstreaks.com`;
         <div style={{textAlign:"center",marginBottom:6}}>
           <span style={{fontSize:16,fontWeight:900,letterSpacing:1.5,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>StatStreaks</span>
         </div>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+        {/* Title — centred */}
+        <div style={{textAlign:"center",marginBottom:4}}>
+          <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Rush Mode"):cleanTheme(theme)}</div>
+          {isRush&&<div style={{fontSize:9,color:"#fbbf24",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Rush Mode</div>}
+        </div>
+        {/* Back button — below header, left aligned */}
+        <div style={{marginBottom:8}}>
           <button onClick={()=>{SFX.click();setTimerActive(false);setCountdown(null);setScreen(isRush?"rush":"home");}}
             style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.6)",fontSize:11,cursor:"pointer",padding:"7px 11px",fontFamily:"'Inter',sans-serif",fontWeight:600}}>
-            ← {isRush?"Pitch":"Home"}
+            ← Back
           </button>
-          <div style={{textAlign:"center"}}>
-            <div style={{fontSize:12,fontWeight:700,color:"rgba(255,255,255,0.9)",fontFamily:"'Inter',sans-serif"}}>{isRush?(activeCat?activeCat.label:"Rush Mode"):cleanTheme(theme)}</div>
-            <div style={{fontSize:9,color:isRush?"#fbbf24":"rgba(255,255,255,0)",letterSpacing:2,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>{isRush?"Rush Mode":""}</div>
-          </div>
-          {/* Best score — rush only, top right */}
-          {isRush?(()=>{
-            const catBest=lsGet(`rush_best_${rushCat}`,0);
-            return catBest>0
-              ? <div style={{textAlign:"right"}}><div style={{fontSize:9,color:"rgba(255,255,255,0.3)",fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Best</div><div style={{fontSize:13,fontWeight:800,color:"rgba(255,255,255,0.4)",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:1}}>{catBest}</div></div>
-              : <div style={{width:40}}/>;
-          })()
-          : <div style={{width:40}}/>}
         </div>
 
         {/* ── SCORE / TIMER BAR ── */}
@@ -3409,27 +3412,26 @@ Think you can beat me? statstreaks.com`;
           /* Rush: score left · timer right · bar below */
           <div style={{marginBottom:12}}>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
-              {/* Score + PB */}
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <div style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"6px 14px",display:"flex",alignItems:"baseline",gap:5}}>
-                  <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:"#ffffff",lineHeight:1,letterSpacing:1}}>{score}</span>
-                  <span style={{fontSize:11,color:"rgba(255,255,255,0.4)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>correct</span>
-                </div>
-                {(()=>{
-                  const pb = lsGet(`rush_best_${rushCat}`,0);
-                  const wk = getWeekKey();
-                  const wpb = lsGet(`rush_weekly_${rushCat}_${wk}`,0);
-                  const best = Math.max(pb, wpb);
-                  if(best<=0) return null;
-                  const beating = score > best;
-                  return(
-                    <div style={{background:beating?"rgba(6,182,212,0.12)":"rgba(255,255,255,0.05)",border:`1px solid ${beating?"rgba(6,182,212,0.3)":"rgba(255,255,255,0.1)"}`,borderRadius:8,padding:"4px 8px",display:"flex",flexDirection:"column",alignItems:"center"}}>
-                      <span style={{fontSize:8,color:beating?"#06b6d4":"rgba(255,255,255,0.3)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>PB</span>
-                      <span style={{fontSize:14,fontWeight:900,color:beating?"#06b6d4":"rgba(255,255,255,0.3)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>{best}</span>
-                    </div>
-                  );
-                })()}
+              {/* Score */}
+              <div style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:10,padding:"6px 14px",display:"flex",alignItems:"baseline",gap:5}}>
+                <span style={{fontFamily:"'Bebas Neue',sans-serif",fontSize:28,color:"#ffffff",lineHeight:1,letterSpacing:1}}>{score}</span>
+                <span style={{fontSize:11,color:"rgba(255,255,255,0.4)",fontWeight:600,fontFamily:"'Inter',sans-serif"}}>correct</span>
               </div>
+              {/* PB — centred */}
+              {(()=>{
+                const pb = lsGet(`rush_best_${rushCat}`,0);
+                const wk = getWeekKey();
+                const wpb = lsGet(`rush_weekly_${rushCat}_${wk}`,0);
+                const best = Math.max(pb, wpb);
+                if(best<=0) return <div/>;
+                const beating = score > best;
+                return(
+                  <div style={{background:beating?"rgba(6,182,212,0.12)":"rgba(255,255,255,0.05)",border:`1px solid ${beating?"rgba(6,182,212,0.3)":"rgba(255,255,255,0.1)"}`,borderRadius:8,padding:"4px 10px",display:"flex",flexDirection:"column",alignItems:"center"}}>
+                    <span style={{fontSize:8,color:beating?"#06b6d4":"rgba(255,255,255,0.3)",fontWeight:700,letterSpacing:1,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>PB</span>
+                    <span style={{fontSize:14,fontWeight:900,color:beating?"#06b6d4":"rgba(255,255,255,0.3)",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1}}>{best}</span>
+                  </div>
+                );
+              })()}
               {/* Timer */}
               <div style={{
                 background: timeLeft<=8?"rgba(239,68,68,0.15)":timeLeft<=15?"rgba(245,158,11,0.15)":"rgba(6,182,212,0.12)",
