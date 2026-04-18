@@ -261,7 +261,7 @@ async function dbFetchDailyStats(dayKey, myScore){
   }catch{return null;}
 }
 
-const STAT_ICONS={Goals:"⚽",Assists:"🎯","Clean Sheets":"🧤",Appearances:"👟",Trophies:"🏆",Caps:"🌐","Red Cards":"🟥"};
+const STAT_ICONS={Goals:"⚽",goals:"⚽",Assists:"🎯",assists:"🎯","Clean Sheets":"🧤",Appearances:"👟",appearances:"👟",Trophies:"🏆",Caps:"🧢",caps:"🧢","Red Cards":"🟥"};
 
 // ── RUSH CATEGORIES ─────────────────────────────────────────────────────────────
 // ── RUSH CATEGORIES — 10 categories, consistent colours by stat type ──────────
@@ -1063,7 +1063,7 @@ function StatPanel({card, revealed, flashResult=null, catId=""}) {
 
       {/* ── STAT TYPE ── */}
       <div style={{fontSize:8.5,fontWeight:700,color:"#475569",letterSpacing:1.8,textTransform:"uppercase",textAlign:"center",position:"relative",fontFamily:"'Inter',sans-serif"}}>
-        {STAT_ICONS[card.statType]||"📊"} {card.statType}
+        {STAT_ICONS[card.statType]||STAT_ICONS[card.statType?.charAt(0).toUpperCase()+card.statType?.slice(1)]||"⚽"} {card.statType?.charAt(0).toUpperCase()+(card.statType?.slice(1)||"")}
       </div>
     </div>
   );
@@ -2034,7 +2034,9 @@ function App(){
       const dbKey = (cat === "combined_goals" || cat === "england_caps") ? category.label : cat;
       const fetched = await dbFetchRushCards(dbKey);
       if(fetched && fetched.length){
-        rawCards = fetched;
+        // Deduplicate by player name — guards against duplicate DB rows
+        const seen = new Set();
+        rawCards = fetched.filter(c=>{ if(seen.has(c.player)) return false; seen.add(c.player); return true; });
         lsSet(cacheKey, rawCards);
       }
     }
