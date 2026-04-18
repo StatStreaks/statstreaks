@@ -251,6 +251,7 @@ async function dbFetchDailyStats(dayKey, myScore){
     if(!rows.length) return null;
     const scores = rows.map(r=>r.score);
     const avg = Math.round((scores.reduce((a,b)=>a+b,0)/scores.length)*10)/10;
+    if(scores.length < 10) return {avg, topPct:null, bottomPct:null, total:scores.length};
     const countBelow = scores.filter(s=>s<myScore).length;
     const percentile = Math.round((countBelow/scores.length)*100); // % who scored lower
     const topPct = 100-percentile; // top X% (% who scored same or lower)
@@ -298,6 +299,7 @@ const RUSH_CATEGORIES = [
   { id:"arsenal_spurs_goals", label:"Arsenal vs Spurs Goals", icon:"⚔️", color:"#ef4444", globalAvg:0 },
   { id:"ucl_goals",     label:"UCL Goals", icon:"⭐", color:"#8b5cf6", globalAvg:4.8 },
   { id:"combined_goals", label:"Man Utd & Liverpool Goals", icon:"⚔️", color:"#9d174d", globalAvg:4.5 },
+  { id:"england_caps", label:"England Caps", icon:"🦁", color:"#ffffff", globalAvg:0 },
 ];
 // Daily challenge metadata — cards are fetched from DB
 // Kept as lightweight fallback so app renders even before DB loads
@@ -364,11 +366,14 @@ function smartOrder(rawCards) {
 // We enforce a MAX_GAP to prevent trivially obvious pairs where the answer is
 // a foregone conclusion (e.g. 260 goals vs 0 goals). Tight pairs are allowed —
 // they are the hard, interesting questions.
-function rushShuffle(cards){
+function rushShuffle(cards, recentPlayers=[]){
   if(!cards||cards.length<2) return cards;
-  const sorted=[...cards].sort((a,b)=>a.stat-b.stat);
+  const recentSet = new Set(recentPlayers);
+  const fresh  = cards.filter(c=>!recentSet.has(c.player));
+  const stale  = cards.filter(c=> recentSet.has(c.player));
+  const pool   = fresh.length >= 20 ? fresh : [...fresh, ...stale];
+  const sorted=[...pool].sort((a,b)=>a.stat-b.stat);
   const n=sorted.length;
-  // Difficulty is enforced per-card via ratio (see Pass 2 below) — no global range needed
   const lo=sorted.slice(0,Math.floor(n*0.33));
   const mid=sorted.slice(Math.floor(n*0.33),Math.floor(n*0.66));
   const hi=sorted.slice(Math.floor(n*0.66));
@@ -380,28 +385,28 @@ function rushShuffle(cards){
     if(hi[i])out.push(hi[i]);
     if(mid[i])out.push(mid[i]);
   }
-  // Pass 1: fix identical stats (equal stats = unguessable, always remove)
-  for(let i=1;i<out.length;i++){
-    if(out[i].stat===out[i-1].stat){
-      let swapped=false;
-      for(let j=i+1;j<out.length;j++){
-        if(out[j].stat!==out[i-1].stat){[out[i],out[j]]=[out[j],out[i]];swapped=true;break;}
+  // Pass 1: fix identical stats — re-check after each swap to catch newly created duplicates
+  let safetyLimit = out.length * 3;
+  let i = 1;
+  while(i < out.length && safetyLimit-- > 0){
+    if(out[i].stat === out[i-1].stat){
+      let swapped = false;
+      for(let j=i+1; j<out.length; j++){
+        const prevOk = out[j].stat !== out[i-1].stat;
+        const nextOk = (i+1 >= out.length) || out[i+1].stat !== out[j].stat;
+        if(prevOk && nextOk){ [out[i],out[j]]=[out[j],out[i]]; swapped=true; break; }
       }
-      if(!swapped){out.splice(i,1);i--;}
-    }
+      if(!swapped){ out.splice(i,1); }
+      else { i = Math.max(1, i-1); }
+    } else { i++; }
   }
-  // Pass 2: enforce per-card relative difficulty.
-  // Gap is measured as a ratio of the LARGER of the two stats — this is card-by-card,
-  // not against the overall range. e.g. 260 vs 160 = 62% of 260 = easy (swap it out).
-  // 80 vs 60 = 25% of 80 = reasonable. 8 vs 7 = 12% of 8 = hard (keep it, that's good).
-  // MAX_RATIO = 0.35 means the smaller stat must be at least 35% of the larger (easier than 0.50).
-  const MAX_RATIO = 0.35; // lowered from 0.50 — allows wider gaps so more pairs are obvious
+  // Pass 2: enforce per-card relative difficulty (MAX_RATIO=0.35)
+  const MAX_RATIO = 0.35;
   for(let i=1;i<out.length;i++){
     const larger = Math.max(out[i].stat, out[i-1].stat);
     const smaller = Math.min(out[i].stat, out[i-1].stat);
-    // ratio = smaller/larger; low ratio = easy (far apart); high ratio = hard (close)
     const ratio = larger>0 ? smaller/larger : 1;
-    if(ratio < MAX_RATIO){ // too easy — gap is too wide for this card's value
+    if(ratio < MAX_RATIO){
       for(let j=i+1;j<out.length;j++){
         const lg2 = Math.max(out[j].stat, out[i-1].stat);
         const sm2 = Math.min(out[j].stat, out[i-1].stat);
@@ -411,7 +416,6 @@ function rushShuffle(cards){
           break;
         }
       }
-      // If no suitable swap found, leave in place
     }
   }
   return out;
@@ -931,6 +935,9 @@ function getCardContext(card, catId) {
   } else if (catId === "ucl_goals") {
     teamLine = "All-Time";
     compLine = "Champions League";
+  } else if (catId === "england_caps") {
+    teamLine = "All-Time";
+    compLine = "England";
   // ── DAILY / FALLBACK — use club data ─────────────────────────────────────
   } else if (club === "PL All-Time") {
     teamLine = "All-Time";
@@ -2039,7 +2046,9 @@ function App(){
         club: c.club||undefined,
         nationality: c.nationality||undefined,
       }));
-      setCards(rushShuffle(mapped));
+      const recentKey = `ss_rush_recent_${cat}`;
+      const recentPlayers = lsGet(recentKey, []);
+      setCards(rushShuffle(mapped, recentPlayers));
       setCountdown(0);
       setTimeout(()=>setCountdown(3),2000);
       setTimeout(()=>setCountdown(2),3000);
@@ -2055,6 +2064,14 @@ function App(){
 
   function endRushRun(reason){
     setTimerActive(false);
+    const activeCat = rushCatRef.current || rushCat;
+    if(activeCat && cards && cards.length){
+      const seenPlayers = cards.map(c=>c.player);
+      const recentKey = `ss_rush_recent_${activeCat}`;
+      const prev = lsGet(recentKey, []);
+      const merged = [...new Set([...seenPlayers, ...prev])].slice(0, 40);
+      lsSet(recentKey, merged);
+    }
     if(reason==="timeout"){
       // Use refs to read live values — avoids stale closure from setInterval callback
       const liveScore = scoreRef.current;
@@ -2351,7 +2368,6 @@ function App(){
               Keep Going ⚡
             </button>
             <button onClick={()=>{
-              // End session voluntarily — save score (no perfect bonus) and go to results
               const preBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
               setPrevCatBest(preBest);
               rushScoreSavedRef.current = true;
@@ -3090,8 +3106,8 @@ function App(){
                 }}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(190,24,93,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
-                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Now See If You Can Top the Rush Leaderboard</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>30 seconds · {RUSH_CATEGORIES.filter(c=>!c.comingSoon).length} categories · {cleanTheme(tomorrowTheme)} tomorrow</div>
+                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Beat the Leaderboard in Rush Mode</div>
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>30 seconds · {RUSH_CATEGORIES.filter(c=>!c.comingSoon).length} categories · Can you top the world?</div>
                 </button>
               </div>
             </div>
@@ -3274,7 +3290,7 @@ function App(){
             </div>
 
             {/* ── BUTTONS — outside card ── */}
-            <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8,letterSpacing:0.3}}>⚡ Play Again — Rush Mode</button>
+            <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8,letterSpacing:0.3}}>{`⚡ Play Again — ${activeCatData?.label||"Rush Mode"}`}</button>
             <AdBanner slotId="rush-result"/>
             <div style={{display:"flex",gap:8,marginBottom:0}}>
               <button onClick={()=>{
