@@ -930,8 +930,8 @@ function getCardContext(card, catId) {
     teamLine = "All-Time";
     compLine = card.club || "Man Utd & Liverpool";
   } else if (catId === "arsenal_spurs_goals") {
-    teamLine = card.club || "";
-    compLine = "All-Time";
+    teamLine = "All-Time";
+    compLine = card.club || "Arsenal & Spurs";
   } else if (catId === "ucl_goals") {
     teamLine = "All-Time";
     compLine = "Champions League";
@@ -2031,7 +2031,7 @@ function App(){
     let rawCards = lsGet(cacheKey, null);
     if(!rawCards){
       // DB stores old categories by id, combined_goals by label
-      const dbKey = (cat === "combined_goals" || cat === "england_caps") ? category.label : cat;
+      const dbKey = (cat === "combined_goals" || cat === "england_caps" || cat === "arsenal_spurs_goals") ? category.label : cat;
       const fetched = await dbFetchRushCards(dbKey);
       if(fetched && fetched.length){
         // Deduplicate by player name — guards against duplicate DB rows
@@ -3294,6 +3294,30 @@ function App(){
             {/* ── BUTTONS — outside card ── */}
             <button onClick={()=>{SFX.click();launchRush(rushCat);}} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#9d174d,#be185d,#db2777)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:900,cursor:"pointer",boxShadow:"0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8,letterSpacing:0.3}}>{`⚡ Play Again — ${activeCatData?.label||"Rush Mode"}`}</button>
             <AdBanner slotId="rush-result"/>
+
+            {/* ── TRY ANOTHER CATEGORY — quick launch chips ── */}
+            {(()=>{
+              const others = RUSH_CATEGORIES.filter(c=>!c.comingSoon && c.id!==rushCat);
+              // Shuffle deterministically by score so it varies but is stable per session
+              const picks = [...others].sort(()=>Math.random()-0.5).slice(0,3);
+              return picks.length > 0 ? (
+                <div style={{marginBottom:10}}>
+                  <div style={{fontSize:9,color:"rgba(255,255,255,0.3)",letterSpacing:2,fontWeight:700,textTransform:"uppercase",fontFamily:"'Inter',sans-serif",textAlign:"center",marginBottom:7}}>Try Another Category</div>
+                  <div style={{display:"flex",gap:6}}>
+                    {picks.map(cat=>(
+                      <button key={cat.id} onClick={()=>{SFX.click();launchRush(cat.id);}} style={{flex:1,padding:"9px 4px",background:"rgba(255,255,255,0.05)",border:`1px solid ${cat.color}40`,borderRadius:10,cursor:"pointer",display:"flex",flexDirection:"column",alignItems:"center",gap:3,transition:"background 0.15s"}}
+                        onMouseEnter={e=>e.currentTarget.style.background=`${cat.color}18`}
+                        onMouseLeave={e=>e.currentTarget.style.background="rgba(255,255,255,0.05)"}
+                      >
+                        <span style={{fontSize:16}}>{cat.icon}</span>
+                        <span style={{fontSize:8,color:"rgba(255,255,255,0.6)",fontWeight:700,fontFamily:"'Inter',sans-serif",textAlign:"center",lineHeight:1.2,letterSpacing:0.2}}>{cat.label.replace(" Goals","").replace(" Caps","").replace(" Appearances","").replace(" Assists","")}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
             <div style={{display:"flex",gap:8,marginBottom:0}}>
               <button onClick={()=>{
                 const catLabel = activeCatData?.label||"Rush Mode";
