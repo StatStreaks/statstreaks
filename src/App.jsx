@@ -2346,9 +2346,24 @@ function App(){
               {toHigh!==null&&toHigh>0&&<div style={{color:"#d97706",fontWeight:600,fontSize:11,marginTop:4,fontFamily:"'Inter',sans-serif"}}>+{toHigh} to beat your best of {catBest}</div>}
             </div>
 
-            {/* Single button — keep going */}
-            <button onClick={rushDismiss} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(6,182,212,0.4)"}}>
+            {/* Buttons — keep going or end session */}
+            <button onClick={rushDismiss} style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",border:"none",borderRadius:12,color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:15,fontWeight:800,cursor:"pointer",boxShadow:"0 4px 16px rgba(6,182,212,0.4)",marginBottom:10}}>
               Keep Going ⚡
+            </button>
+            <button onClick={()=>{
+              // End session voluntarily — save score (no perfect bonus) and go to results
+              const preBest = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
+              setPrevCatBest(preBest);
+              rushScoreSavedRef.current = true;
+              saveRushScore(score, false);
+              setLatestScore(score);
+              setCleanScore(cleanScore);
+              setGameOutcome("lose");
+              setShowRushModal(false);
+              setTimerActive(false);
+              setShowInterstitial(true);
+            }} style={{width:"100%",padding:"11px",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:12,color:"rgba(255,255,255,0.45)",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,cursor:"pointer"}}>
+              End Session
             </button>
           </div>
         </div>
