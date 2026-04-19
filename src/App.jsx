@@ -2081,10 +2081,9 @@ function App(){
       setRawCorrect(liveScore);  // store pre-multiplier count for result display
       setCleanScore(finalClean);
       setGameOutcome("timeout");
-      // New best or not — play appropriate sound
-      // Sound fires on results screen render, not here
-      // Interstitial always shown before results
-      setShowInterstitial(true);
+      // No interstitial — fire sound and go straight to results
+      if(finalScore > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest(); else SFX.timeout();
+      setScreen("result");
       return;
     }
     // Wrong answer path
@@ -2097,7 +2096,10 @@ function App(){
       saveRushScore(score, false);
       setLatestScore(score);
       setGameOutcome("lose");
-      setShowInterstitial(true);
+      // No interstitial — fire sound and go straight to results
+      const preBestWrong = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
+      if(score > preBestWrong) SFX.newBest(); else if(preBestWrong > 0) SFX.noBest(); else SFX.timeout();
+      setScreen("result");
       return;
     }
     // First wrong — show Lost Possession modal (no ad)
@@ -2374,7 +2376,9 @@ function App(){
               setGameOutcome("lose");
               setShowRushModal(false);
               setTimerActive(false);
-              setShowInterstitial(true);
+              // No interstitial — fire sound and go straight to results
+              if(score > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest(); else SFX.timeout();
+              setScreen("result");
             }} style={{width:"100%",padding:"11px",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:12,color:"rgba(255,255,255,0.45)",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,cursor:"pointer"}}>
               End Session
             </button>
