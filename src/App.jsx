@@ -304,32 +304,32 @@ const RUSH_CATEGORIES = [
 // Daily challenge metadata — cards are fetched from DB
 // Kept as lightweight fallback so app renders even before DB loads
 const DAILY_CHALLENGES = [
-  {day:1,  theme:"English Icons · Premier League Goals"},
-  {day:2,  theme:"French Icons · Premier League Goals"},
-  {day:3,  theme:"Belgian Icons · Premier League Goals"},
-  {day:4,  theme:"German Icons · Premier League Goals"},
-  {day:5,  theme:"Spanish Icons · Premier League Goals"},
-  {day:6,  theme:"Dutch Icons · Premier League Goals"},
-  {day:7,  theme:"Portuguese Icons · Premier League Goals"},
-  {day:8,  theme:"Argentinian Icons · Premier League Goals"},
-  {day:9,  theme:"Brazilian Icons · Premier League Goals"},
-  {day:10, theme:"African Icons · Premier League Goals"},
-  {day:11, theme:"Italian Icons · Premier League Goals"},
-  {day:12, theme:"Irish Icons · Premier League Goals"},
-  {day:13, theme:"Welsh Icons · Premier League Goals"},
+  {day:1,  theme:"Premier League Goals · English Icons"},
+  {day:2,  theme:"Premier League Goals · French Icons"},
+  {day:3,  theme:"Premier League Goals · Belgian Icons"},
+  {day:4,  theme:"Premier League Goals · German Icons"},
+  {day:5,  theme:"Premier League Goals · Spanish Icons"},
+  {day:6,  theme:"Premier League Goals · Dutch Icons"},
+  {day:7,  theme:"Premier League Goals · Portuguese Icons"},
+  {day:8,  theme:"Premier League Goals · Argentinian Icons"},
+  {day:9,  theme:"Premier League Goals · Brazilian Icons"},
+  {day:10, theme:"Premier League Goals · African Icons"},
+  {day:11, theme:"Premier League Goals · Italian Icons"},
+  {day:12, theme:"Premier League Goals · Irish Icons"},
+  {day:13, theme:"Premier League Goals · Welsh Icons"},
   {day:14, theme:"FA Cup Winners"},
   {day:15, theme:"Champions League Winners"},
   {day:16, theme:"World Cup Winners"},
-  {day:17, theme:"British Icons · Premier League Assists"},
-  {day:18, theme:"Global Icons · Premier League Assists"},
-  {day:19, theme:"British Icons · Premier League Appearances"},
-  {day:20, theme:"Global Icons · Premier League Appearances"},
-  {day:21, theme:"Global Icons · Most Capped I"},
-  {day:22, theme:"Global Icons · Most Capped II"},
-  {day:23, theme:"Global Icons · Most Capped III"},
-  {day:24, theme:"Global Icons · Top Scorers I"},
-  {day:25, theme:"Global Icons · Top Scorers II"},
-  {day:26, theme:"Global Icons · Top Scorers III"},
+  {day:17, theme:"Premier League Assists · British Icons"},
+  {day:18, theme:"Premier League Assists · Global Icons"},
+  {day:19, theme:"Premier League Appearances · British Icons"},
+  {day:20, theme:"Premier League Appearances · Global Icons"},
+  {day:21, theme:"International Caps · Global Icons"},
+  {day:22, theme:"International Caps · Global Icons"},
+  {day:23, theme:"International Caps · Global Icons"},
+  {day:24, theme:"International Goals · Global Icons"},
+  {day:25, theme:"International Goals · Global Icons"},
+  {day:26, theme:"International Goals · Global Icons"},
   {day:27, theme:"Golden Boot · Modern Era"},
   {day:28, theme:"Golden Boot · Classic Era"},
   {day:29, theme:"Ground Capacity · Premier League"},
@@ -1110,16 +1110,8 @@ function DailyResultDots({resultData}) {
 // The `slotId` prop ensures each placement gets a unique key so React remounts
 // the slot on navigation, registering a fresh impression with AdSense.
 function AdBanner({slotId}) {
-  return(
-    <div key={slotId} style={{width:"100%",marginBottom:12,borderRadius:10,overflow:"hidden",border:"1px dashed rgba(255,255,255,0.08)",position:"relative"}}>
-      {/* DEMO label — remove in production */}
-      <div style={{position:"absolute",top:4,right:6,fontSize:8,color:"rgba(255,255,255,0.2)",fontFamily:"'Inter',sans-serif",letterSpacing:1,fontWeight:600,textTransform:"uppercase",zIndex:1}}>Ad</div>
-      {/* Replace this div with your AdSense <ins> tag */}
-      <div style={{height:60,background:"linear-gradient(135deg,#0f1923,#1a2535)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-        <span style={{fontSize:10,color:"rgba(255,255,255,0.15)",fontFamily:"'Inter',sans-serif",letterSpacing:2,fontWeight:600,textTransform:"uppercase"}}>Advertisement</span>
-      </div>
-    </div>
-  );
+  // Ads hidden while building audience — logic preserved for re-enabling
+  return null;
 }
 
 // ── STREAK RESTORE OVERLAY ────────────────────────────────────────────────────
@@ -2139,12 +2131,15 @@ function App(){
     const delay = outcome==="win" ? 900 : 3000;
     timeoutRef.current=setTimeout(()=>{
       setGameOutcome(outcome);
-      // Show interstitial before results only if no rewarded ad was used this attempt
-      if(!yellowUsed){
-        setShowInterstitial(true);
+      // Interstitial hidden while building audience — go straight to results with sound
+      if(mode==="rush"){
+        const preBest=lsGet(`rush_best_${rushCat}`,0);
+        const s=latestScore||0;
+        if(s>preBest) SFX.newBest(); else if(preBest>0) SFX.noBest(); else SFX.timeout();
       } else {
-        setScreen("result");
+        if(outcome==="win") SFX.win();
       }
+      setScreen("result");
     },delay);
   }
 
@@ -2655,20 +2650,7 @@ function App(){
 
     return(
     <PageWrap>
-      {showRestoreInterstitial&&<InterstitialOverlay onDismiss={()=>{
-        setShowRestoreInterstitial(false);
-        const savedMode = lsGet("ss_restore_pending_mode","restore");
-        if(savedMode==="restore"){
-          lsSet("restore_offered",false);setRestoreOffered(false);
-          lsSet("last_played",todayKey);
-        } else {
-          const peak = Math.max(lsGet("peak_streak",0), streak);
-          const boosted = Math.min(streak+3, peak);
-          lsSet("streak",boosted);setStreak(boosted);
-        }
-        lsSet("ss_restore_pending_mode","");
-        setCareerMode("normal");
-      }}/>}
+      {/* Restore interstitial hidden while building audience */}
       {showHowToPlay&&<HowToPlayOverlay/>}
       {showNamePrompt&&<NamePromptOverlay/>}
       {/* ── CAREER RESTORE / DECAY OVERLAY ── */}
@@ -2678,10 +2660,16 @@ function App(){
           streak={streak}
           peakStreak={peakStreak||streak}
           onWatch={()=>{
-            // Store current mode so interstitial knows what to apply on dismiss
-            lsSet("ss_restore_pending_mode", careerMode);
+            // Apply immediately — no interstitial while building audience
+            if(careerMode==="restore"){
+              lsSet("restore_offered",false);setRestoreOffered(false);
+              lsSet("last_played",todayKey);
+            } else {
+              const peak = Math.max(lsGet("peak_streak",0), streak);
+              const boosted = Math.min(streak+3, peak);
+              lsSet("streak",boosted);setStreak(boosted);
+            }
             setCareerMode("normal");
-            setShowRestoreInterstitial(true);
           }}
           onDecline={()=>{
             if(careerMode==="restore"){
@@ -2700,6 +2688,8 @@ function App(){
             clearTimeout(logoTapTimer.current);
             const next = logoTaps+1;
             if(next>=7){
+              const pw = prompt("Enter dev password:");
+              if(pw !== "bottlers"){ setLogoTaps(0); return; }
               const newVal=!devMode;
               lsSet("dev_mode",newVal);
               setDevMode(newVal);
@@ -3363,18 +3353,7 @@ Think you can beat me? statstreaks.com`;
     <PageWrap glow={isRush?"gold":"default"}>
       {showYellow&&<YellowCardOverlay onWatchAd={onWatchAd} onDecline={onDeclineAd}/>}
       {showRushModal&&<RushModal/>}
-      {showInterstitial&&<InterstitialOverlay onDismiss={()=>{
-  setShowInterstitial(false);
-  // Fire result sound here — after ad, before results screen
-  if(mode==="rush"){
-    const preBest=lsGet(`rush_best_${rushCat}`,0);
-    const s=latestScore||0;
-    if(s>preBest) SFX.newBest(); else if(preBest>0) SFX.noBest(); else SFX.timeout();
-  } else {
-    if(gameOutcome==="win") SFX.win();
-  }
-  setScreen("result");
-}}/>}
+      {/* Interstitial hidden while building audience — {showInterstitial} state preserved */}
       {/* 3-2-1 countdown overlay */}
       {countdown!==null&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,25,35,0.92)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:200,backdropFilter:"blur(4px)"}}>
