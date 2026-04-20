@@ -1882,9 +1882,17 @@ function App(){
   // even if they haven't cleared storage manually.
   useEffect(()=>{
     const currentWk = getWeekKey();
+    const today = getTodayKey();
     Object.keys(localStorage).forEach(k => {
-      const m = k.match(/^ss_rush_weekly_(.+)_([0-9]{4}-W[0-9]{2})$/);
-      if(m && m[2] !== currentWk) localStorage.removeItem(k);
+      // Clear weekly rush scores from previous weeks
+      const mWeekly = k.match(/^ss_rush_weekly_(.+)_([0-9]{4}-W[0-9]{2})$/);
+      if(mWeekly && mWeekly[2] !== currentWk){ localStorage.removeItem(k); return; }
+      // Clear rush rank caches from previous weeks
+      const mRanks = k.match(/^ss_rush_ranks_([0-9]{4}-W[0-9]{2})$/);
+      if(mRanks && mRanks[1] !== currentWk){ localStorage.removeItem(k); return; }
+      // Clear leaderboard board caches from previous days
+      const mLb = k.match(/^ss_lb_cache_v2_(.+)$/);
+      if(mLb && mLb[1] !== today){ localStorage.removeItem(k); return; }
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
@@ -2327,10 +2335,10 @@ function App(){
         const cat = RUSH_CATEGORIES.find(c=>c.label===r.category);
         if(!cat) return;
         const localBest = lsGet(`rush_best_${cat.id}`,0);
-        const localWeekly = lsGet(`rush_weekly_${cat.id}_${wk}`,0);
+        // Only sync alltime back — weekly is deliberately NOT synced from DB here.
+        // Weekly scores are keyed by week string in localStorage so they reset automatically.
+        // Syncing weekly from DB caused last week's scores to bleed into the new week.
         if((r.alltime_best||0) > localBest) lsSet(`rush_best_${cat.id}`, r.alltime_best);
-        // Only sync weekly if DB row is from the current week — prevents last week's score bleeding into new week
-        if(r.week_key === wk && (r.weekly_best||0) > localWeekly) lsSet(`rush_weekly_${cat.id}_${wk}`, r.weekly_best);
       });
     });
     // Also fetch aggregate leaderboard boards so Rush page can show aggregate rank
