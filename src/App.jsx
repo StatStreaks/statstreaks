@@ -156,7 +156,7 @@ async function dbFetchWeekly(weekKey){
 async function dbFetchCaps(){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/users?select=device_id,username,caps&caps=gt.0&order=caps.desc&limit=100`,
+      `${SB_URL}/rest/v1/users?select=device_id,username,caps&caps=gt.2&order=caps.desc&limit=100`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
@@ -514,7 +514,7 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
     if(!rows)return null;
     const deviceId = getDeviceId();
     const alreadyInDb = rows.some(r=>r.device_id===deviceId);
-    const mapped = rows.map(r=>({name:r.username||"Anonymous", score:r.score, isYou:r.device_id===deviceId, cats:r.categories_played||null}));
+    const mapped = rows.filter(r=>r.username && r.username!=="Anonymous").map(r=>({name:r.username, score:r.score, isYou:r.device_id===deviceId, cats:r.categories_played||null}));
     const withYou = (!alreadyInDb&&myScore>0) ? [...mapped,{name:myName||"You",score:myScore,isYou:true,cats:null}] : mapped;
     // Deduplicate by username — keep highest score, preserve isYou flag
     const seen = new Map();
@@ -539,9 +539,17 @@ function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="we
     ? (()=>{
         const deviceId = getDeviceId();
         const alreadyInDb = dbCaps.some(r=>r.device_id===deviceId);
-        const rows = dbCaps.map(r=>({name:r.username||"Anonymous",score:r.caps,isYou:r.device_id===deviceId}));
+        const rows = dbCaps.filter(r=>r.username&&r.username!=="Anonymous").map(r=>({name:r.username,score:r.caps,isYou:r.device_id===deviceId}));
         const withYou = (!alreadyInDb&&streak>0) ? [...rows,{name:myName,score:streak,isYou:true}] : rows;
-        return withYou.sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
+        // Deduplicate by username — keep highest caps, preserve isYou
+        const capsSeen = new Map();
+        withYou.forEach(e=>{
+          const key=(e.name||"").toLowerCase();
+          const ex=capsSeen.get(key);
+          if(!ex||e.score>ex.score) capsSeen.set(key,{...e,isYou:e.isYou||(ex?.isYou||false)});
+          else if(e.isYou) capsSeen.set(key,{...ex,isYou:true});
+        });
+        return Array.from(capsSeen.values()).sort((a,b)=>b.score-a.score).slice(0,100).map((e,i)=>({...e,rank:i+1}));
       })()
     : buildOfflineCapsBoard(streak, username); // fix 1: no fake names offline
   const allTimeBoard = mergeWithYou(dbAllTime, myAggregateScore, myName) || buildOfflineBoard(myAggregateScore, myName, null);
@@ -1834,6 +1842,20 @@ function App(){
   const continueCountRef = useRef(0);
   const rushScoreSavedRef = useRef(false); // guard against double-save across rush end paths
 
+  // Checks uniqueness then saves. Returns true if saved, false if taken.
+  // Used by inline edits in leaderboard/rush/home — shows a simple alert if taken.
+  async function checkAndSetUsername(n){
+    if(!n) return false;
+    try{
+      const r = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(n)}&select=device_id`,{headers:SB_HEADERS});
+      const rows = r.ok ? await r.json() : [];
+      const takenByOther = rows.some(row=>row.device_id !== userId);
+      if(takenByOther){ alert("That name is already taken — try another!"); return false; }
+    }catch(e){ /* offline — allow through */ }
+    setUsername(n);
+    return true;
+  }
+
   function setUsername(n){
     lsSet("username",n);
     setUsernameState(n);
@@ -2339,11 +2361,11 @@ function App(){
     );
   }
 
-  if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"} rushBestCat={rushBestCat} onSetUsername={setUsername}/>;
+  if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"} rushBestCat={rushBestCat} onSetUsername={checkAndSetUsername}/>;
   if(screen==="terms")return <TermsScreen onBack={()=>setScreen("home")}/>;
   if(screen==="rush")return <>
     {showHowToPlay&&<HowToPlayOverlay/>}
-    <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={setUsername} rushRanks={rushRanks}
+    <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={checkAndSetUsername} rushRanks={rushRanks}
       myAggregateScore={(()=>RUSH_CATEGORIES.filter(c=>!c.comingSoon).reduce((s,c)=>s+lsGet(`rush_best_${c.id}`,0),0))()}
       myWeeklyScore={(()=>RUSH_CATEGORIES.filter(c=>!c.comingSoon).reduce((s,c)=>s+lsGet(`rush_weekly_${c.id}_${getWeekKey()}`,0),0))()}
       myAtRank={(()=>{const me=getDeviceId();const rows=(aggregateBoards?.allTime||[]);const myRow=rows.find(r=>r.device_id===me);return myRow?rows.filter(r=>r.score>myRow.score).length+1:null;})()}
@@ -2482,9 +2504,28 @@ function App(){
   function NamePromptOverlay(){
     const [draft, setDraft] = useState("");
     const [focused, setFocused] = useState(false);
+    const [nameError, setNameError] = useState("");
+    const [checking, setChecking] = useState(false);
 
-    function confirm(){
+    async function confirm(){
       const name = draft.trim() || randomAutoName();
+      if(draft.trim()){
+        // Check if username already taken in DB
+        setChecking(true);
+        setNameError("");
+        try{
+          const r = await fetch(`${SB_URL}/rest/v1/users?username=eq.${encodeURIComponent(name)}&select=username`,{headers:SB_HEADERS});
+          const rows = r.ok ? await r.json() : [];
+          // Allow if the only match is our own device
+          const takenByOther = rows.some(row=>row.device_id !== userId);
+          if(rows.length > 0 && takenByOther){
+            setNameError("That name is already taken — try another!");
+            setChecking(false);
+            return;
+          }
+        }catch(e){ /* offline — allow through */ }
+        setChecking(false);
+      }
       setUsername(name);
       setShowNamePrompt(false);
       if(pendingRushCat){ const c=pendingRushCat; setPendingRushCat(null); setTimeout(()=>launchRush(c),100); }
@@ -2545,12 +2586,16 @@ function App(){
             )}
           </div>
 
+          {/* Error message */}
+          {nameError&&<div style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:"#f87171",marginBottom:8,fontWeight:600}}>{nameError}</div>}
+
           {/* Confirm button */}
           <button
             onClick={confirm}
-            style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#0d9488,#06b6d4)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,cursor:"pointer",marginBottom:10,boxShadow:"0 4px 20px rgba(6,182,212,0.35)",transition:"opacity 0.15s"}}
+            disabled={checking}
+            style={{width:"100%",padding:"14px",background:"linear-gradient(135deg,#0d9488,#06b6d4)",border:"none",borderRadius:12,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",fontSize:20,letterSpacing:1,cursor:checking?"not-allowed":"pointer",marginBottom:10,boxShadow:"0 4px 20px rgba(6,182,212,0.35)",transition:"opacity 0.15s",opacity:checking?0.6:1}}
           >
-            Kick Off ⚽
+            {checking ? "Checking…" : "Kick Off ⚽"}
           </button>
 
           {/* Skip */}
@@ -2901,13 +2946,13 @@ function App(){
                       value={nameDraft}
                       onChange={e=>setNameDraft(e.target.value.slice(0,20))}
                       onKeyDown={e=>{
-                        if(e.key==="Enter"){const t=nameDraft.trim();if(t)setUsername(t);setNameEditing(false);}
+                        if(e.key==="Enter"){const t=nameDraft.trim();if(t)checkAndSetUsername(t).then(ok=>{if(ok)setNameEditing(false);});else setNameEditing(false);}
                         if(e.key==="Escape"){setNameEditing(false);}
                       }}
                       maxLength={20} placeholder="Your player name…" autoFocus
                       style={{width:130,background:"rgba(255,255,255,0.1)",border:`1px solid ${status.col}60`,borderRadius:7,padding:"4px 8px",color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:700,outline:"none",caretColor:status.col}}
                     />
-                    <button onClick={()=>{const t=nameDraft.trim();if(t)setUsername(t);setNameEditing(false);}}
+                    <button onClick={()=>{const t=nameDraft.trim();if(t)checkAndSetUsername(t).then(ok=>{if(ok)setNameEditing(false);});else setNameEditing(false);}}
                       style={{padding:"4px 9px",background:status.col,border:"none",borderRadius:7,color:"#000",fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:800,letterSpacing:1,cursor:"pointer",textTransform:"uppercase",flexShrink:0}}>Save</button>
                     <button onClick={()=>setNameEditing(false)}
                       style={{padding:"4px 7px",background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:7,color:"rgba(255,255,255,0.5)",fontFamily:"'Inter',sans-serif",fontSize:10,cursor:"pointer",flexShrink:0}}>✕</button>
