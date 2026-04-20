@@ -1549,7 +1549,7 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
 
                   {hasPlayed?(()=>{
                     const rankRow = (rushRanks||[]).find(r=>r.category===cat.label);
-                    const wkRank = rankRow?.weekly_rank;
+                    const wkRank = catWeekly > 0 ? rankRow?.weekly_rank : null;
                     const atRank = rankRow?.alltime_rank;
                     return(
                     /* Played — show This Week first, Golden Boot 2026 second */
@@ -1576,8 +1576,8 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                           <div style={{fontSize:26,fontWeight:900,color:isAtNo1?"#fbbf24":"#ec4899",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:-0.5,textShadow:isAtNo1?"0 0 20px rgba(251,191,36,0.6)":"0 0 16px rgba(236,72,153,0.45)"}}>{catBest}</div>
                         </div>);})()}
                       </div>
-                      {/* Global rank strip — only shows if ranks loaded */}
-                      {rankRow&&(
+                      {/* Global rank strip — only shows if ranks loaded and category played this week */}
+                      {rankRow&&catWeekly>0&&(
                         <div style={{display:"flex",gap:4}}>
                           <div style={{flex:1,background:"rgba(6,182,212,0.06)",border:"1px solid rgba(6,182,212,0.12)",borderRadius:6,padding:"4px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                             <span style={{fontSize:8,color:"rgba(6,182,212,0.6)",fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Global</span>
