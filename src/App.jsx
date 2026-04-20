@@ -1577,16 +1577,18 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
                         </div>);})()}
                       </div>
                       {/* Global rank strip — only shows if ranks loaded and category played this week */}
-                      {rankRow&&catWeekly>0&&(
+                      {rankRow&&(
                         <div style={{display:"flex",gap:4}}>
-                          <div style={{flex:1,background:"rgba(6,182,212,0.06)",border:"1px solid rgba(6,182,212,0.12)",borderRadius:6,padding:"4px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          {/* Weekly rank — only show if played this week */}
+                          {catWeekly>0&&wkRank&&<div style={{flex:1,background:"rgba(6,182,212,0.06)",border:"1px solid rgba(6,182,212,0.12)",borderRadius:6,padding:"4px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                             <span style={{fontSize:8,color:"rgba(6,182,212,0.6)",fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Global</span>
                             <span style={{fontSize:13,fontWeight:900,color:"#06b6d4",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5}}>#{wkRank}</span>
-                          </div>
-                          <div style={{flex:1,background:"rgba(236,72,153,0.06)",border:"1px solid rgba(236,72,153,0.12)",borderRadius:6,padding:"4px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          </div>}
+                          {/* Alltime 2026 rank — always show if available */}
+                          {atRank&&<div style={{flex:1,background:"rgba(236,72,153,0.06)",border:"1px solid rgba(236,72,153,0.12)",borderRadius:6,padding:"4px 6px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                             <span style={{fontSize:8,color:"rgba(236,72,153,0.6)",fontWeight:700,letterSpacing:0.8,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>Global</span>
                             <span style={{fontSize:13,fontWeight:900,color:"#ec4899",fontFamily:"'Bebas Neue',sans-serif",letterSpacing:0.5}}>#{atRank}</span>
-                          </div>
+                          </div>}
                         </div>
                       )}
                     </div>
