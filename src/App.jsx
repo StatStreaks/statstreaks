@@ -65,6 +65,24 @@ function seededShuffle(arr, seed){
 function cleanTheme(t){ return t ? t.replace(/\s+(I{1,3})$/, "").trim() : t; }
 
 function getWeekKey(){const d=new Date();const thu=new Date(d);thu.setDate(d.getDate()-(d.getDay()||7)+4);const yearStart=new Date(thu.getFullYear(),0,1);const week=Math.ceil(((thu-yearStart)/86400000+1)/7);return`${thu.getFullYear()}-W${String(week).padStart(2,"0")}`;}
+// ── WEEK ROLLOVER PURGE ───────────────────────────────────────────────────────
+// Runs immediately on script load — before any React state is initialised.
+// If the stored week key differs from today's, wipe all weekly localStorage scores.
+(function purgeStaleWeeklyScores(){
+  try{
+    const currentWk = getWeekKey();
+    const storedWk = localStorage.getItem("ss_last_week_key");
+    if(storedWk !== currentWk){
+      // New week — delete every ss_rush_weekly_* key regardless of its week suffix
+      Object.keys(localStorage).forEach(k=>{
+        if(k.startsWith("ss_rush_weekly_") || k.startsWith("ss_rush_ranks_") || k.startsWith("ss_lb_cache_v2_")){
+          localStorage.removeItem(k);
+        }
+      });
+      localStorage.setItem("ss_last_week_key", currentWk);
+    }
+  }catch(e){}
+})();
 // Returns a stable anonymous device UUID — generated once, persisted in localStorage
 function getDeviceId(){const key=LS("device_id");let id=null;try{id=localStorage.getItem(key);}catch{}if(!id){// Fall back to legacy ss_user_id if it exists, so returning players keep their identity
 try{id=localStorage.getItem(LS("user_id"));}catch{}if(!id){id="xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==="x"?r:(r&0x3|0x8)).toString(16)});}
@@ -1877,27 +1895,6 @@ function App(){
   }
 
   // ── INITIAL DB SYNC — runs once on mount ─────────────────────────────────
-  // ── PURGE STALE WEEKLY SCORES — runs once on mount ─────────────────────
-  // Clears any rush_weekly_ localStorage keys that belong to a previous week.
-  // This ensures all users see correct weekly scores on week rollover,
-  // even if they haven't cleared storage manually.
-  useEffect(()=>{
-    const currentWk = getWeekKey();
-    const today = getTodayKey();
-    Object.keys(localStorage).forEach(k => {
-      // Clear weekly rush scores from previous weeks
-      const mWeekly = k.match(/^ss_rush_weekly_(.+)_([0-9]{4}-W[0-9]{2})$/);
-      if(mWeekly && mWeekly[2] !== currentWk){ localStorage.removeItem(k); return; }
-      // Clear rush rank caches from previous weeks
-      const mRanks = k.match(/^ss_rush_ranks_([0-9]{4}-W[0-9]{2})$/);
-      if(mRanks && mRanks[1] !== currentWk){ localStorage.removeItem(k); return; }
-      // Clear leaderboard board caches from previous days
-      const mLb = k.match(/^ss_lb_cache_v2_(.+)$/);
-      if(mLb && mLb[1] !== today){ localStorage.removeItem(k); return; }
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[]);
-
   useEffect(()=>{
     dbSyncUser(userId, username, streak, peakStreak);
     if(!lsGet("username","") && lsGet("htp_seen",false)) setShowNamePrompt(true);
@@ -2326,17 +2323,7 @@ function App(){
     if(screen!=="rush") return;
     const wk = getWeekKey();
     const today = getTodayKey();
-    // Purge stale weekly/rank/lb caches on every Rush screen open — catches week rollovers for long-running sessions
-    Object.keys(localStorage).forEach(k => {
-      const mW = k.match(/^ss_rush_weekly_(.+)_([0-9]{4}-W[0-9]{2})$/);
-      if(mW && mW[2] !== wk){ localStorage.removeItem(k); return; }
-      const mR = k.match(/^ss_rush_ranks_([0-9]{4}-W[0-9]{2})$/);
-      if(mR && mR[1] !== wk){ localStorage.removeItem(k); return; }
-      const mL = k.match(/^ss_lb_cache_v2_(.+)$/);
-      if(mL && mL[1] !== today){ localStorage.removeItem(k); return; }
-    });
-    // Bump weekKey state so RushPage re-renders and picks up the cleared localStorage values
-    setCurrentWeekKey(wk);
+
     const cacheKey = "rush_ranks_"+wk;
     dbFetchRushRanks(userId, wk).then(rows=>{
       if(!rows||!rows.length) return;
