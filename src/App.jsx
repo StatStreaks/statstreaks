@@ -1854,6 +1854,19 @@ function App(){
   }
 
   // ── INITIAL DB SYNC — runs once on mount ─────────────────────────────────
+  // ── PURGE STALE WEEKLY SCORES — runs once on mount ─────────────────────
+  // Clears any rush_weekly_ localStorage keys that belong to a previous week.
+  // This ensures all users see correct weekly scores on week rollover,
+  // even if they haven't cleared storage manually.
+  useEffect(()=>{
+    const currentWk = getWeekKey();
+    Object.keys(localStorage).forEach(k => {
+      const m = k.match(/^ss_rush_weekly_(.+)_([0-9]{4}-W[0-9]{2})$/);
+      if(m && m[2] !== currentWk) localStorage.removeItem(k);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
   useEffect(()=>{
     dbSyncUser(userId, username, streak, peakStreak);
     if(!lsGet("username","") && lsGet("htp_seen",false)) setShowNamePrompt(true);
