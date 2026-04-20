@@ -1366,7 +1366,7 @@ function getCareerStatus(caps){
   return           {label:"Hall of Fame",               icon:"🏆",col:"#ffffff",glow:"#ffffff",next:null, nextLabel:null};
 }
 
-function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak, onSetUsername, rushRanks=null, myAggregateScore=0, myWeeklyScore=0, myAtRank=null, myWkRank=null}) {
+function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak, onSetUsername, rushRanks=null, myAggregateScore=0, myWeeklyScore=0, myAtRank=null, myWkRank=null, weekKey=null}) {
   const status = getCareerStatus(streak||0);
   const [nameEditing, setNameEditing] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -1831,6 +1831,7 @@ function App(){
   const [pendingRushCat,setPendingRushCat]     = useState(null); // cat to launch after name prompt
   const [cardError,setCardError]               = useState(null); // shown when card fetch fails offline
   const [rushRanks,setRushRanks]               = useState(()=>lsGet("rush_ranks_"+getWeekKey(),null)); // [{category,alltime_best,weekly_best,alltime_rank,weekly_rank}]
+  const [currentWeekKey,setCurrentWeekKey]       = useState(()=>getWeekKey()); // bumped after purge to force RushPage re-render
   const [aggregateBoards,setAggregateBoards]   = useState(()=>lsGet("lb_cache_v2_"+getTodayKey(),null)); // {allTime,weekly} — fetched for Rush page rank display
   const [dbCapsPlayers,setDbCapsPlayers]       = useState(()=>lsGet("caps_players_v1",null)); // fetched once, cached indefinitely
   const [installPrompt,setInstallPrompt]       = useState(null);  // beforeinstallprompt event
@@ -2324,6 +2325,18 @@ function App(){
   useEffect(()=>{
     if(screen!=="rush") return;
     const wk = getWeekKey();
+    const today = getTodayKey();
+    // Purge stale weekly/rank/lb caches on every Rush screen open — catches week rollovers for long-running sessions
+    Object.keys(localStorage).forEach(k => {
+      const mW = k.match(/^ss_rush_weekly_(.+)_([0-9]{4}-W[0-9]{2})$/);
+      if(mW && mW[2] !== wk){ localStorage.removeItem(k); return; }
+      const mR = k.match(/^ss_rush_ranks_([0-9]{4}-W[0-9]{2})$/);
+      if(mR && mR[1] !== wk){ localStorage.removeItem(k); return; }
+      const mL = k.match(/^ss_lb_cache_v2_(.+)$/);
+      if(mL && mL[1] !== today){ localStorage.removeItem(k); return; }
+    });
+    // Bump weekKey state so RushPage re-renders and picks up the cleared localStorage values
+    setCurrentWeekKey(wk);
     const cacheKey = "rush_ranks_"+wk;
     dbFetchRushRanks(userId, wk).then(rows=>{
       if(!rows||!rows.length) return;
@@ -2373,7 +2386,7 @@ function App(){
   if(screen==="terms")return <TermsScreen onBack={()=>setScreen("home")}/>;
   if(screen==="rush")return <>
     {showHowToPlay&&<HowToPlayOverlay/>}
-    <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={checkAndSetUsername} rushRanks={rushRanks}
+    <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={checkAndSetUsername} rushRanks={rushRanks} weekKey={currentWeekKey}
       myAggregateScore={(()=>RUSH_CATEGORIES.filter(c=>!c.comingSoon).reduce((s,c)=>s+lsGet(`rush_best_${c.id}`,0),0))()}
       myWeeklyScore={(()=>RUSH_CATEGORIES.filter(c=>!c.comingSoon).reduce((s,c)=>s+lsGet(`rush_weekly_${c.id}_${getWeekKey()}`,0),0))()}
       myAtRank={(()=>{const me=getDeviceId();const rows=(aggregateBoards?.allTime||[]);const myRow=rows.find(r=>r.device_id===me);return myRow?rows.filter(r=>r.score>myRow.score).length+1:null;})()}
