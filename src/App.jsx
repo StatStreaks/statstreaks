@@ -2294,7 +2294,8 @@ function App(){
         const localBest = lsGet(`rush_best_${cat.id}`,0);
         const localWeekly = lsGet(`rush_weekly_${cat.id}_${wk}`,0);
         if((r.alltime_best||0) > localBest) lsSet(`rush_best_${cat.id}`, r.alltime_best);
-        if((r.weekly_best||0) > localWeekly) lsSet(`rush_weekly_${cat.id}_${wk}`, r.weekly_best);
+        // Only sync weekly if DB row is from the current week — prevents last week's score bleeding into new week
+        if(r.week_key === wk && (r.weekly_best||0) > localWeekly) lsSet(`rush_weekly_${cat.id}_${wk}`, r.weekly_best);
       });
     });
     // Also fetch aggregate leaderboard boards so Rush page can show aggregate rank
