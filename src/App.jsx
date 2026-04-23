@@ -1963,13 +1963,10 @@ function App(){
   const activeChallengeList = dbChallenges || DAILY_CHALLENGES;
   const totalDays = activeChallengeList.length || 30;
   const rawDayIdx = getDayIndex()+testDayOffset;
-  // Shuffle the challenge order — seed changes each year and each full cycle
-  // so the same day always gets the same challenge, but order is unpredictable
-  const shuffleSeed = new Date().getFullYear()*1000 + Math.floor(rawDayIdx/totalDays);
-  const shuffledChallenges = seededShuffle(activeChallengeList, shuffleSeed);
+  // Fixed sequential order — challenges play in the exact order set in the DB (day 1, 2, 3...)
   const effectiveDayIdx = rawDayIdx % totalDays;
-  const todayChallenge = shuffledChallenges[effectiveDayIdx] || DAILY_CHALLENGES[effectiveDayIdx%DAILY_CHALLENGES.length];
-  const tomorrowChallenge = shuffledChallenges[(effectiveDayIdx+1)%totalDays] || DAILY_CHALLENGES[(effectiveDayIdx+1)%DAILY_CHALLENGES.length];
+  const todayChallenge = activeChallengeList[effectiveDayIdx] || DAILY_CHALLENGES[effectiveDayIdx%DAILY_CHALLENGES.length];
+  const tomorrowChallenge = activeChallengeList[(effectiveDayIdx+1)%totalDays] || DAILY_CHALLENGES[(effectiveDayIdx+1)%DAILY_CHALLENGES.length];
 
   function getPercentile(s) {
     if(s>=14) return 10;
@@ -3091,7 +3088,7 @@ function App(){
     const accentBg=win?"#f0fdf4":timeout?"#fffbeb":"#fef2f2";
     const accentBorder=win?"#86efac":timeout?"#fde68a":"#fecaca";
     // Tomorrow's fixture for daily result CTA
-    const tomorrowTheme = isDaily ? (shuffledChallenges[(effectiveDayIdx+1)%totalDays]?.theme||null) : null;
+    const tomorrowTheme = isDaily ? (activeChallengeList[(effectiveDayIdx+1)%totalDays]?.theme||null) : null;
     // (daily stats refresh — moved to unconditional useEffect below)
 
     return(
