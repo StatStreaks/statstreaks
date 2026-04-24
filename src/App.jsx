@@ -984,6 +984,11 @@ function getCardContext(card, catId) {
   } else if (isCLTheme) {
     teamLine = "All-Time";
     compLine = "Champions League";
+  } else if (catId.toLowerCase().includes("all time")) {
+    const parts = catId.split("·");
+    const suffix = parts.length > 1 ? parts[parts.length-1].trim() : "";
+    teamLine = "All-Time";
+    compLine = suffix || "All Time";
   } else {
     teamLine = "All-Time";
     compLine = "Career";
