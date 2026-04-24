@@ -2015,7 +2015,7 @@ function App(){
     setTheme(todayChallenge.theme);setMode("daily");resetState();setScreen("game");
 
     const dayNum = todayChallenge.day;
-    const cacheKey = "dc_cards_"+dayNum;
+    const cacheKey = "dc_cards_20260425_"+dayNum;
     let rawCards = lsGet(cacheKey, null);
 
     if(!rawCards){
