@@ -174,7 +174,7 @@ async function dbFetchWeekly(weekKey){
 async function dbFetchCaps(){
   try{
     const r=await fetch(
-      `${SB_URL}/rest/v1/users?select=device_id,username,caps&caps=gt.2&order=caps.desc&limit=100`,
+      `${SB_URL}/rest/v1/users?select=device_id,username,caps&caps=gt.1&order=caps.desc&limit=100`,
       {headers:SB_HEADERS}
     );
     if(!r.ok)return null;
@@ -2991,10 +2991,14 @@ function App(){
 
         {/* ── FOOTER ── */}
         <AdBanner slotId="home"/>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginTop:4,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginTop:4,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)",flexWrap:"wrap"}}>
+          <a href="/how-to-play" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>How To Play</a>
+          <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
+          <a href="/about" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>About</a>
+          <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
           <a href="/terms" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>Terms & Privacy</a>
           <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
-          <a href="mailto:statstreaks@gmail.com" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",textDecoration:"none",letterSpacing:0.5}}>Contact Us</a>
+          <a href="/contact" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",textDecoration:"none",letterSpacing:0.5}}>Contact Us</a>
           <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
           <span style={{color:"rgba(255,255,255,0.15)",fontSize:10,fontFamily:"'Inter',sans-serif"}}>v0.1 beta</span>
         </div>
