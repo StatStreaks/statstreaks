@@ -3083,14 +3083,10 @@ function App(){
 
         {/* ── FOOTER ── */}
         <AdBanner slotId="home"/>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginTop:4,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)",flexWrap:"wrap"}}>
-          <a href="/how-to-play" style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>How To Play</a>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginTop:4,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+          <button onClick={()=>setScreen("terms")} style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5}}>Terms & Privacy</button>
           <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
-          <a href="/about" style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>About</a>
-          <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
-          <a href="/terms" style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>Terms & Privacy</a>
-          <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
-          <a href="/contact" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",textDecoration:"none",letterSpacing:0.5}}>Contact Us</a>
+          <a href="mailto:statstreaks@gmail.com" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",textDecoration:"none",letterSpacing:0.5}}>Contact Us</a>
           <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
           <span style={{color:"rgba(255,255,255,0.15)",fontSize:10,fontFamily:"'Inter',sans-serif"}}>v0.1 beta</span>
         </div>
