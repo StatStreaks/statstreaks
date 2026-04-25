@@ -49,7 +49,7 @@ const T = { primary:"#0d9488", primaryDark:"#0f766e", primaryLight:"#14b8a6", pr
 function lsGet(k,fb=null){try{const v=localStorage.getItem(LS(k));return v!==null?JSON.parse(v):fb;}catch{return fb;}}
 function lsSet(k,v){try{localStorage.setItem(LS(k),JSON.stringify(v));}catch{}}
 function getTodayKey(){const d=new Date();return`${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;}
-function getDayIndex(){const s=new Date("2026-02-08");return Math.floor((new Date()-s)/86400000);} // raw index, mod by total challenges from DB
+function getDayIndex(){const s=new Date("2026-04-24");return Math.floor((new Date()-s)/86400000);} // raw index, mod by total challenges from DB
 
 // Deterministic seeded shuffle — same seed always produces same order
 // Used to randomise daily challenge order while keeping everyone in sync
