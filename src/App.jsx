@@ -1846,6 +1846,7 @@ function App(){
   const [answerLog,setAnswerLog]         = useState([]);
   // Rush monetisation
   const [cleanScore,setCleanScore]       = useState(0);   // score before any continue
+  const [frozenRushRank,setFrozenRushRank] = useState(null); // rank snapshot at moment game ends
   const [continueCount,setContinueCount] = useState(0);   // how many continues used
   const [showRushModal,setShowRushModal] = useState(false); // continue/retry modal
   const [frozenTimeLeft,setFrozenTimeLeft] = useState(0); // time saved when run fails
@@ -2132,6 +2133,8 @@ function App(){
       setGameOutcome("timeout");
       // No interstitial — fire sound and go straight to results
       if(finalScore > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest(); else SFX.timeout();
+      const _catLabel = RUSH_CATEGORIES.find(c=>c.id===(rushCatRef.current||rushCat))?.label;
+      setFrozenRushRank((rushRanks||[]).find(r=>r.category===_catLabel)||null);
       setScreen("result");
       return;
     }
@@ -2148,6 +2151,8 @@ function App(){
       // No interstitial — fire sound and go straight to results
       const preBestWrong = lsGet(`rush_best_${rushCatRef.current||rushCat}`, 0);
       if(score > preBestWrong) SFX.newBest(); else if(preBestWrong > 0) SFX.noBest(); else SFX.timeout();
+      const _catLabel2 = RUSH_CATEGORIES.find(c=>c.id===(rushCatRef.current||rushCat))?.label;
+      setFrozenRushRank((rushRanks||[]).find(r=>r.category===_catLabel2)||null);
       setScreen("result");
       return;
     }
@@ -2430,6 +2435,8 @@ function App(){
               setTimerActive(false);
               // No interstitial — fire sound and go straight to results
               if(score > preBest) SFX.newBest(); else if(preBest > 0) SFX.noBest(); else SFX.timeout();
+              const _catLabelES = RUSH_CATEGORIES.find(c=>c.id===(rushCatRef.current||rushCat))?.label;
+              setFrozenRushRank((rushRanks||[]).find(r=>r.category===_catLabelES)||null);
               setScreen("result");
             }} style={{width:"100%",padding:"11px",background:"transparent",border:"1px solid rgba(255,255,255,0.12)",borderRadius:12,color:"rgba(255,255,255,0.45)",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:600,cursor:"pointer"}}>
               End Session
@@ -3313,7 +3320,7 @@ function App(){
                 const top1At  = lsGet(`rush_top1_${cat}_${getTodayKey()}`, 0);
                 const wk3     = getWeekKey();
                 const top1Wk  = lsGet(`rush_top1_wk_${cat}_${wk3}`, 0);
-                const rankRow = (rushRanks||[]).find(r=>r.category===activeCatData?.label);
+                const rankRow = frozenRushRank;
                 const atRank  = rankRow?.alltime_rank;
                 const wkRank  = rankRow?.weekly_rank;
                 if(!top1At && !top1Wk && !atRank && !wkRank) return null;
@@ -3390,7 +3397,7 @@ function App(){
             <div style={{display:"flex",gap:8,marginBottom:0}}>
               <button onClick={()=>{
                 const catLabel = activeCatData?.label||"Rush Mode";
-                const rankRow2 = (rushRanks||[]).find(r=>r.category===activeCatData?.label);
+                const rankRow2 = frozenRushRank;
                 const wkR = rankRow2?.weekly_rank;
                 const atR = rankRow2?.alltime_rank;
                 const medal = r => r===1?"🥇":r===2?"🥈":r===3?"🥉":"";
