@@ -904,10 +904,11 @@ function getCardContext(card, catId) {
 
   // ── DAILY CHALLENGE THEMES ───────────────────────────────────────────────
   const isGoldenBoot    = catId.toLowerCase().includes("golden boot");
-  const isGroundCap     = catId.toLowerCase().includes("ground capacity");
+  const isGroundCap     = catId.toLowerCase().includes("ground capacity") || catId.toLowerCase().includes("stadium capacity");
   const isTrophies      = catId.toLowerCase().includes("winners");
   const isFACup         = catId.toLowerCase().includes("fa cup");
   const isMostCapped    = catId.toLowerCase().includes("most capped");
+  const isIntlTheme     = catId.toLowerCase().includes("international");
   const isTopScorers    = catId.toLowerCase().includes("top scorers");
   const isPLAssists     = catId.toLowerCase().includes("pl assists") || catId.toLowerCase().includes("premier league assists");
   const isPLAppearances = catId.toLowerCase().includes("pl appearances") || catId.toLowerCase().includes("premier league appearances");
@@ -984,6 +985,9 @@ function getCardContext(card, catId) {
   } else if (isCLTheme) {
     teamLine = "All-Time";
     compLine = "Champions League";
+  } else if (isIntlTheme) {
+    teamLine = "All-Time";
+    compLine = card.nationality || "International";
   } else if (catId.toLowerCase().includes("all time")) {
     const parts = catId.split("·");
     const suffix = parts.length > 1 ? parts[parts.length-1].trim() : "";
