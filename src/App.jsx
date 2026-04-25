@@ -1621,97 +1621,6 @@ function RushPage({onBack, onPlay, onLeaderboard, onHowToPlay, username, streak,
 
 // ── LEADERBOARD PAGE ──────────────────────────────────────────────────────────
 // ── TERMS & CONTACT SCREEN ────────────────────────────────────────────────────
-function TermsScreen({onBack}){
-  return(
-    <PageWrap>
-      <div style={{width:"100%"}}>
-        {/* Header */}
-        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:20}}>
-          <button onClick={onBack} style={{background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,color:"rgba(255,255,255,0.7)",fontSize:11,cursor:"pointer",padding:"8px 12px",fontFamily:"'Inter',sans-serif",fontWeight:600,flexShrink:0}}>← Back</button>
-          <div>
-            <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",letterSpacing:3,fontWeight:600,textTransform:"uppercase",fontFamily:"'Inter',sans-serif"}}>StatStreaks</div>
-            <div style={{fontSize:26,fontWeight:900,color:"#ffffff",fontFamily:"'Bebas Neue',sans-serif",lineHeight:1,letterSpacing:1}}>Terms & Contact</div>
-          </div>
-        </div>
-
-        {/* Terms card */}
-        <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:16,padding:"18px 18px",marginBottom:12,boxShadow:"0 4px 20px rgba(0,0,0,0.12)",border:"1px solid rgba(0,0,0,0.06)",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.01) 16px,rgba(0,0,0,0.01) 17px)",pointerEvents:"none"}}/>
-          <div style={{position:"relative"}}>
-            <div style={{fontSize:11,fontWeight:800,color:"#0f172a",letterSpacing:1,textTransform:"uppercase",marginBottom:12,fontFamily:"'Inter',sans-serif"}}>Terms of Use</div>
-            {[
-              "StatStreaks is a free-to-play football trivia game. By using the app you agree to these terms.",
-              "All statistics are sourced from publicly available records and are provided for entertainment purposes only. We do our best to keep them accurate but cannot guarantee every figure is correct. If you spot an error, please let us know.",
-              "StatStreaks is not affiliated with, endorsed by, or connected to any football club, league, governing body, or player.",
-              "The app contains advertisements served by Google AdSense. These may be personalised based on your device settings and Google's own policies. StatStreaks is not responsible for the content of third-party ads.",
-              "StatStreaks, including its name, logo, game format, design, and content, is the intellectual property of its creator. You may not copy, reproduce, resell, or create derivative works based on this game without explicit written permission.",
-              "We reserve the right to update these terms at any time. Continued use of the app after changes are posted means you accept the updated terms.",
-            ].map((text,i)=>(
-              <div key={i} style={{display:"flex",gap:10,marginBottom:10,alignItems:"flex-start"}}>
-                <div style={{width:18,height:18,borderRadius:4,background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#ffffff",fontWeight:800,flexShrink:0,marginTop:1,fontFamily:"'Inter',sans-serif"}}>{i+1}</div>
-                <p style={{margin:0,fontSize:12,color:"#475569",lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Privacy card */}
-        <div style={{background:"linear-gradient(160deg,#ffffff,#f8fafc)",borderRadius:16,padding:"18px 18px",marginBottom:12,boxShadow:"0 4px 20px rgba(0,0,0,0.12)",border:"1px solid rgba(0,0,0,0.06)",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(0,0,0,0.01) 16px,rgba(0,0,0,0.01) 17px)",pointerEvents:"none"}}/>
-          <div style={{position:"relative"}}>
-            <div style={{fontSize:11,fontWeight:800,color:"#0f172a",letterSpacing:1,textTransform:"uppercase",marginBottom:12,fontFamily:"'Inter',sans-serif"}}>Privacy & Your Data</div>
-            {[
-              "The only information we store is your chosen display name, your game scores, and an anonymous device ID generated on your device. None of this is linked to your real identity.",
-              "This data is stored on secure servers (Supabase) and is used solely to power the leaderboards. It is never sold or shared with third parties for marketing purposes.",
-              "We do not collect your email address, phone number, location, or any other personal information.",
-              "Google AdMob, our ad provider, may collect data about your device and ad interactions in accordance with Google's Privacy Policy (policies.google.com). You can manage ad personalisation in your device settings.",
-              "You have the right to request deletion of your data at any time. Email us at statstreaks@gmail.com and we will remove your records within 30 days.",
-              "By using StatStreaks you acknowledge that your display name and scores may be visible to other players on the leaderboard.",
-            ].map((text,i)=>(
-              <div key={i} style={{display:"flex",gap:10,marginBottom:10,alignItems:"flex-start"}}>
-                <div style={{width:18,height:18,borderRadius:4,background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"#ffffff",fontWeight:800,flexShrink:0,marginTop:1,fontFamily:"'Inter',sans-serif"}}>{i+1}</div>
-                <p style={{margin:0,fontSize:12,color:"#475569",lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Contact card */}
-        <div style={{background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",borderRadius:16,padding:"18px 18px",marginBottom:12,boxShadow:"0 4px 20px rgba(6,182,212,0.35)",border:"1px solid rgba(6,182,212,0.4)",position:"relative",overflow:"hidden"}}>
-          <div style={{position:"absolute",inset:0,backgroundImage:"repeating-linear-gradient(135deg,transparent,transparent 16px,rgba(255,255,255,0.03) 16px,rgba(255,255,255,0.03) 17px)",pointerEvents:"none"}}/>
-          <div style={{position:"absolute",top:0,left:0,right:0,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent)",pointerEvents:"none"}}/>
-          <div style={{position:"relative"}}>
-            <div style={{fontSize:11,fontWeight:800,color:"#ffffff",letterSpacing:1,textTransform:"uppercase",marginBottom:10,fontFamily:"'Inter',sans-serif"}}>Get in Touch</div>
-            <p style={{margin:"0 0 14px",fontSize:12,color:"rgba(255,255,255,0.8)",lineHeight:1.6,fontFamily:"'Inter',sans-serif"}}>
-              Found a stats error? Want to request a new category? Got a bug to report? We want to hear from you.
-            </p>
-            <a href="mailto:statstreaks@gmail.com" style={{
-              display:"inline-flex",alignItems:"center",gap:8,
-              background:"rgba(255,255,255,0.15)",border:"1px solid rgba(255,255,255,0.25)",
-              borderRadius:10,padding:"10px 16px",textDecoration:"none",
-              color:"#ffffff",fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:700,
-            }}>
-              ✉️ statstreaks@gmail.com
-            </a>
-            <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:6}}>
-              {["🐛 Bug reports","📊 Stats corrections","📂 Category requests"].map((item,i)=>(
-                <div key={i} style={{display:"flex",alignItems:"center",gap:8,fontSize:12,color:"rgba(255,255,255,0.7)",fontFamily:"'Inter',sans-serif"}}>
-                  <div style={{width:4,height:4,borderRadius:"50%",background:"rgba(255,255,255,0.5)"}}/>
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div style={{textAlign:"center",color:"rgba(255,255,255,0.2)",fontSize:10,fontFamily:"'Inter',sans-serif",marginTop:4}}>
-          StatStreaks v0.1 beta · Last updated April 2026
-        </div>
-      </div>
-    </PageWrap>
-  );
-}
-
 // ── MAIN APP ──────────────────────────────────────────────────────────────────
 
 
@@ -2383,8 +2292,7 @@ function App(){
   }
 
   if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"} rushBestCat={rushBestCat} onSetUsername={checkAndSetUsername}/>;
-  if(screen==="terms")return <TermsScreen onBack={()=>setScreen("home")}/>;
-  if(screen==="rush")return <>
+    if(screen==="rush")return <>
     {showHowToPlay&&<HowToPlayOverlay/>}
     <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={checkAndSetUsername} rushRanks={rushRanks} weekKey={currentWeekKey}
       myAggregateScore={(()=>RUSH_CATEGORIES.filter(c=>!c.comingSoon).reduce((s,c)=>s+lsGet(`rush_best_${c.id}`,0),0))()}
@@ -3083,14 +2991,10 @@ function App(){
 
         {/* ── FOOTER ── */}
         <AdBanner slotId="home"/>
-        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:14,marginTop:4,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)",flexWrap:"wrap"}}>
-          <a href="/how-to-play" style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>How To Play</a>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:16,marginTop:4,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+          <a href="/terms" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>Terms & Privacy</a>
           <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
-          <a href="/about" style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>About</a>
-          <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
-          <a href="/terms" style={{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",letterSpacing:0.5,textDecoration:"none"}}>Terms & Privacy</a>
-          <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
-          <a href="/contact" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",textDecoration:"none",letterSpacing:0.5}}>Contact Us</a>
+          <a href="mailto:statstreaks@gmail.com" style={{color:"rgba(255,255,255,0.25)",fontSize:10,fontFamily:"'Inter',sans-serif",textDecoration:"none",letterSpacing:0.5}}>Contact Us</a>
           <span style={{color:"rgba(255,255,255,0.1)",fontSize:10}}>·</span>
           <span style={{color:"rgba(255,255,255,0.15)",fontSize:10,fontFamily:"'Inter',sans-serif"}}>v0.1 beta</span>
         </div>
