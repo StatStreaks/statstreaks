@@ -2,7 +2,7 @@ import PageLayout from "./PageLayout.jsx";
 
 export default function ContactPage() {
   return (
-    <PageLayout title="Contact Us">
+    <PageLayout title="Contact Us" description="Get in touch with the StatStreaks team. Report a bug, flag a stats error, or suggest a new category." canonical="/contact">
 
       <div style={{
         background:"linear-gradient(135deg,#0e7490,#0891b2,#06b6d4)",

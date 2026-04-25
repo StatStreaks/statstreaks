@@ -41,7 +41,7 @@ const PRIVACY = [
 
 export default function TermsPage() {
   return (
-    <PageLayout title="Terms & Privacy">
+    <PageLayout title="Terms & Privacy" description="StatStreaks terms of use and privacy policy. Find out how we handle your data and what you agree to by playing." canonical="/terms">
       <Section title="Terms of Use" items={TERMS} />
       <Section title="Privacy & Your Data" items={PRIVACY} />
       <div style={{

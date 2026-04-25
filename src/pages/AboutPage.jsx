@@ -33,7 +33,7 @@ const items = [
 
 export default function AboutPage() {
   return (
-    <PageLayout title="About">
+    <PageLayout title="About" description="StatStreaks is a free daily football higher or lower stats game — find out what it is, how it works, and who built it." canonical="/about">
       {items.map(({ title, body }) => (
         <Card key={title}>
           <div style={{ fontSize:11, fontWeight:800, color:"#0f172a", letterSpacing:1, textTransform:"uppercase", marginBottom:10, fontFamily:"'Inter',sans-serif" }}>{title}</div>
