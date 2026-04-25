@@ -2068,7 +2068,7 @@ function App(){
     let rawCards = lsGet(cacheKey, null);
     if(!rawCards){
       // DB stores old categories by id, combined_goals by label
-      const dbKey = (cat === "combined_goals" || cat === "england_caps" || cat === "arsenal_spurs_goals") ? category.label : cat;
+      const dbKey = (cat === "combined_goals" || cat === "england_caps") ? category.label : cat;
       const fetched = await dbFetchRushCards(dbKey);
       if(fetched && fetched.length){
         // Deduplicate by player name — guards against duplicate DB rows
