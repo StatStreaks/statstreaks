@@ -3096,8 +3096,7 @@ function App(){
                 }}
                 onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 10px 28px rgba(190,24,93,0.65), inset 0 1px 0 rgba(255,255,255,0.3)";}}
                 onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(190,24,93,0.45), inset 0 1px 0 rgba(255,255,255,0.2)";}}>
-                  <div style={{fontSize:14,fontWeight:800,color:"#ffffff",marginBottom:2}}>⚡ Play Rush Mode</div>
-                  <div style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:500}}>{(()=>{
+                  <div style={{fontSize:11,color:"rgba(255,255,255,0.75)",fontWeight:500,marginBottom:4}}>{(()=>{
                     const s = latestScore||0;
                     if(s===10) return "Alright genius. Let's see how clever you are against the clock ⚡";
                     if(s>=8)   return `You clearly know your ${todayChallenge?.theme?.split("·")[1]?.trim()||"football"}. Think you can handle Rush Mode?`;
@@ -3105,6 +3104,7 @@ function App(){
                     if(s>=3)   return "Were you even trying? Rush Mode — lower the bar, higher the fun ⚡";
                     return "Absolutely diabolical. Surely you can't be worse at Rush Mode... can you? ⚡";
                   })()}</div>
+                  <div style={{fontSize:16,fontWeight:800,color:"#ffffff"}}>⚡ Play Rush Mode</div>
                 </button>
               </div>
             </div>
