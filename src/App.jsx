@@ -314,7 +314,7 @@ const RUSH_CATEGORIES = [
   // ── COMING SOON CATEGORIES ──────────────────────────────────────────────────
   { id:"transfer_fees", label:"Transfer Fees", icon:"💰", color:"#f59e0b", comingSoon:true, globalAvg:0 },
   { id:"la_liga_goals", label:"La Liga Goals", icon:"🏟️", color:"#ef4444", comingSoon:true, globalAvg:0 },
-  { id:"arsenal_spurs_goals", label:"Arsenal vs Spurs Goals", icon:"⚔️", color:"#ef4444", globalAvg:0 },
+  { id:"arsenal_spurs_goals", label:"Arsenal & Tottenham Goals", icon:"⚔️", color:"#ef4444", globalAvg:0 },
   { id:"ucl_goals",     label:"UCL Goals", icon:"⭐", color:"#8b5cf6", globalAvg:4.8 },
   { id:"combined_goals", label:"Man Utd & Liverpool Goals", icon:"⚔️", color:"#9d174d", globalAvg:4.5 },
   { id:"england_caps", label:"England Caps", icon:"🦁", color:"#ffffff", globalAvg:0 },
@@ -450,6 +450,168 @@ function buildOfflineCapsBoard(streak, username) {
   return [{name:username||"You", score:streak, isYou:true, rank:1}];
 }
 
+
+// ── HALL OF FAME SCREEN ───────────────────────────────────────────────────────
+function HallOfFameScreen({ onBack }) {
+  const [weeklyWinners, setWeeklyWinners] = useState([]);
+  const [categoryChamps, setCategoryChamps] = useState([]);
+  const [goldenBootLeader, setGoldenBootLeader] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const activeCats = RUSH_CATEGORIES.filter(c => !c.comingSoon);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const wRes = await fetch(
+          `${SB_URL}/rest/v1/hall_of_fame_weekly?select=week_key,username,score&order=recorded_at.desc&limit=20`,
+          { headers: SB_HEADERS }
+        );
+        if (wRes.ok) setWeeklyWinners(await wRes.json());
+
+        const cRes = await fetch(
+          `${SB_URL}/rest/v1/rush_alltime_best?select=category,username,alltime_best&order=alltime_best.desc`,
+          { headers: SB_HEADERS }
+        );
+        if (cRes.ok) {
+          const rows = await cRes.json();
+          const seen = {};
+          const champs = [];
+          for (const row of rows) {
+            const cat = activeCats.find(c => c.label === row.category || c.id === row.category);
+            if (cat && !seen[cat.id]) {
+              seen[cat.id] = true;
+              champs.push({ ...cat, champion: row.username, best: row.alltime_best });
+            }
+          }
+          setCategoryChamps(champs);
+        }
+
+        const gRes = await fetch(
+          `${SB_URL}/rest/v1/rush_alltime_aggregate?select=username,score&order=score.desc&limit=1`,
+          { headers: SB_HEADERS }
+        );
+        if (gRes.ok) {
+          const rows = await gRes.json();
+          if (rows.length) setGoldenBootLeader(rows[0]);
+        }
+      } catch (e) { /* offline */ }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const hStyle = { fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.06em" };
+  const secLabel = { fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontWeight:600, display:"flex", alignItems:"center", gap:8, marginTop:20, marginBottom:8 };
+  const secLine = { flex:1, height:1, background:"rgba(255,255,255,0.06)" };
+
+  return (
+    <PageWrap>
+      {/* Header */}
+      <div style={{ padding:"16px 20px 0", display:"flex", alignItems:"center", gap:12, marginBottom:2 }}>
+        <button onClick={onBack} style={{ width:34, height:34, borderRadius:"50%", background:"rgba(255,255,255,0.06)", border:"1px solid rgba(255,255,255,0.1)", color:"rgba(255,255,255,0.6)", fontSize:16, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>←</button>
+        <div style={{ ...hStyle, fontSize:28, color:"#fff", lineHeight:1 }}>
+          Hall of <span style={{ color:"#a78bfa" }}>Fame</span>
+        </div>
+      </div>
+      <div style={{ fontSize:11, color:"rgba(255,255,255,0.25)", letterSpacing:"0.15em", textTransform:"uppercase", fontFamily:"'Inter',sans-serif", padding:"2px 20px 16px" }}>Season 2026</div>
+
+      <div style={{ padding:"0 16px 32px" }}>
+
+        {/* ── GOLDEN BOOT ── */}
+        <div style={secLabel}><span>🥇 Golden Boot · 2026</span><div style={secLine}/></div>
+        <div style={{
+          background:"linear-gradient(135deg,#1a0a2e 0%,#2d1254 50%,#3b1a6e 100%)",
+          border:"1px solid rgba(139,92,246,0.4)",
+          borderRadius:16, padding:16, marginBottom:4, position:"relative", overflow:"hidden",
+          boxShadow:"0 4px 20px rgba(109,40,217,0.25)",
+        }}>
+          <div style={{ position:"absolute", top:-20, right:-20, width:100, height:100, background:"radial-gradient(circle,rgba(139,92,246,0.15) 0%,transparent 70%)", borderRadius:"50%", pointerEvents:"none" }}/>
+          {loading ? (
+            <div style={{ fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontStyle:"italic" }}>Loading…</div>
+          ) : (
+            <>
+              <div style={{ fontSize:9, letterSpacing:"0.2em", textTransform:"uppercase", color:"#a78bfa", fontFamily:"'Inter',sans-serif", fontWeight:600, marginBottom:6 }}>⚡ 2026 Champion · Awarded Dec 31st</div>
+              {goldenBootLeader ? (
+                <>
+                  <div style={{ ...hStyle, fontSize:28, color:"#fff", lineHeight:1, marginBottom:4 }}>{goldenBootLeader.username}</div>
+                  <div style={{ fontSize:13, color:"#a78bfa", fontWeight:500, fontFamily:"'Inter',sans-serif" }}>
+                    {goldenBootLeader.score} pts <span style={{ color:"rgba(255,255,255,0.3)", fontWeight:300 }}>· current leader</span>
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontStyle:"italic", lineHeight:1.5 }}>
+                  Awarded to the highest aggregate Rush scorer across all categories by end of 2026.
+                </div>
+              )}
+              <div style={{ position:"absolute", right:16, top:"50%", transform:"translateY(-50%)", fontSize:44, opacity:0.8, filter:"drop-shadow(0 0 10px rgba(139,92,246,0.5))" }}>🥇</div>
+            </>
+          )}
+        </div>
+
+        {/* ── WEEKLY WINNERS ── */}
+        <div style={{...secLabel, marginTop:24}}><span>🏆 Weekly Top Scorers</span><div style={secLine}/></div>
+        {loading ? (
+          <div style={{ fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontStyle:"italic", padding:"8px 0" }}>Loading…</div>
+        ) : weeklyWinners.length === 0 ? (
+          <div style={{ fontSize:13, color:"rgba(255,255,255,0.25)", fontFamily:"'Inter',sans-serif", fontStyle:"italic", padding:"8px 0" }}>No weekly winners yet — check back after the first full week!</div>
+        ) : (
+          <div style={{ display:"flex", gap:10, overflowX:"auto", scrollbarWidth:"none", margin:"0 -16px", padding:"0 16px 8px" }}>
+            {weeklyWinners.map((w, i) => {
+              const isFirst = i === 0;
+              const medal = i === 0 ? "🥇" : "🏆";
+              const borderCol = i===0 ? "#f0a500" : i===1 ? "#999" : i===2 ? "#cd7f32" : "rgba(255,255,255,0.08)";
+              return (
+                <div key={w.week_key} style={{ flexShrink:0, width:128, background:isFirst?"linear-gradient(160deg,#1c1400,#2e2000)":"rgba(255,255,255,0.04)", border:`1px solid ${borderCol}`, borderRadius:16, overflow:"hidden" }}>
+                  <div style={{ padding:"8px 10px 6px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize:9, letterSpacing:"0.15em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif" }}>{w.week_key.replace("-W"," Wk ")}</span>
+                    <span style={{ fontSize:14 }}>{medal}</span>
+                  </div>
+                  <div style={{ width:48, height:48, borderRadius:"50%", margin:"0 auto 8px", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, background:isFirst?"linear-gradient(135deg,#1a1200,#2a1e00)":"rgba(255,255,255,0.05)", border:`2px solid ${borderCol}` }}>⚽</div>
+                  <div style={{ fontSize:12, fontWeight:600, color:"#eee", textAlign:"center", padding:"0 8px", lineHeight:1.2, marginBottom:4, fontFamily:"'Inter',sans-serif" }}>{w.username}</div>
+                  <div style={{ textAlign:"center", padding:"6px 8px 12px" }}>
+                    <div style={{ ...hStyle, fontSize:22, color:"#f0a500", lineHeight:1 }}>{w.score}</div>
+                    <div style={{ fontSize:9, textTransform:"uppercase", letterSpacing:"0.1em", color:"rgba(255,255,255,0.25)", fontFamily:"'Inter',sans-serif", marginTop:2 }}>{isFirst?"this week":"pts"}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {weeklyWinners.length > 0 && <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", textAlign:"center", letterSpacing:"0.1em", fontFamily:"'Inter',sans-serif", padding:"2px 0 4px" }}>← scroll for more →</div>}
+
+        {/* ── CATEGORY CHAMPIONS ── */}
+        <div style={{...secLabel, marginTop:24}}><span>⚽ 2026 Category Champions</span><div style={secLine}/></div>
+        {loading ? (
+          <div style={{ fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontStyle:"italic", padding:"8px 0" }}>Loading…</div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {activeCats.map(cat => {
+              const champ = categoryChamps.find(c => c.id === cat.id);
+              return (
+                <div key={cat.id} style={{ display:"flex", alignItems:"center", gap:12, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"10px 14px" }}>
+                  <div style={{ width:3, height:36, borderRadius:2, background:cat.color, flexShrink:0, opacity:0.8 }}/>
+                  <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{cat.icon}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", marginBottom:2 }}>{cat.label}</div>
+                    <div style={{ fontSize:14, fontWeight:600, color:champ?"#eee":"rgba(255,255,255,0.2)", fontFamily:"'Inter',sans-serif", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{champ ? champ.champion : "No plays yet"}</div>
+                  </div>
+                  {champ && (
+                    <div style={{ textAlign:"right", flexShrink:0 }}>
+                      <div style={{ ...hStyle, fontSize:24, color:"#f0a500", lineHeight:1 }}>{champ.best}</div>
+                      <div style={{ fontSize:9, textTransform:"uppercase", letterSpacing:"0.1em", color:"rgba(255,255,255,0.25)", fontFamily:"'Inter',sans-serif" }}>best</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+      </div>
+    </PageWrap>
+  );
+}
 
 function LeaderboardScreen({onBack, rushScores, username, streak, defaultTab="weekly", rushBestCat, onSetUsername}){
   const [tab, setTab] = useState(defaultTab);
@@ -2291,7 +2453,7 @@ function App(){
     );
   }
 
-  if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"} rushBestCat={rushBestCat} onSetUsername={checkAndSetUsername}/>;
+  if(screen==="hall_of_fame")return <HallOfFameScreen onBack={()=>setScreen("home")}/>;  if(screen==="leaderboard")return <LeaderboardScreen onBack={()=>setScreen(prevScreen)} rushScores={rushScores} username={username} streak={streak} defaultTab={prevScreen==="home"?"caps":"weekly"} rushBestCat={rushBestCat} onSetUsername={checkAndSetUsername}/>; 
     if(screen==="rush")return <>
     {showHowToPlay&&<HowToPlayOverlay/>}
     <RushPage onBack={()=>setScreen("home")} onPlay={launchRush} onLeaderboard={()=>{setPrevScreen("rush");setScreen("leaderboard");}} onHowToPlay={()=>setShowHowToPlay(true)} username={username} streak={streak} onSetUsername={checkAndSetUsername} rushRanks={rushRanks} weekKey={currentWeekKey}
@@ -2837,6 +2999,26 @@ function App(){
           <div style={{fontSize:22,opacity:0.8}}>→</div>
         </button>
 
+        {/* ══ HALL OF FAME ══ */}
+        <button onClick={()=>{SFX.click();setScreen("hall_of_fame");}}
+          style={{
+            width:"100%",marginBottom:16,
+            background:"linear-gradient(135deg,#1a0a2e 0%,#2d1254 50%,#3b1a6e 100%)",
+            border:"1px solid rgba(139,92,246,0.35)",
+            borderRadius:14,cursor:"pointer",overflow:"hidden",
+            boxShadow:"0 4px 16px rgba(109,40,217,0.3), inset 0 1px 0 rgba(255,255,255,0.1)",
+            transition:"transform 0.12s,box-shadow 0.12s",
+            display:"flex",alignItems:"center",justifyContent:"space-between",padding:"12px 18px",
+          }}
+          onMouseOver={e=>{e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(109,40,217,0.5), inset 0 1px 0 rgba(255,255,255,0.1)";}}
+          onMouseOut={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="0 4px 16px rgba(109,40,217,0.3), inset 0 1px 0 rgba(255,255,255,0.1)";}}>
+          <div style={{textAlign:"left"}}>
+            <div style={{fontSize:9,color:"rgba(255,255,255,0.5)",letterSpacing:3,fontWeight:700,textTransform:"uppercase",marginBottom:3,fontFamily:"'Inter',sans-serif"}}>Records</div>
+            <div style={{fontSize:13,fontWeight:800,color:"#ffffff",fontFamily:"'Inter',sans-serif",lineHeight:1.2}}>⭐ Hall of Fame</div>
+            <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",fontWeight:500,marginTop:2,fontFamily:"'Inter',sans-serif"}}>Weekly winners · Category champs · Golden Boot</div>
+          </div>
+          <div style={{fontSize:22,opacity:0.8}}>→</div>
+        </button>
 
         {/* ══ CAREER CAPS HERO ══ */}
         <div style={{
