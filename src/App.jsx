@@ -470,7 +470,7 @@ function HallOfFameScreen({ onBack }) {
         if (wRes.ok) setWeeklyWinners(await wRes.json());
 
         const cRes = await fetch(
-          `${SB_URL}/rest/v1/rush_alltime_best?select=category,username,alltime_best&order=alltime_best.desc`,
+          `${SB_URL}/rest/v1/rush_bests?select=category,username,alltime_best&order=alltime_best.desc`,
           { headers: SB_HEADERS }
         );
         if (cRes.ok) {
@@ -531,12 +531,12 @@ function HallOfFameScreen({ onBack }) {
             <div style={{ fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontStyle:"italic" }}>Loading…</div>
           ) : (
             <>
-              <div style={{ fontSize:9, letterSpacing:"0.2em", textTransform:"uppercase", color:"#a78bfa", fontFamily:"'Inter',sans-serif", fontWeight:600, marginBottom:6 }}>⚡ 2026 Champion · Awarded Dec 31st</div>
+              <div style={{ fontSize:9, letterSpacing:"0.2em", textTransform:"uppercase", color:"#a78bfa", fontFamily:"'Inter',sans-serif", fontWeight:600, marginBottom:6 }}>👑 Champion in Waiting</div>
               {goldenBootLeader ? (
                 <>
                   <div style={{ ...hStyle, fontSize:28, color:"#fff", lineHeight:1, marginBottom:4 }}>{goldenBootLeader.username}</div>
                   <div style={{ fontSize:13, color:"#a78bfa", fontWeight:500, fontFamily:"'Inter',sans-serif" }}>
-                    {goldenBootLeader.score} pts <span style={{ color:"rgba(255,255,255,0.3)", fontWeight:300 }}>· current leader</span>
+                    {goldenBootLeader.score} pts <span style={{ color:"rgba(255,255,255,0.3)", fontWeight:300 }}>· to be awarded Dec 31st</span>
                   </div>
                 </>
               ) : (
