@@ -454,11 +454,13 @@ function buildOfflineCapsBoard(streak, username) {
 // ── HALL OF FAME SCREEN ───────────────────────────────────────────────────────
 function HallOfFameScreen({ onBack }) {
   const [weeklyWinners, setWeeklyWinners] = useState([]);
+  const [weeklyChamps, setWeeklyChamps] = useState([]);
   const [categoryChamps, setCategoryChamps] = useState([]);
   const [goldenBootLeader, setGoldenBootLeader] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const activeCats = RUSH_CATEGORIES.filter(c => !c.comingSoon);
+  const currentWeekKey = getWeekKey();
 
   useEffect(() => {
     async function load() {
@@ -469,8 +471,9 @@ function HallOfFameScreen({ onBack }) {
         );
         if (wRes.ok) setWeeklyWinners(await wRes.json());
 
+        // All-time category records
         const cRes = await fetch(
-          `${SB_URL}/rest/v1/rush_bests?select=category,username,alltime_best&order=alltime_best.desc,updated_at.asc`,
+          `${SB_URL}/rest/v1/rush_bests?select=category,username,alltime_best,updated_at&order=alltime_best.desc,updated_at.asc`,
           { headers: SB_HEADERS }
         );
         if (cRes.ok) {
@@ -485,6 +488,25 @@ function HallOfFameScreen({ onBack }) {
             }
           }
           setCategoryChamps(champs);
+
+          // Weekly category champs — filter to current week
+          const wcRes = await fetch(
+            `${SB_URL}/rest/v1/rush_bests?select=category,username,weekly_best,updated_at&week_key=eq.${encodeURIComponent(currentWeekKey)}&order=weekly_best.desc,updated_at.asc`,
+            { headers: SB_HEADERS }
+          );
+          if (wcRes.ok) {
+            const wcRows = await wcRes.json();
+            const wcSeen = {};
+            const wChamps = [];
+            for (const row of wcRows) {
+              const cat = activeCats.find(c => c.label === row.category || c.id === row.category);
+              if (cat && !wcSeen[cat.id]) {
+                wcSeen[cat.id] = true;
+                wChamps.push({ ...cat, champion: row.username, best: row.weekly_best });
+              }
+            }
+            setWeeklyChamps(wChamps);
+          }
         }
 
         const gRes = await fetch(
@@ -504,6 +526,25 @@ function HallOfFameScreen({ onBack }) {
   const hStyle = { fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.06em" };
   const secLabel = { fontSize:10, letterSpacing:"0.2em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontWeight:600, display:"flex", alignItems:"center", gap:8, marginTop:20, marginBottom:8 };
   const secLine = { flex:1, height:1, background:"rgba(255,255,255,0.06)" };
+
+  const CatRow = ({ cat, champ, scoreKey }) => (
+    <div style={{ display:"flex", alignItems:"center", gap:12, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"10px 14px" }}>
+      <div style={{ width:3, height:36, borderRadius:2, background:cat.color, flexShrink:0, opacity:0.8 }}/>
+      <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{cat.icon}</div>
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", marginBottom:2 }}>{cat.label}</div>
+        <div style={{ fontSize:14, fontWeight:600, color:champ?"#eee":"rgba(255,255,255,0.2)", fontFamily:"'Inter',sans-serif", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", fontStyle:champ?"normal":"italic" }}>
+          {champ ? champ.champion : "No champion yet"}
+        </div>
+      </div>
+      {champ && (
+        <div style={{ textAlign:"right", flexShrink:0 }}>
+          <div style={{ ...hStyle, fontSize:24, color:"#f0a500", lineHeight:1 }}>{champ.best}</div>
+          <div style={{ fontSize:9, textTransform:"uppercase", letterSpacing:"0.1em", color:"rgba(255,255,255,0.25)", fontFamily:"'Inter',sans-serif" }}>{scoreKey}</div>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <PageWrap>
@@ -549,7 +590,7 @@ function HallOfFameScreen({ onBack }) {
           )}
         </div>
 
-        {/* ── WEEKLY WINNERS ── */}
+        {/* ── WEEKLY WINNERS SCROLL ── */}
         <div style={{...secLabel, marginTop:24}}><span>🏆 Weekly Top Scorers</span><div style={secLine}/></div>
         {loading ? (
           <div style={{ fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontStyle:"italic", padding:"8px 0" }}>Loading…</div>
@@ -580,30 +621,28 @@ function HallOfFameScreen({ onBack }) {
         )}
         {weeklyWinners.length > 0 && <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", textAlign:"center", letterSpacing:"0.1em", fontFamily:"'Inter',sans-serif", padding:"2px 0 4px" }}>← scroll for more →</div>}
 
-        {/* ── CATEGORY CHAMPIONS ── */}
-        <div style={{...secLabel, marginTop:24}}><span>⚽ 2026 Category Champions</span><div style={secLine}/></div>
+        {/* ── THIS WEEK'S CATEGORY CHAMPS ── */}
+        <div style={{...secLabel, marginTop:24}}><span>⚡ This Week's Category Champs</span><div style={secLine}/></div>
+        {loading ? (
+          <div style={{ fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontStyle:"italic", padding:"8px 0" }}>Loading…</div>
+        ) : (
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {activeCats.map(cat => {
+              const champ = weeklyChamps.find(c => c.id === cat.id);
+              return <CatRow key={cat.id} cat={cat} champ={champ} scoreKey="this wk"/>;
+            })}
+          </div>
+        )}
+
+        {/* ── ALL-TIME CATEGORY RECORDS ── */}
+        <div style={{...secLabel, marginTop:24}}><span>🏅 All-Time Category Records</span><div style={secLine}/></div>
         {loading ? (
           <div style={{ fontSize:13, color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", fontStyle:"italic", padding:"8px 0" }}>Loading…</div>
         ) : (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {activeCats.map(cat => {
               const champ = categoryChamps.find(c => c.id === cat.id);
-              return (
-                <div key={cat.id} style={{ display:"flex", alignItems:"center", gap:12, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", borderRadius:14, padding:"10px 14px" }}>
-                  <div style={{ width:3, height:36, borderRadius:2, background:cat.color, flexShrink:0, opacity:0.8 }}/>
-                  <div style={{ width:36, height:36, borderRadius:10, flexShrink:0, background:"rgba(255,255,255,0.05)", border:"1px solid rgba(255,255,255,0.08)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{cat.icon}</div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif", marginBottom:2 }}>{cat.label}</div>
-                    <div style={{ fontSize:14, fontWeight:600, color:champ?"#eee":"rgba(255,255,255,0.2)", fontFamily:"'Inter',sans-serif", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{champ ? champ.champion : "No plays yet"}</div>
-                  </div>
-                  {champ && (
-                    <div style={{ textAlign:"right", flexShrink:0 }}>
-                      <div style={{ ...hStyle, fontSize:24, color:"#f0a500", lineHeight:1 }}>{champ.best}</div>
-                      <div style={{ fontSize:9, textTransform:"uppercase", letterSpacing:"0.1em", color:"rgba(255,255,255,0.25)", fontFamily:"'Inter',sans-serif" }}>best</div>
-                    </div>
-                  )}
-                </div>
-              );
+              return <CatRow key={cat.id} cat={cat} champ={champ} scoreKey="record"/>;
             })}
           </div>
         )}
