@@ -510,7 +510,7 @@ function HallOfFameScreen({ onBack }) {
         }
 
         const gRes = await fetch(
-          `${SB_URL}/rest/v1/rush_alltime_aggregate?select=username,score&order=score.desc,updated_at.asc&limit=1`,
+          `${SB_URL}/rest/v1/rush_alltime_aggregate?select=username,score&order=score.desc&limit=1`,
           { headers: SB_HEADERS }
         );
         if (gRes.ok) {
