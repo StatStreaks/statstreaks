@@ -470,7 +470,7 @@ function HallOfFameScreen({ onBack }) {
         if (wRes.ok) setWeeklyWinners(await wRes.json());
 
         const cRes = await fetch(
-          `${SB_URL}/rest/v1/rush_bests?select=category,username,alltime_best&order=alltime_best.desc`,
+          `${SB_URL}/rest/v1/rush_bests?select=category,username,alltime_best&order=alltime_best.desc,updated_at.asc`,
           { headers: SB_HEADERS }
         );
         if (cRes.ok) {
@@ -488,7 +488,7 @@ function HallOfFameScreen({ onBack }) {
         }
 
         const gRes = await fetch(
-          `${SB_URL}/rest/v1/rush_alltime_aggregate?select=username,score&order=score.desc&limit=1`,
+          `${SB_URL}/rest/v1/rush_alltime_aggregate?select=username,score&order=score.desc,updated_at.asc&limit=1`,
           { headers: SB_HEADERS }
         );
         if (gRes.ok) {
