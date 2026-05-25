@@ -557,7 +557,7 @@ function HallOfFameScreen({ onBack }) {
       </div>
       <div style={{ fontSize:11, color:"rgba(255,255,255,0.25)", letterSpacing:"0.15em", textTransform:"uppercase", fontFamily:"'Inter',sans-serif", padding:"2px 20px 16px" }}>Season 2026</div>
 
-      <div style={{ padding:"0 16px 32px" }}>
+      <div style={{ padding:"0 16px 32px", width:"100%", boxSizing:"border-box" }}>
 
         {/* ── GOLDEN BOOT ── */}
         <div style={secLabel}><span>🥇 Golden Boot · 2026</span><div style={secLine}/></div>
@@ -597,14 +597,13 @@ function HallOfFameScreen({ onBack }) {
         ) : weeklyWinners.length === 0 ? (
           <div style={{ fontSize:13, color:"rgba(255,255,255,0.25)", fontFamily:"'Inter',sans-serif", fontStyle:"italic", padding:"8px 0" }}>No weekly winners yet — check back after the first full week!</div>
         ) : (
-          <div style={{ overflow:"hidden", margin:"0 -16px" }}>
-          <div style={{ display:"flex", gap:10, overflowX:"auto", scrollbarWidth:"none", WebkitOverflowScrolling:"touch", padding:"0 16px 8px" }}>
+          <div style={{ display:"flex", gap:10, overflowX:"auto", scrollbarWidth:"none", margin:"0 -16px", padding:"0 16px 8px" }}>
             {weeklyWinners.map((w, i) => {
               const isFirst = i === 0;
               const medal = i === 0 ? "🥇" : "🏆";
               const borderCol = i===0 ? "#f0a500" : i===1 ? "#999" : i===2 ? "#cd7f32" : "rgba(255,255,255,0.08)";
               return (
-                <div key={w.week_key} style={{ flexShrink:0, width:128, minWidth:128, background:isFirst?"linear-gradient(160deg,#1c1400,#2e2000)":"rgba(255,255,255,0.04)", border:`1px solid ${borderCol}`, borderRadius:16, overflow:"hidden" }}>
+                <div key={w.week_key} style={{ flexShrink:0, width:128, background:isFirst?"linear-gradient(160deg,#1c1400,#2e2000)":"rgba(255,255,255,0.04)", border:`1px solid ${borderCol}`, borderRadius:16, overflow:"hidden" }}>
                   <div style={{ padding:"8px 10px 6px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                     <span style={{ fontSize:9, letterSpacing:"0.15em", textTransform:"uppercase", color:"rgba(255,255,255,0.3)", fontFamily:"'Inter',sans-serif" }}>{w.week_key.replace("-W"," Wk ")}</span>
                     <span style={{ fontSize:14 }}>{medal}</span>
@@ -618,7 +617,6 @@ function HallOfFameScreen({ onBack }) {
                 </div>
               );
             })}
-          </div>
           </div>
         )}
         {weeklyWinners.length > 0 && <div style={{ fontSize:10, color:"rgba(255,255,255,0.2)", textAlign:"center", letterSpacing:"0.1em", fontFamily:"'Inter',sans-serif", padding:"2px 0 4px" }}>← scroll for more →</div>}
