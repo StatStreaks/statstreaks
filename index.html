@@ -21,19 +21,21 @@
     <link rel="apple-touch-icon" href="/favicon.png" />
 
     <!-- PWA -->
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="StatStreaks" />
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="StatStreaks" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
-    <!-- SEO keywords and author (static, fine to keep here) -->
+    <!-- Primary SEO -->
+    <title>StatStreaks – The Football Higher or Lower Game</title>
+    <meta name="description" content="Can you guess higher or lower? StatStreaks is a free daily football stats game. Test your knowledge of Premier League goals, international caps, Champions League records and more. Play every day to build your streak." />
     <meta name="keywords" content="football game, higher or lower, football stats, premier league quiz, football trivia, daily football game, sports quiz" />
     <meta name="author" content="StatStreaks" />
+    <link rel="canonical" href="https://statstreaks.com/" />
 
     <!-- Open Graph — controls how the link looks when shared on WhatsApp, Twitter, Facebook etc -->
-    <!-- These are static fallbacks for social crawlers that don't execute JS -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://statstreaks.com/" />
     <meta property="og:title" content="StatStreaks – The Football Higher or Lower Game" />
@@ -71,23 +73,17 @@
     }
     </script>
 
-    <!--
-      NOTE: <title>, <meta name="description">, and <link rel="canonical"> are
-      intentionally omitted here. They are injected per-page by react-helmet-async
-      via PageLayout.jsx. Keeping them here would create duplicates.
-    -->
-
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .catch(err => console.log('SW registration failed:', err));
-        });
-      }
-    </script>
+ <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .catch(err => console.log('SW registration failed:', err));
+    });
+  }
+</script>
   </body>
 </html>
