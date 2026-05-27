@@ -1,3 +1,12 @@
+import { Helmet } from "react-helmet-async";
+
+// Inside App's return, before anything else:
+<Helmet>
+  <title>StatStreaks – The Football Higher or Lower Game</title>
+  <meta name="description" content="Can you guess higher or lower? StatStreaks is a free daily football stats game. Test your knowledge of Premier League goals, international caps, Champions League records and more. Play every day to build your streak." />
+  <link rel="canonical" href="https://statstreaks.com/" />
+</Helmet>
+
 import { useState, useEffect, useRef } from "react";
 
 // ── ANALYTICS ─────────────────────────────────────────────────────────────────
