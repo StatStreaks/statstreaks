@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Google AdSense -->
+    <meta name="google-adsense-account" content="ca-pub-8717231673861805">
+
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-E7N1LR3LHF"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-E7N1LR3LHF');
+    </script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+
+    <!-- PWA -->
+<link rel="manifest" href="/manifest.json" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="StatStreaks" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+    <!-- Primary SEO -->
+    <title>StatStreaks – The Football Higher or Lower Game</title>
+    <meta name="description" content="Can you guess higher or lower? StatStreaks is a free daily football stats game. Test your knowledge of Premier League goals, international caps, Champions League records and more. Play every day to build your streak." />
+    <meta name="keywords" content="football game, higher or lower, football stats, premier league quiz, football trivia, daily football game, sports quiz" />
+    <meta name="author" content="StatStreaks" />
+    <link rel="canonical" href="https://statstreaks.com/" />
+
+    <!-- Open Graph — controls how the link looks when shared on WhatsApp, Twitter, Facebook etc -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://statstreaks.com/" />
+    <meta property="og:title" content="StatStreaks – The Football Higher or Lower Game" />
+    <meta property="og:description" content="A free daily football stats game. Guess higher or lower across Premier League goals, international caps, Champions League records and more. Build your streak!" />
+    <meta property="og:image" content="https://statstreaks.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="StatStreaks" />
+    <meta property="og:locale" content="en_GB" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="StatStreaks – The Football Higher or Lower Game" />
+    <meta name="twitter:description" content="A free daily football stats game. Guess higher or lower across Premier League goals, international caps, Champions League records and more." />
+    <meta name="twitter:image" content="https://statstreaks.com/og-image.png" />
+
+    <!-- Structured Data — tells Google this is a game -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "StatStreaks",
+      "url": "https://statstreaks.com",
+      "description": "A free daily football higher or lower stats game. Guess whether the next player's stat is higher or lower across Premier League goals, international caps, Champions League records and more.",
+      "applicationCategory": "Game",
+      "genre": "Sports",
+      "browserRequirements": "Requires JavaScript",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "GBP"
+      },
+      "inLanguage": "en-GB"
+    }
+    </script>
+
+    <script type="module" crossorigin src="/assets/index-C2JSJg74.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+ <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .catch(err => console.log('SW registration failed:', err));
+    });
+  }
+</script>
+  </body>
+</html>
